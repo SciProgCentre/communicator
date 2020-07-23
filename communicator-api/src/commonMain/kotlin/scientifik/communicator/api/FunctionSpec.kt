@@ -2,8 +2,6 @@ package scientifik.communicator.api
 
 data class FunctionSpec<T, R>(val argumentCoder: Coder<T>, val resultCoder: Coder<R>)
 
-typealias BinaryFunction = suspend (Payload) -> Payload
-
 fun <T, R> (suspend (T) -> R).toBinary(spec: FunctionSpec<T, R>): BinaryFunction = { bin ->
     val arg: T = spec.argumentCoder.decode(bin)
     val res: R = invoke(arg)
