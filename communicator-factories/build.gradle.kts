@@ -1,7 +1,7 @@
 import scientifik.useCoroutines
 
 plugins {
-    id("scientifik.mpp")
+   id("scientifik.mpp")
 }
 
 useCoroutines()
@@ -11,11 +11,7 @@ kotlin{
       commonMain {
          dependencies {
             api(project(":communicator-api"))
-         }
-      }
-      jvmMain {
-         dependencies {
-            api("org.zeromq:jeromq:0.5.2")
+            api(project(":communicator-zmq"))
          }
       }
    }

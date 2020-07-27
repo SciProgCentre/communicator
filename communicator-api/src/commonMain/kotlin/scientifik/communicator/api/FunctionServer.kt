@@ -1,13 +1,19 @@
 package scientifik.communicator.api
 
-interface FunctionServer {
-    val endpoints: List<Endpoint>
-    val specs: Map<String, FunctionSpec<*, *>>
+interface TransportServer {
 
-    fun <T, R> register(name: String, spec: FunctionSpec<T, R>, function: suspend (T) -> R)
+    val port: Int
+
+    fun register(name: String, function: PayloadFunction)
     fun unregister(name: String)
 }
 
-interface FunctionServerFactory<C> {
-    fun build(configuration: C): FunctionServer
+interface FunctionServer {
+
+    val endpoints: List<Endpoint>
+
+    fun <T, R> register(name: String, spec: FunctionSpec<T, R>, function: suspend (T) -> R)
+
+    fun unregister(name: String)
+
 }

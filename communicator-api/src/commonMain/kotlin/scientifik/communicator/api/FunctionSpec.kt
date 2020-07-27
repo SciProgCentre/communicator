@@ -2,14 +2,38 @@ package scientifik.communicator.api
 
 data class FunctionSpec<T, R>(val argumentCoder: Coder<T>, val resultCoder: Coder<R>)
 
-fun <T, R> (suspend (T) -> R).toBinary(spec: FunctionSpec<T, R>): BinaryFunction = { bin ->
-    val arg: T = spec.argumentCoder.decode(bin)
+/**
+ * Returned function will wrap serialization exceptions into [CoderException],
+ * and will throw receiver function's exceptions as-is.
+ */
+fun <T, R> (suspend (T) -> R).toBinary(spec: FunctionSpec<T, R>): PayloadFunction = { bin ->
+    val arg: T = try {
+        spec.argumentCoder.decode(bin)
+    } catch (ex: Exception) {
+        throw DecodingException(bin, spec.argumentCoder, ex.message.orEmpty())
+    }
     val res: R = invoke(arg)
-    spec.resultCoder.encode(res)
+    try {
+        spec.resultCoder.encode(res)
+    } catch (ex: Exception) {
+        throw EncodingException(res, spec.resultCoder, ex.message.orEmpty())
+    }
 }
 
-fun <T, R> BinaryFunction.toFunction(spec: FunctionSpec<T, R>): (suspend (T) -> R) = { arg ->
-    val bin: Payload = spec.argumentCoder.encode(arg)
+/**
+ * Returned function will wrap serialization exceptions into [CoderException],
+ * and will throw receiver function's exceptions as-is.
+ */
+fun <T, R> PayloadFunction.toFunction(spec: FunctionSpec<T, R>): (suspend (T) -> R) = { arg ->
+    val bin: Payload = try {
+        spec.argumentCoder.encode(arg)
+    } catch (ex: Exception) {
+        throw EncodingException(arg, spec.argumentCoder, ex.message.orEmpty())
+    }
     val res: Payload = invoke(bin)
-    spec.resultCoder.decode(res)
+    try {
+        spec.resultCoder.decode(res)
+    } catch (ex: Exception) {
+        throw DecodingException(res, spec.resultCoder, ex.message.orEmpty())
+    }
 }

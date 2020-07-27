@@ -36,7 +36,8 @@ pluginManagement {
 rootProject.name = "communicator"
 
 include(
-    ":communicator-api",
-    ":communicator-zmq",
-    ":demo"
+        ":communicator-api",
+        ":communicator-zmq",
+        ":communicator-factories",
+        ":demo"
 )
