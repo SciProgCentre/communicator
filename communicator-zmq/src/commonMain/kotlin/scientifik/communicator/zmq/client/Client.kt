@@ -38,7 +38,7 @@ internal class Client {
     private val newQueriesQueue = ConcurrentQueue<Query>()
 
     fun makeQuery(query: Query) {
-        log("Making query ${query.functionName}")
+        log("Adding query ${query.functionName} to the internal queue")
         newQueriesQueue.add(query)
     }
 
@@ -111,7 +111,7 @@ private fun ClientContext.handleResult(arg: ResultHandlerArg) {
     val msg: ZMQMsg = arg.socket.recvMsg()
     val queryID = QueryID(msg.pop().data)
     val result = msg.pop().data
-    log("Got result $queryID $result")
+    log("Got result to the query [$queryID]: $result")
     val callback = queriesInWork[queryID]
     if (callback == null) {
         log("ERROR: handler can't find callback in waitingQueries queue")

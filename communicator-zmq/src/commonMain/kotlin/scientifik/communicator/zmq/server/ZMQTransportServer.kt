@@ -19,9 +19,11 @@ class ZMQTransportServer(override val port: Int) : TransportServer {
     private val editFunctionQueriesQueue = ConcurrentQueue<EditFunctionQuery>()
 
     init {
-        val frontend = ctx.createDealerSocket()
-        frontend.bind("tcp://*:$port")
-        start(frontend)
+        runInBackground {
+            val frontend = ctx.createDealerSocket()
+            frontend.bind("tcp://*:$port")
+            start(frontend)
+        }
     }
 
     override fun register(name: String, function: PayloadFunction) {
