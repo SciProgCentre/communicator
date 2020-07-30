@@ -1,7 +1,7 @@
 import scientifik.useCoroutines
 
 plugins {
-    id("scientifik.mpp")
+   id("scientifik.mpp")
 }
 
 useCoroutines()
@@ -13,7 +13,6 @@ kotlin{
             implementation(project(":communicator-api"))
             implementation(project(":communicator-zmq"))
             implementation(project(":communicator-factories"))
-            implementation(project(":communicator-userapi"))
          }
       }
       jvmMain {
@@ -21,7 +20,6 @@ kotlin{
             implementation(project(":communicator-api"))
             implementation(project(":communicator-zmq"))
             implementation(project(":communicator-factories"))
-            implementation(project(":communicator-userapi"))
          }
       }
    }

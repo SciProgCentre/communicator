@@ -1,25 +1,18 @@
-import scientifik.communicator.api.IntCoder
-import scientifik.communicator.api.Payload
-import scientifik.communicator.api.StringCoder
-import scientifik.communicator.api.TransportServer
+import scientifik.communicator.api.*
+import scientifik.communicator.userapi.*
 
-class contractor(
-        val transportServer: TransportServer
-) {
+class contractor(transportServer: TransportServer) : LibraryContractor(transportServer) {
     val lib = lib()
-    val intCoder = IntCoder()
-    val stringCoder = StringCoder()
-
-    init {
-        transportServer.register("call", ::wrappedCall)
-        transportServer.register("callUpTo", ::wrappedCallUpTo)
+    private val intCoder = IntCoder()
+    private val stringCoder = StringCoder()
+    private val callBuilder = LibraryFunctionBuilder("call", FunctionSpec(PairCoder(stringCoder, intCoder), stringCoder)){transport, address ->
+        val suspended: suspend (Pair<String, Int>) -> String = { (fid, argument) ->
+            remoteCall(FunctionSpec(intCoder, stringCoder), argument, transport.channel(address, fid))
+        }
+        suspended
     }
 
-    suspend fun wrappedCall(arg: Payload): Payload {
-
-    }
-
-    suspend fun wrappedCallUpTo(arg: Payload): Payload {
-
+    override suspend fun addFunctionalServer(transport: Transport, address: String) {
+        transportServer.register(callBuilder.name, toPayloadFunction(callBuilder.builder(transport, address), callBuilder.spec))
     }
 }

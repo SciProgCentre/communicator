@@ -39,5 +39,6 @@ include(
         ":communicator-api",
         ":communicator-zmq",
         ":communicator-factories",
-        ":demo"
+        ":demo",
+        ":communicator-userapi"
 )
