@@ -8,9 +8,18 @@ useCoroutines()
 
 kotlin{
    sourceSets {
-      val commonMain by getting {
+      commonMain {
          dependencies {
-            api(project(":communicator-api"))
+            implementation(project(":communicator-api"))
+            implementation(project(":communicator-zmq"))
+            implementation(project(":communicator-factories"))
+         }
+      }
+      jvmMain {
+         dependencies{
+            implementation(project(":communicator-api"))
+            implementation(project(":communicator-zmq"))
+            implementation(project(":communicator-factories"))
          }
       }
    }

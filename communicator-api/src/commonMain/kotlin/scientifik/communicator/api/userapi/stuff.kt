@@ -2,8 +2,9 @@ package scientifik.communicator.api.userapi
 
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import scientifik.communicator.api.Payload
 import scientifik.communicator.api.PayloadFunction
 
@@ -65,33 +66,66 @@ sealed class MessageType(val stringRepr: String) {
     }
 }
 
-suspend fun placeOrder(content: Payload, channel: PayloadFunction): Order {
-    val initialMessage = Message(MessageType.Initial(), content)
-    var response = Message.fromByteArray(channel(initialMessage.toByteArray()))
-    val result = CompletableDeferred<Payload>()
-    val flow = flow {
-        loop@ while (true) {
-            when (response.type) {
-                is MessageType.Success -> {
-                    result.complete(response.content)
-                }
-                is MessageType.Fail -> {
-                    //TODO(): create exceptions for different reasons of
-                    // failure or maybe remove option to fail
-                    throw Exception("Got FAIL result")
-                }
-                is MessageType.Initial,
-                is MessageType.Abort,
-                is MessageType.Confirmation -> throw UnexpectedMessageTypeException(response.type.stringRepr)
-                is MessageType.Status -> {
-                    emit(response)
-                    response = Message.fromByteArray(
-                            channel(
-                                    Message(
-                                            MessageType.Confirmation(), byteArrayOf()).toByteArray()))
+
+// Only one byte for ids for now
+class OrderPlacer(val channel: PayloadFunction) {
+    private var orderId: Byte = 0
+
+    private fun newId(): ByteArray {
+        return byteArrayOf(orderId++)
+    }
+
+    fun getId(bytes: ByteArray): Pair<Byte, ByteArray> {
+
+    }
+
+    suspend fun getResponse(msg: Message, id: ByteArray): Pair<Message, Byte> {
+        return Message.fromByteArray(channel(id + msg.toByteArray()))
+    }
+
+    // For now user HAS to read output flow
+    fun placeOrder(content: Payload, intermediateMessages: Flow<Message> = emptyFlow()): Order {
+        val thisId = newId()
+        val initialMessage = Message(MessageType.Initial(), content)
+        var response: Message
+        val result = CompletableDeferred<Payload>()
+        val inputFlow = flow {
+            response = Message.fromByteArray(channel(initialMessage.toByteArray()))
+            loop@ while (true) {
+                when (response.type) {
+                    is MessageType.Success -> {
+                        result.complete(response.content)
+                    }
+                    is MessageType.Fail -> {
+                        //TODO(): create exceptions for different reasons of
+                        // failure or maybe remove option to fail
+                        throw Exception("Got FAIL result")
+                    }
+                    is MessageType.Initial,
+                    is MessageType.Abort,
+                    is MessageType.Confirmation -> throw UnexpectedMessageTypeException(response.type.stringRepr)
+                    is MessageType.Status -> {
+                        emit(response)
+                        response = Message.fromByteArray(
+                                channel(
+                                        Message(
+                                                MessageType.Confirmation(), byteArrayOf()).toByteArray()))
+                    }
                 }
             }
         }
+        GlobalScope.launch {
+            intermediateMessages.collect {
+                val intermediateResponse = Message.fromByteArray(channel(it.toByteArray()))
+                println("Got ${intermediateResponse.type.stringRepr} as intermediate response")
+            }
+        }
+
+        return Order(result, inputFlow)
     }
-    return Order(result, flow)
 }
+
+fun <A> receiveOrder(content: Payload, intermediateMessages: Flow<Message>): Pair<A, Flow<Message>> {
+
+}
+
