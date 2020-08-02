@@ -41,4 +41,8 @@ class DefaultFunctionServer(override val endpoints: List<Endpoint>) : FunctionSe
         }
     }
 
+    override fun stop() {
+        //TODO
+    }
+
 }

@@ -1,6 +1,6 @@
 package scientifik.communicator.zmq.platform
 
-expect class ZMQSocket {
+expect class ZmqSocket {
 
     fun connect(zmqAddress: String)
     fun bind(zmqAddress: String)
@@ -8,7 +8,7 @@ expect class ZMQSocket {
     fun setIdentity(identity: ByteArray)
 
     /** zmsg_recv method (CZMQ) */
-    fun recvMsg(): ZMQMsg
+    fun recvMsg(): ZmqMsg
 
     fun close()
 

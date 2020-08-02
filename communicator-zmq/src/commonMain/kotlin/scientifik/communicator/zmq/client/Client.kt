@@ -20,14 +20,14 @@ internal class Query(
 )
 
 private class ClientContext(
-        val ctx: ZMQContext,
-        val identity: QueryID,
+        val ctx: ZmqContext,
+        val identity: UniqueID,
         // В эту очередь попадают запросы при вызове remoteFunction.invoke()
         val newQueriesQueue: ConcurrentQueue<Query>,
         // В этот словарь попадают запросы, которые уже отправлены на сервер и сервер ответил о том, что он получил их
-        val queriesInWork: HashMap<QueryID, ResultCallback>,
-        val forwardSockets: HashMap<String, ZMQSocket>,
-        val reactor: ZMQLoop
+        val queriesInWork: HashMap<UniqueID, ResultCallback>,
+        val forwardSockets: HashMap<String, ZmqSocket>,
+        val reactor: ZmqLoop
 )
 
 /**
@@ -43,15 +43,16 @@ internal class Client {
     }
 
     init {
-        runInBackground {
-            val ctx = ZMQContext()
+        //TODO
+        runInBackground({}) {
+            val ctx = ZmqContext()
             val clientContext = ClientContext(
                     ctx = ctx,
-                    identity = QueryID(),
+                    identity = UniqueID(),
                     newQueriesQueue = newQueriesQueue,
                     queriesInWork = HashMap(),
                     forwardSockets = HashMap(),
-                    reactor = ZMQLoop(ctx)
+                    reactor = ZmqLoop(ctx)
             )
             with(clientContext) {
                 reactor.addTimer(NEW_QUERIES_QUEUE_UPDATE_INTERVAL, 0, { _, _, arg ->
@@ -69,7 +70,7 @@ private fun ClientContext.handleQueue() {
     while (true) {
         val query = newQueriesQueue.poll() ?: break
         log("Making query ${query.functionName}")
-        val id = QueryID()
+        val id = UniqueID()
         queriesInWork[id] = query.callback
         val forwardSocket = getForwardSocket(query.address)
         sendQuery(forwardSocket, query, id)
@@ -78,7 +79,7 @@ private fun ClientContext.handleQueue() {
 
 private fun ClientContext.getForwardSocket(
         address: String
-): ZMQSocket {
+): ZmqSocket {
     val existing = forwardSockets[address]
     if (existing != null) return existing
     val forwardSocket = ctx.createDealerSocket()
@@ -93,8 +94,8 @@ private fun ClientContext.getForwardSocket(
     return forwardSocket
 }
 
-private fun sendQuery(socket: ZMQSocket, query: Query, queryID: QueryID) {
-    val msg = ZMQMsg()
+private fun sendQuery(socket: ZmqSocket, query: Query, queryID: UniqueID) {
+    val msg = ZmqMsg()
     msg.add(queryID.bytes)
     msg.add(query.functionName.encodeToByteArray())
     msg.add(query.arg)
@@ -102,14 +103,14 @@ private fun sendQuery(socket: ZMQSocket, query: Query, queryID: QueryID) {
 }
 
 private class ResultHandlerArg(
-        val socket: ZMQSocket,
+        val socket: ZmqSocket,
         val clientContext: ClientContext
 )
 
 private fun ClientContext.handleResult(arg: ResultHandlerArg) {
     log("Handling result")
-    val msg: ZMQMsg = arg.socket.recvMsg()
-    val queryID = QueryID(msg.pop().data)
+    val msg: ZmqMsg = arg.socket.recvMsg()
+    val queryID = UniqueID(msg.pop().data)
     val result = msg.pop().data
     log("Got result to the query [$queryID]: $result")
     val callback = queriesInWork[queryID]

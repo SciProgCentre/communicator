@@ -1,9 +1,6 @@
 package scientifik.communicator.zmq.platform
 
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-
-/** Runs an event loop in background thread. Event loop blocks the thread forever. */
-actual fun runInBackground(runnable: () -> Unit) {
-    GlobalScope.launch { runnable() }
+/* On NodeJS, volatileJob should probably be launched in nodejs worker */
+actual fun <T1, T2> runInBackground(supplier: () -> T1, volatileJob: (T1) -> T2) {
+    TODO()
 }

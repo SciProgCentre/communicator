@@ -1,14 +1,14 @@
 package scientifik.communicator.zmq.platform
 
 /** 16-byte unique query ID */
-class QueryID(val bytes: ByteArray) {
+class UniqueID(val bytes: ByteArray) {
 
     /** Generates random query ID using UUID */
     constructor() : this(generateUUID())
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is QueryID) return false
+        if (other !is UniqueID) return false
         return bytes.contentEquals(other.bytes)
     }
 

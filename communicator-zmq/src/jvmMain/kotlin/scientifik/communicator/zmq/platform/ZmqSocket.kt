@@ -3,7 +3,7 @@ package scientifik.communicator.zmq.platform
 import org.zeromq.ZMQ
 import org.zeromq.ZMsg
 
-actual class ZMQSocket(val backupSocket: ZMQ.Socket) {
+actual class ZmqSocket(val backupSocket: ZMQ.Socket) {
 
     actual fun connect(zmqAddress: String) {
         backupSocket.connect(zmqAddress)
@@ -22,8 +22,8 @@ actual class ZMQSocket(val backupSocket: ZMQ.Socket) {
     }
 
     /** zmsg_recv method (CZMQ) */
-    actual fun recvMsg(): ZMQMsg =
-            ZMQMsg(ZMsg.recvMsg(backupSocket))
+    actual fun recvMsg(): ZmqMsg =
+            ZmqMsg(ZMsg.recvMsg(backupSocket))
 
 
 }
