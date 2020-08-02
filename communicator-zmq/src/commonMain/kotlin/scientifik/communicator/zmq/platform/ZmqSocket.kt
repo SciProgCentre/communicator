@@ -1,6 +1,6 @@
 package scientifik.communicator.zmq.platform
 
-expect class ZmqSocket {
+internal expect class ZmqSocket {
 
     fun connect(zmqAddress: String)
     fun bind(zmqAddress: String)

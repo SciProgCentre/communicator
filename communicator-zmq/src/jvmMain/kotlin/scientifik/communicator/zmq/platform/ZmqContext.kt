@@ -4,19 +4,19 @@ import org.zeromq.SocketType
 import org.zeromq.ZContext
 
 /** Constructor must create a context with its init method */
-actual class ZmqContext actual constructor() {
+internal actual class ZmqContext actual constructor() {
 
-    val backupContext = ZContext()
+    internal val backendContext = ZContext()
 
     actual fun createRouterSocket(): ZmqSocket =
-            ZmqSocket(backupContext.createSocket(SocketType.ROUTER))
+            ZmqSocket(backendContext.createSocket(SocketType.ROUTER))
 
     actual fun createDealerSocket(): ZmqSocket =
-            ZmqSocket(backupContext.createSocket(SocketType.DEALER))
+            ZmqSocket(backendContext.createSocket(SocketType.DEALER))
 
 
     actual fun close() {
-        backupContext.close()
+        backendContext.close()
     }
 
 }

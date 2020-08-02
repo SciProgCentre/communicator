@@ -1,7 +1,7 @@
 package scientifik.communicator.zmq.platform
 
 /** zmsg_t object (CZMQ). Constructor must create it via its init method. */
-actual class ZmqMsg actual constructor() {
+internal actual class ZmqMsg actual constructor() {
     actual fun add(data: ByteArray) {
     }
 

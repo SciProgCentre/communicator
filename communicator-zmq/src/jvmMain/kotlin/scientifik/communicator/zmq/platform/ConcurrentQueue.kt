@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 /**
  * Thread-safe queue
  */
-actual class ConcurrentQueue<T : Any> actual constructor() {
+internal actual class ConcurrentQueue<T : Any> actual constructor() {
 
     private val backupQueue = ConcurrentLinkedQueue<T>()
 

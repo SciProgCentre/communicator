@@ -11,7 +11,7 @@ package scientifik.communicator.zmq.platform
  * To simplify interop with K/N (and gain some thread safety on other platforms),
  * [volatileJob] does not capture any state.
  */
-expect fun <T1, T2> runInBackground(
+internal expect fun <T1, T2> runInBackground(
         supplier: () -> T1,
         volatileJob: (T1) -> T2
 )

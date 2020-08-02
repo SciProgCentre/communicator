@@ -2,7 +2,7 @@ package scientifik.communicator.zmq.platform
 
 import kotlin.concurrent.thread
 
-actual fun <T1, T2> runInBackground(
+internal actual fun <T1, T2> runInBackground(
         supplier: () -> T1,
         volatileJob: (T1) -> T2
 ) {

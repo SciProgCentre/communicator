@@ -1,7 +1,7 @@
 package scientifik.communicator.zmq.platform
 
 /** Constructor must create a context with its init method */
-expect class ZmqContext() {
+internal expect class ZmqContext() {
 
     fun createRouterSocket(): ZmqSocket
     fun createDealerSocket(): ZmqSocket

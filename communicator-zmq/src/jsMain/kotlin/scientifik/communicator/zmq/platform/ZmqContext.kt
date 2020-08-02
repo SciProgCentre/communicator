@@ -1,7 +1,7 @@
 package scientifik.communicator.zmq.platform
 
 /** Constructor must create a context with its init method */
-actual class ZmqContext actual constructor() {
+internal actual class ZmqContext actual constructor() {
     actual fun createRouterSocket(): ZmqSocket {
         TODO("Not yet implemented")
     }

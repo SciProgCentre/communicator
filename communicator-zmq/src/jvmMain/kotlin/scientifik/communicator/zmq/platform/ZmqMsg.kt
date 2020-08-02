@@ -3,26 +3,26 @@ package scientifik.communicator.zmq.platform
 import org.zeromq.ZMsg
 
 /** zmsg_t object (CZMQ). Constructor must create it via its init method. */
-actual class ZmqMsg(val backupMsg: ZMsg) {
+internal actual class ZmqMsg(internal val backendMsg: ZMsg) {
 
     actual constructor() : this(ZMsg())
 
     actual fun add(data: ByteArray) {
-        backupMsg.add(data)
+        backendMsg.add(data)
     }
 
     actual fun add(frame: ZmqFrame) {
-        backupMsg.add(frame.backupFrame)
+        backendMsg.add(frame.backendFrame)
     }
 
-    actual fun pop(): ZmqFrame = ZmqFrame(backupMsg.pop())
+    actual fun pop(): ZmqFrame = ZmqFrame(backendMsg.pop())
 
     actual fun send(socket: ZmqSocket) {
-        backupMsg.send(socket.backupSocket)
+        backendMsg.send(socket.backendSocket)
     }
 
     actual fun close() {
-        backupMsg.destroy()
+        backendMsg.destroy()
     }
 
 }

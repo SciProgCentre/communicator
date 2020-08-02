@@ -1,7 +1,7 @@
 package scientifik.communicator.zmq.platform
 
 /** Constructor must create a loop with its "new" method */
-actual class ZmqLoop actual constructor(ctx: ZmqContext) {
+internal actual class ZmqLoop actual constructor(ctx: ZmqContext) {
     actual fun addReader(socket: ZmqSocket, handler: (Any?, Any?, Any?) -> Int, arg: Any?) {
     }
 

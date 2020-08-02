@@ -1,6 +1,6 @@
 package scientifik.communicator.zmq.platform
 
-actual class ZmqSocket {
+internal actual class ZmqSocket {
     actual fun connect(zmqAddress: String) {
     }
 
