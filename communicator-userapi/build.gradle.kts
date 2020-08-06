@@ -1,26 +1,19 @@
 import scientifik.useCoroutines
 
-plugins {
-   id("scientifik.mpp")
-}
-
+plugins { id("scientifik.mpp") }
 useCoroutines()
 
-kotlin{
-   sourceSets {
-      commonMain {
-         dependencies {
+kotlin.sourceSets {
+    commonMain {
+        dependencies {
             implementation(project(":communicator-api"))
-            implementation(project(":communicator-zmq"))
-            implementation(project(":communicator-factories"))
-         }
-      }
-      jvmMain {
-         dependencies{
+        }
+    }
+
+    jvmMain {
+        dependencies {
+            api("org.zeromq:jeromq:0.5.2")
             implementation(project(":communicator-api"))
-            implementation(project(":communicator-zmq"))
-            implementation(project(":communicator-factories"))
-         }
-      }
-   }
+        }
+    }
 }
