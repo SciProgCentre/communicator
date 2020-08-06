@@ -2,7 +2,7 @@ package scientifik.communicator.factories
 
 import scientifik.communicator.api.Transport
 import scientifik.communicator.api.TransportFactory
-import scientifik.communicator.zmq.client.ZMQTransport
+import scientifik.communicator.zmq.client.ZmqTransport
 import kotlin.jvm.Synchronized
 
 
@@ -15,7 +15,7 @@ class DefaultTransportFactory : TransportFactory {
         val currentTransport = transports[protocol]
         if (currentTransport == null) {
             val newTransport = when (protocol) {
-                "ZMQ" -> ZMQTransport()
+                "ZMQ" -> ZmqTransport()
                 else -> null
             }
             if (newTransport != null) transports[protocol] = newTransport

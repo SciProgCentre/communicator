@@ -4,7 +4,7 @@ import kotlinx.coroutines.CompletableDeferred
 import scientifik.communicator.api.Payload
 import scientifik.communicator.api.Transport
 
-class ZMQTransport : Transport {
+class ZmqTransport : Transport {
 
     private val client = Client()
 

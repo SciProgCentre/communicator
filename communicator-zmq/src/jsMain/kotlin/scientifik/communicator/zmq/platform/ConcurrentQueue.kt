@@ -3,7 +3,7 @@ package scientifik.communicator.zmq.platform
 /**
  * Thread-safe queue
  */
-actual class ConcurrentQueue<T : Any> actual constructor() {
+internal actual class ConcurrentQueue<T : Any> actual constructor() {
     /** Adds an element to the end of the queue */
     actual fun add(element: T) {
     }

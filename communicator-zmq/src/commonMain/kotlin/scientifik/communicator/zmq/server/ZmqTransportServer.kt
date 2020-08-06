@@ -14,12 +14,13 @@ class ZMQTransportServer(override val port: Int) : TransportServer {
     private val serverFunctions = HashMap<String, PayloadFunction>()
     private val workerDispatcher = Dispatchers.Default
     private val workerScope = CoroutineScope(workerDispatcher + SupervisorJob())
-    private val ctx = ZMQContext()
+    private val ctx = ZmqContext()
     private val repliesQueue = ConcurrentQueue<Reply>()
     private val editFunctionQueriesQueue = ConcurrentQueue<EditFunctionQuery>()
 
     init {
-        runInBackground {
+        //TODO
+        runInBackground({}) {
             val frontend = ctx.createDealerSocket()
             frontend.bind("tcp://*:$port")
             start(frontend)
@@ -34,8 +35,12 @@ class ZMQTransportServer(override val port: Int) : TransportServer {
         editFunctionQueriesQueue.add(UnregisterFunctionQuery(name))
     }
 
-    private fun start(frontend: ZMQSocket) {
-        val reactor = ZMQLoop(ctx)
+    override fun stop() {
+        //TODO
+    }
+
+    private fun start(frontend: ZmqSocket) {
+        val reactor = ZmqLoop(ctx)
         reactor.addReader(frontend, { _, _, arg ->
             handleFrontend(arg as FrontendHandlerArg)
             0
@@ -61,7 +66,7 @@ private class Reply(val queryID: ByteArray, val resultBytes: ByteArray)
 
 private class FrontendHandlerArg(
         val workerScope: CoroutineScope,
-        val frontend: ZMQSocket,
+        val frontend: ZmqSocket,
         val serverFunctions: HashMap<String, PayloadFunction>,
         val repliesQueue: ConcurrentQueue<Reply>
 )
@@ -69,7 +74,7 @@ private class FrontendHandlerArg(
 
 private fun handleFrontend(arg: FrontendHandlerArg) {
     with(arg) {
-        val msg: ZMQMsg = frontend.recvMsg()
+        val msg: ZmqMsg = frontend.recvMsg()
         val queryID = msg.pop().data
         val functionName = msg.pop().data.decodeToString()
         val argBytes = msg.pop().data
@@ -82,7 +87,7 @@ private fun handleFrontend(arg: FrontendHandlerArg) {
 }
 
 private class ReplyQueueHandlerArg(
-        val frontend: ZMQSocket,
+        val frontend: ZmqSocket,
         val repliesQueue: ConcurrentQueue<Reply>
 )
 
@@ -91,7 +96,7 @@ private fun handleReplyQueue(arg: ReplyQueueHandlerArg) {
         while (true) {
             val reply = repliesQueue.poll() ?: break
             log("Received reply $reply from internal queue")
-            val msg: ZMQMsg = ZMQMsg()
+            val msg: ZmqMsg = ZmqMsg()
             msg.add(reply.queryID)
             msg.add(reply.resultBytes)
             msg.send(frontend)

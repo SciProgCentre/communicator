@@ -6,6 +6,8 @@ interface TransportServer {
 
     fun register(name: String, function: PayloadFunction)
     fun unregister(name: String)
+
+    fun stop()
 }
 
 interface FunctionServer {
@@ -15,5 +17,7 @@ interface FunctionServer {
     fun <T, R> register(name: String, spec: FunctionSpec<T, R>, function: suspend (T) -> R)
 
     fun unregister(name: String)
+
+    fun stop()
 
 }

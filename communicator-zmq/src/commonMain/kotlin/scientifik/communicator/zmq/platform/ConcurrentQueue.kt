@@ -1,9 +1,10 @@
 package scientifik.communicator.zmq.platform
 
 /**
- * Thread-safe queue
+ * Thread-safe queue.
+ * Instances of this class will be frozen on K/N, so choose implementation wisely.
  */
-expect class ConcurrentQueue<T : Any>() {
+internal expect class ConcurrentQueue<T : Any>() {
 
     /** Adds an element to the end of the queue */
     fun add(element: T)

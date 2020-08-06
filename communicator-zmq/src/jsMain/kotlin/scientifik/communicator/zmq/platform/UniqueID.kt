@@ -1,6 +1,6 @@
 package scientifik.communicator.zmq.platform
 
-internal actual fun generateUUID(): ByteArray {
+internal actual fun generateUuid(): ByteArray {
     TODO("Not yet implemented")
 }
 

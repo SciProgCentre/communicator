@@ -2,7 +2,7 @@ package scientifik.communicator.zmq.platform
 
 import java.nio.ByteBuffer
 
-internal actual fun generateUUID(): ByteArray {
+internal actual fun generateUuid(): ByteArray {
     val uuid = java.util.UUID.randomUUID()
     val buffer: ByteBuffer = ByteBuffer.allocate(16)
     buffer.putLong(uuid.mostSignificantBits)
