@@ -29,6 +29,14 @@ class IncompatibleSpecsException(
 
 }
 
+class UnsupportedFunctionNameException(val functionName: String) : RemoteCallException() {
+
+    override val message: String?
+        get() = "Server does not support a function with name $functionName. " +
+                "If you are using a proxy server, please make sure that required worker " +
+                "is connected to the proxy before making query."
+}
+
 /**
  * This exception is thrown if the timeout for invoking remote function has ended,
  * and the client retried the query enough times.
