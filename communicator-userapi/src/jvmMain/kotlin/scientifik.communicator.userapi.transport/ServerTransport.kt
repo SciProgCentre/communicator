@@ -32,10 +32,11 @@ class ServerTransport(private val endpoint: String) : Closeable {
         }
     }
 
-    private fun evaluate(uuid: UUID, arg: Payload, functionName: String): Boolean = ZMsg().apply {
+    private fun evaluate(clientIdentity: ByteArray, uuid: UUID, arg: Payload, functionName: String): Boolean = ZMsg().apply {
         // TODO
         // Currently doesn't support encoding exceptions.
 
+        add(clientIdentity)
 
         val f = functions[functionName] ?: run {
             addLast(byteArrayOf(RESPONSE_FUNCTION_EXCEPTION))
@@ -52,24 +53,31 @@ class ServerTransport(private val endpoint: String) : Closeable {
         }
 
         addLast(byteArrayOf(RESPONSE_SUCCESS))
-        addLast(res)
         addLast(ByteBuffer.allocate(16).also { it.putUuid(uuid) }.array())
+        addLast(res)
     }.send(router)
 
     private fun receive() {
+        println("Server received message")
         val msg = checkNotNull(ZMsg.recvMsg(router))
+
+        println(buildString { msg.dump(this) })
+
+        val clientIdentity = msg.first.data
         msg.removeFirst()
         val type = msg.first.data.first()
         msg.removeFirst()
 
         when (type) {
             REQUEST_EVALUATE -> {
+                println("REQUEST_EVALUATE")
                 val uuid = ByteBuffer.wrap(msg.first.data).getUuid()
                 msg.removeFirst()
                 val arg = msg.first.data
+                println("argBytes = ${arg.contentToString()}")
                 msg.removeFirst()
                 val name = msg.first.data.decodeToString()
-                evaluate(uuid, arg, name)
+                evaluate(clientIdentity, uuid, arg, name)
             }
             REQUEST_CODER_ID -> TODO()
             REQUEST_REVOCATION -> TODO()

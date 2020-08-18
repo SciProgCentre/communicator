@@ -2,8 +2,9 @@ package scientifik.communicator.userapi
 
 import kotlinx.coroutines.runBlocking
 import scientifik.communicator.api.IntCoder
+import scientifik.communicator.api.logging
 
-internal val TestCoder = IntCoder()
+internal val TestCoder = IntCoder().logging()
 
 internal object TestClient : Client("tcp://localhost:8888") {
     val f by function(coder = TestCoder)

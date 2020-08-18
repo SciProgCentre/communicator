@@ -1,6 +1,26 @@
 package scientifik.communicator.api
 
 
+fun <T> Coder<T>.logging(): Coder<T> = object : Coder<T> {
+    override fun encode(value: T): Payload {
+        val result = this@logging.encode(value)
+        println("Encoded $value to ${result.contentToString()}")
+        return result
+    }
+
+    override fun decode(bin: Payload): T {
+        val result = this@logging.decode(bin)
+        println("Decoded ${bin.contentToString()} to $result")
+        return result
+    }
+
+    override val identity: ByteArray
+        get() = this@logging.identity
+
+    override fun toString(): String = this@logging.toString()
+
+}
+
 class IntCoder: Coder<Int> {
     // Taken from https://medium.com/@bananaumai/kotlin-convert-integers-into-bytearray-ca7a2bd9718a
     private fun Int.toByteArray(isBigEndian: Boolean = true): ByteArray {
