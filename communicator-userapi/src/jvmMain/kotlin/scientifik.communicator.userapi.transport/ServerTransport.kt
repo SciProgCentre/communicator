@@ -2,6 +2,7 @@ package scientifik.communicator.userapi.transport
 
 import org.zeromq.*
 import scientifik.communicator.api.Payload
+import scientifik.communicator.api.log
 import java.io.Closeable
 import java.nio.ByteBuffer
 import java.util.*
@@ -32,37 +33,36 @@ class ServerTransport(private val endpoint: String) : Closeable {
         }
     }
 
-    private fun evaluate(clientIdentity: ByteArray, uuid: UUID, arg: Payload, functionName: String): Boolean = ZMsg().apply {
-        // TODO
-        // Currently doesn't support encoding exceptions.
+    private fun evaluate(clientIdentity: ByteArray, uuid: UUID, arg: Payload, functionName: String): Boolean =
+        ZMsg().apply {
+            // TODO
+            // Currently doesn't support encoding exceptions.
 
-        add(clientIdentity)
+            add(clientIdentity)
 
-        val f = functions[functionName] ?: run {
-            addLast(byteArrayOf(RESPONSE_FUNCTION_EXCEPTION))
+            val f = functions[functionName] ?: run {
+                addLast(byteArrayOf(RESPONSE_FUNCTION_EXCEPTION))
+                addLast(ByteBuffer.allocate(16).also { it.putUuid(uuid) }.array())
+                addLast("No such function.")
+                return@apply
+            }
+
+            val res = f(arg) ?: run {
+                addLast(byteArrayOf(RESPONSE_FUNCTION_EXCEPTION))
+                addLast(ByteBuffer.allocate(16).also { it.putUuid(uuid) }.array())
+                addLast("Function did not return.")
+                return@apply
+            }
+
+            addLast(byteArrayOf(RESPONSE_SUCCESS))
             addLast(ByteBuffer.allocate(16).also { it.putUuid(uuid) }.array())
-            addLast("No such function.")
-            return@apply
-        }
-
-        val res = f(arg) ?: run {
-            addLast(byteArrayOf(RESPONSE_FUNCTION_EXCEPTION))
-            addLast(ByteBuffer.allocate(16).also { it.putUuid(uuid) }.array())
-            addLast("Function did not return.")
-            return@apply
-        }
-
-        addLast(byteArrayOf(RESPONSE_SUCCESS))
-        addLast(ByteBuffer.allocate(16).also { it.putUuid(uuid) }.array())
-        addLast(res)
-    }.send(router)
+            addLast(res)
+        }.send(router)
 
     private fun receive() {
-        println("Server received message")
+        log("$this received message")
         val msg = checkNotNull(ZMsg.recvMsg(router))
-
-        println(buildString { msg.dump(this) })
-
+        log(buildString { msg.dump(this) })
         val clientIdentity = msg.first.data
         msg.removeFirst()
         val type = msg.first.data.first()
@@ -70,17 +70,21 @@ class ServerTransport(private val endpoint: String) : Closeable {
 
         when (type) {
             REQUEST_EVALUATE -> {
-                println("REQUEST_EVALUATE")
+                log("REQUEST_EVALUATE")
                 val uuid = ByteBuffer.wrap(msg.first.data).getUuid()
                 msg.removeFirst()
-                val arg = msg.first.data
-                println("argBytes = ${arg.contentToString()}")
+                val arg = checkNotNull(msg.first.data)
+                log("argBytes = ${arg.contentToString()}")
                 msg.removeFirst()
                 val name = msg.first.data.decodeToString()
                 evaluate(clientIdentity, uuid, arg, name)
             }
-            REQUEST_CODER_ID -> TODO()
-            REQUEST_REVOCATION -> TODO()
+
+            // TODO
+            REQUEST_CODER_ID -> {}
+
+            // TODO
+            REQUEST_REVOCATION -> {}
         }
     }
 

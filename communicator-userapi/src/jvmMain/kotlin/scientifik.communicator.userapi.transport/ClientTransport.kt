@@ -4,10 +4,10 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import org.zeromq.*
 import scientifik.communicator.api.Payload
+import scientifik.communicator.api.log
 import java.io.Closeable
 import java.nio.ByteBuffer
 import java.util.*
-import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.concurrent.thread
 
 internal class ClientTransport(private val endpoint: String) : Closeable {
@@ -16,9 +16,9 @@ internal class ClientTransport(private val endpoint: String) : Closeable {
     private val loop: ZLoop = ZLoop(context)
 
     data class Expectation(
-            val possibleCodes: ByteArray,
-            val predicate: (ZMsg) -> Boolean,
-            val callback: (ZMsg, Byte) -> Unit
+        val possibleCodes: ByteArray,
+        val predicate: (ZMsg) -> Boolean,
+        val callback: (ZMsg, Byte) -> Unit
     ) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -48,12 +48,12 @@ internal class ClientTransport(private val endpoint: String) : Closeable {
             dealer.connect(endpoint)
 
             loop.addPoller(
-                    ZMQ.PollItem(dealer, ZMQ.Poller.POLLIN),
-                    { _, _, _ ->
-                        receive()
-                        0
-                    },
-                    null
+                ZMQ.PollItem(dealer, ZMQ.Poller.POLLIN),
+                { _, _, _ ->
+                    receive()
+                    0
+                },
+                null
             )
 
             loop.start()
@@ -95,9 +95,9 @@ internal class ClientTransport(private val endpoint: String) : Closeable {
     }
 
     private fun receive() {
-        println("Client received message")
+        log("$this received message")
         val msg = checkNotNull(ZMsg.recvMsg(dealer))
-        println(buildString { msg.dump(this) })
+        log(buildString { msg.dump(this) })
         val type = msg.first.data[0]
         msg.removeFirst()
         val it = expectations.asReversed().listIterator()
@@ -119,8 +119,8 @@ internal class ClientTransport(private val endpoint: String) : Closeable {
         val deferred = CompletableDeferred<ByteArray>()
 
         expectations.add(Expectation(
-                byteArrayOf(11, 12, 13, 14),
-                { ByteBuffer.wrap(it.first.data).getUuid() == uuid }) { msg, type ->
+            byteArrayOf(11, 12, 13, 14),
+            { ByteBuffer.wrap(it.first.data).getUuid() == uuid }) { msg, type ->
             revoke(uuid)
             msg.removeFirst()
 
@@ -138,8 +138,8 @@ internal class ClientTransport(private val endpoint: String) : Closeable {
         val deferred = CompletableDeferred<UUID?>()
 
         expectations.add(Expectation(
-                byteArrayOf(21, 22),
-                { it.first.data.decodeToString() == functionName }) { msg, type ->
+            byteArrayOf(21, 22),
+            { it.first.data.decodeToString() == functionName }) { msg, type ->
             msg.removeFirst()
 
             when (type) {

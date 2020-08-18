@@ -2,6 +2,7 @@ package scientifik.communicator.userapi
 
 import kotlinx.coroutines.runBlocking
 import scientifik.communicator.api.IntCoder
+import scientifik.communicator.api.log
 import scientifik.communicator.api.logging
 
 internal val TestCoder = IntCoder().logging()
@@ -23,11 +24,11 @@ internal object TestServer : Server("tcp://localhost:8888") {
 }
 
 fun main(): Unit = runBlocking {
-    println("Initializing server")
+    log("Initializing server")
     TestServer
-    println("Initializing client")
+    log("Initializing client")
     TestClient
-    println("Result is ${TestClient.f(1)}")
+    log("Result is ${TestClient.f(1)}")
     TestServer.close()
     TestClient.close()
 }
