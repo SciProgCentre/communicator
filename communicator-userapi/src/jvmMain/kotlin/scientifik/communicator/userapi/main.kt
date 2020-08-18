@@ -1,14 +1,15 @@
 package scientifik.communicator.userapi
 
 import kotlinx.coroutines.runBlocking
+import scientifik.communicator.api.Coder
 import scientifik.communicator.api.IntCoder
 import scientifik.communicator.api.log
 import scientifik.communicator.api.logging
 
-internal val TestCoder = IntCoder().logging()
+internal val TestCoder: Coder<Int> = IntCoder.logging()
 
 internal object TestClient : Client("tcp://localhost:8888") {
-    val f by function(coder = TestCoder)
+    val f: F<Int> by function(coder = TestCoder)
 
     init {
         start()
@@ -16,7 +17,7 @@ internal object TestClient : Client("tcp://localhost:8888") {
 }
 
 internal object TestServer : Server("tcp://localhost:8888") {
-    val f by function(coder = TestCoder) { x -> x + 1 }
+    val f: F<Int> by function(coder = TestCoder) { x -> x + 1 }
 
     init {
         start()
