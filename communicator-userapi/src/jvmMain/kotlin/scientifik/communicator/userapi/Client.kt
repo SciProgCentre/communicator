@@ -10,9 +10,11 @@ import kotlin.reflect.KProperty
 abstract class Client(endpoint: String) : Closeable {
     private val transport = ClientTransport(endpoint)
 
-    fun <T> function(coder: Coder<T>): ReadOnlyProperty<Client, F<T>> = FunctionDelegate(coder)
+    init {
+        transport.start()
+    }
 
-    fun start(): Unit = transport.start()
+    fun <T> function(coder: Coder<T>): ReadOnlyProperty<Client, F<T>> = FunctionDelegate(coder)
 
     private class FunctionDelegate<T>(private val coder: Coder<T>) : ReadOnlyProperty<Client, F<T>> {
         override operator fun getValue(thisRef: Client, property: KProperty<*>): F<T> {

@@ -6,17 +6,16 @@ import scientifik.communicator.api.log
 import java.io.Closeable
 import java.nio.ByteBuffer
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.concurrent.thread
 
 class ServerTransport(private val endpoint: String) : Closeable {
     private val context: ZContext = ZContext()
     private val router: ZMQ.Socket = context.createSocket(SocketType.ROUTER)
     private val loop: ZLoop = ZLoop(context)
-    var functions: MutableMap<String, (Payload) -> Payload?> = hashMapOf()
+    var functions: MutableMap<String, (Payload) -> Payload?> = ConcurrentHashMap()
 
     fun start() {
-        functions = Collections.unmodifiableMap(functions)
-
         thread {
             router.bind(endpoint)
 

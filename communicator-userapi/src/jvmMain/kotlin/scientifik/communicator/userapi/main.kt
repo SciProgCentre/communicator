@@ -10,18 +10,10 @@ internal val TestCoder: Coder<Int> = IntCoder.logging()
 
 internal object TestClient : Client("tcp://localhost:8888") {
     val f: F<Int> by function(coder = TestCoder)
-
-    init {
-        start()
-    }
 }
 
 internal object TestServer : Server("tcp://localhost:8888") {
-    val f: F<Int> by function(coder = TestCoder) { x -> x + 1 }
-
-    init {
-        start()
-    }
+    val f: F<Int> by function(name = "f", coder = TestCoder) { x -> x + 1 }
 }
 
 fun main(): Unit = runBlocking {
