@@ -1,4 +1,4 @@
-package scientifik.communicator.userapi.scientifik.communicator.userapi.transport
+package scientifik.communicator.userapi.transport
 
 import java.nio.ByteBuffer
 import java.util.*

@@ -7,20 +7,21 @@ import java.io.Closeable
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
-abstract class Client : Closeable {
-    private val transport = ClientTransport()
+abstract class Client(endpoint: String) : Closeable {
+    private val transport = ClientTransport(endpoint)
 
     fun <T> function(coder: Coder<T>): ReadOnlyProperty<Client, F<T>> = FunctionDelegate(coder)
 
+    fun start(): Unit = transport.start()
+
     private class FunctionDelegate<T>(private val coder: Coder<T>) : ReadOnlyProperty<Client, F<T>> {
         override operator fun getValue(thisRef: Client, property: KProperty<*>): F<T> {
-            val name = property.name
             var f: F<T>? = null
 
             runBlocking {
-                val id = thisRef.transport.coderIDAsync(name).await()
-                requireNotNull(id)
-                f = F(name, thisRef, coder)
+//                val id = thisRef.transport.coderIDAsync(name).await()
+//                requireNotNull(id)
+                f = F(property.name, thisRef, coder)
             }
 
             return f!!

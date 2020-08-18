@@ -13,6 +13,7 @@ kotlin.sourceSets {
     jvmMain {
         dependencies {
             api("org.zeromq:jeromq:0.5.2")
+            implementation(kotlin("reflect"))
             implementation(project(":communicator-api"))
         }
     }

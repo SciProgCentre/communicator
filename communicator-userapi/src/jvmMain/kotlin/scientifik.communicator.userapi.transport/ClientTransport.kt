@@ -4,13 +4,12 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import org.zeromq.*
 import scientifik.communicator.api.Payload
-import scientifik.communicator.userapi.scientifik.communicator.userapi.transport.getUuid
-import scientifik.communicator.userapi.scientifik.communicator.userapi.transport.putUuid
 import java.io.Closeable
 import java.nio.ByteBuffer
 import java.util.*
+import kotlin.concurrent.thread
 
-internal class ClientTransport(endpoint: String) : Closeable {
+internal class ClientTransport(private val endpoint: String) : Closeable {
     private val context: ZContext = ZContext()
     private val dealer: ZMQ.Socket = context.createSocket(SocketType.DEALER)
     private val loop: ZLoop = ZLoop(context)
@@ -41,22 +40,23 @@ internal class ClientTransport(endpoint: String) : Closeable {
         }
     }
 
-    private val expectations: MutableList<Expectation> =
-        mutableListOf()
+    private val expectations: MutableList<Expectation> = Collections.synchronizedList(mutableListOf())
 
-    init {
-        dealer.connect(endpoint)
+    fun start() {
+        thread {
+            dealer.connect(endpoint)
 
-        loop.addPoller(
-            ZMQ.PollItem(dealer, ZMQ.Poller.POLLIN),
-            { _, _, _ ->
-                receive()
-                0
-            },
-            null
-        )
+            loop.addPoller(
+                ZMQ.PollItem(dealer, ZMQ.Poller.POLLIN),
+                { _, _, _ ->
+                    receive()
+                    0
+                },
+                null
+            )
 
-        loop.start()
+            loop.start()
+        }
     }
 
     private fun requestEvaluate(functionName: String, uuid: UUID, blob: ByteArray): Unit = ZMsg().run {
@@ -95,17 +95,17 @@ internal class ClientTransport(endpoint: String) : Closeable {
 
     private fun receive() {
         val msg = checkNotNull(ZMsg.recvMsg(dealer))
+        println(buildString { msg.dump(this) })
         val type = msg.first.data[0]
         msg.removeFirst()
+        val it = expectations.asReversed().listIterator()
 
-        val ri = expectations.asReversed().listIterator()
-
-        while (ri.hasNext()) {
-            val (t, p, c) = ri.next()
+        while (it.hasNext()) {
+            val (t, p, c) = it.next()
 
             if (type in t && p(msg)) {
                 c(msg, type)
-                ri.remove()
+                it.remove()
             }
         }
     }

@@ -3,57 +3,76 @@ package scientifik.communicator.userapi.transport
 import org.zeromq.*
 import scientifik.communicator.api.Payload
 import java.io.Closeable
+import java.nio.ByteBuffer
+import java.util.*
+import kotlin.concurrent.thread
 
-class ServerTransport(endpoint: String) : Closeable {
+class ServerTransport(private val endpoint: String) : Closeable {
     private val context: ZContext = ZContext()
     private val router: ZMQ.Socket = context.createSocket(SocketType.ROUTER)
     private val loop: ZLoop = ZLoop(context)
-    val functions: MutableMap<String, (Payload) -> Payload?> = hashMapOf()
+    var functions: MutableMap<String, (Payload) -> Payload?> = hashMapOf()
 
-    init {
-        router.bind(endpoint)
+    fun start() {
+        functions = Collections.unmodifiableMap(functions)
 
-        loop.addPoller(
-            ZMQ.PollItem(router, ZMQ.Poller.POLLIN),
-            { _, _, _ ->
-                receive()
-                0
-            },
-            null
-        )
+        thread {
+            router.bind(endpoint)
 
-        loop.start()
+            loop.addPoller(
+                ZMQ.PollItem(router, ZMQ.Poller.POLLIN),
+                { _, _, _ ->
+                    receive()
+                    0
+                },
+                null
+            )
+
+            loop.start()
+        }
     }
 
-    fun evaluate(arg: Payload, functionName: String) {
-        val msg = ZMsg()
+    private fun evaluate(uuid: UUID, arg: Payload, functionName: String): Boolean = ZMsg().apply {
+        // TODO
+        // Currently doesn't support encoding exceptions.
+
 
         val f = functions[functionName] ?: run {
-            msg.push("No such function.")
-            msg.send(router)
-            return
+            addLast(byteArrayOf(RESPONSE_FUNCTION_EXCEPTION))
+            addLast(ByteBuffer.allocate(16).also { it.putUuid(uuid) }.array())
+            addLast("No such function.")
+            return@apply
         }
 
-        val res = f(arg)
-        msg.push(res)
-        msg.send(router)
-    }
+        val res = f(arg) ?: run {
+            addLast(byteArrayOf(RESPONSE_FUNCTION_EXCEPTION))
+            addLast(ByteBuffer.allocate(16).also { it.putUuid(uuid) }.array())
+            addLast("Function did not return.")
+            return@apply
+        }
+
+        addLast(byteArrayOf(RESPONSE_SUCCESS))
+        addLast(res)
+        addLast(ByteBuffer.allocate(16).also { it.putUuid(uuid) }.array())
+    }.send(router)
 
     private fun receive() {
         val msg = checkNotNull(ZMsg.recvMsg(router))
+        msg.removeFirst()
         val type = msg.first.data.first()
-        msg.pop()
+        msg.removeFirst()
 
         when (type) {
             REQUEST_EVALUATE -> {
+                val uuid = ByteBuffer.wrap(msg.first.data).getUuid()
+                msg.removeFirst()
                 val arg = msg.first.data
-                msg.pop()
+                msg.removeFirst()
                 val name = msg.first.data.decodeToString()
-                evaluate(arg, name)
+                evaluate(uuid, arg, name)
             }
             REQUEST_CODER_ID -> TODO()
-            REQUEST_REVOCATION -> {
-            }
+            REQUEST_REVOCATION -> TODO()
         }
     }
 
