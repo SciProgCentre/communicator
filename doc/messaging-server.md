@@ -54,6 +54,10 @@
 - ID запроса
 - Строка resultString
 - Строка remoteResultSchemeStructure
+
+Тип 15: Ответ на запрос - ошибка UnsupportedFunctionNameException
+- ID запроса
+- Строка functionName
  
 Тип 21: Ответ на запрос identity кодера - функция поддерживается
 
