@@ -10,31 +10,51 @@ import java.io.Closeable
 import java.nio.ByteBuffer
 import java.util.*
 
-internal class ClientTransport : Closeable {
+internal class ClientTransport(endpoint: String) : Closeable {
     private val context: ZContext = ZContext()
     private val dealer: ZMQ.Socket = context.createSocket(SocketType.DEALER)
     private val loop: ZLoop = ZLoop(context)
 
-    class Expectation(
-        private val possibleCodes: ByteArray,
-        private val predicate: (ZMsg) -> Boolean,
-        private val callback: (ZMsg, Byte) -> Unit
+    data class Expectation(
+        val possibleCodes: ByteArray,
+        val predicate: (ZMsg) -> Boolean,
+        val callback: (ZMsg, Byte) -> Unit
     ) {
-        operator fun component1(): ByteArray = possibleCodes
-        operator fun component2(): (ZMsg) -> Boolean = predicate
-        operator fun component3(): (ZMsg, Byte) -> Unit = callback
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as Expectation
+
+            if (!possibleCodes.contentEquals(other.possibleCodes)) return false
+            if (predicate != other.predicate) return false
+            if (callback != other.callback) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = possibleCodes.contentHashCode()
+            result = 31 * result + predicate.hashCode()
+            result = 31 * result + callback.hashCode()
+            return result
+        }
     }
 
     private val expectations: MutableList<Expectation> =
         mutableListOf()
 
     init {
-        val pollItem = ZMQ.PollItem(dealer, ZMQ.Poller.POLLIN)
+        dealer.connect(endpoint)
 
-        loop.addPoller(pollItem, { _, _, _ ->
-            receive()
-            0
-        }, null)
+        loop.addPoller(
+            ZMQ.PollItem(dealer, ZMQ.Poller.POLLIN),
+            { _, _, _ ->
+                receive()
+                0
+            },
+            null
+        )
 
         loop.start()
     }
@@ -74,7 +94,7 @@ internal class ClientTransport : Closeable {
     }
 
     private fun receive() {
-        val msg = ZMsg.recvMsg(dealer)
+        val msg = checkNotNull(ZMsg.recvMsg(dealer))
         val type = msg.first.data[0]
         msg.removeFirst()
 
@@ -133,18 +153,5 @@ internal class ClientTransport : Closeable {
     override fun close() {
         dealer.close()
         context.close()
-    }
-
-    private companion object {
-        private const val REQUEST_EVALUATE: Byte = 11
-        private const val REQUEST_CODER_ID: Byte = 21
-        private const val REQUEST_REVOCATION: Byte = 31
-        private const val RESPONSE_SUCCESS: Byte = 11
-        private const val RESPONSE_FUNCTION_EXCEPTION: Byte = 12
-        private const val RESPONSE_DECODING_EXCEPTION: Byte = 13
-        private const val RESPONSE_ENCODING_EXCEPTION: Byte = 14
-        private const val RESPONSE_FUNCTION_SUPPORTED: Byte = 21
-        private const val RESPONSE_FUNCTION_UNSUPPORTED: Byte = 22
-        private const val RESPONSE_RECEIVED: Byte = 31
     }
 }

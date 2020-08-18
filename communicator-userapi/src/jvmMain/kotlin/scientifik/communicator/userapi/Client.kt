@@ -3,10 +3,11 @@ package scientifik.communicator.userapi
 import kotlinx.coroutines.runBlocking
 import scientifik.communicator.api.Coder
 import scientifik.communicator.userapi.transport.ClientTransport
+import java.io.Closeable
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
-abstract class Client {
+abstract class Client : Closeable {
     private val transport = ClientTransport()
 
     fun <T> function(coder: Coder<T>): ReadOnlyProperty<Client, F<T>> = FunctionDelegate(coder)
@@ -34,4 +35,6 @@ abstract class Client {
         suspend operator fun invoke(arg: T): T =
             tCoder.decode(client.transport.evaluateAsync(name, tCoder.encode(arg)).await())
     }
+
+    override fun close(): Unit = transport.close()
 }
