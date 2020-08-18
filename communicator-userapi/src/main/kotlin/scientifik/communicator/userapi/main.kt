@@ -4,9 +4,8 @@ import kotlinx.coroutines.runBlocking
 import scientifik.communicator.api.Coder
 import scientifik.communicator.api.IntCoder
 import scientifik.communicator.api.log
-import scientifik.communicator.api.logging
 
-internal val TestCoder: Coder<Int> = IntCoder.logging()
+internal val TestCoder: Coder<Int> = IntCoder
 
 internal object TestClient : Client("tcp://localhost:8888") {
     val f: F<Int> by function(coder = TestCoder)
