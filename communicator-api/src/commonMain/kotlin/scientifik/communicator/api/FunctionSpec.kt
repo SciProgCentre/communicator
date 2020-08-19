@@ -1,9 +1,8 @@
 package scientifik.communicator.api
 
 data class FunctionSpec<T, R>(val argumentCoder: Coder<T>, val resultCoder: Coder<R>)
-
-data class FunctionSpecIn<in T, out R>(val argumentCoder: Encoder<T>, val resultCoder: Decoder<R>)
-data class FunctionSpecOut<out T, in R>(val argumentCoder: Decoder<T>, val resultCoder: Encoder<R>)
+data class FunctionSpecIn<T, R>(val argumentCoder: Encoder<T>, val resultCoder: Decoder<R>)
+data class FunctionSpecOut<T, R>(val argumentCoder: Decoder<T>, val resultCoder: Encoder<R>)
 
 /**
  * Returned function will wrap serialization exceptions into [CoderException],
@@ -15,7 +14,9 @@ fun <T, R> (suspend (T) -> R).toBinary(spec: FunctionSpec<T, R>): PayloadFunctio
     } catch (ex: Exception) {
         throw DecodingException(bin, spec.argumentCoder, ex.message.orEmpty())
     }
-    val res: R = invoke(arg)
+
+    val res = invoke(arg)
+
     try {
         spec.resultCoder.encode(res)
     } catch (ex: Exception) {

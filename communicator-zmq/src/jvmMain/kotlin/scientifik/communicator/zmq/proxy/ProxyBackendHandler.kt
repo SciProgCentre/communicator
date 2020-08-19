@@ -1,23 +1,22 @@
 package scientifik.communicator.zmq.proxy
 
-import org.zeromq.ZMQ
-import org.zeromq.ZMsg
 import scientifik.communicator.zmq.platform.UniqueID
+import scientifik.communicator.zmq.platform.ZmqSocket
 import java.lang.System.currentTimeMillis
 import java.nio.ByteBuffer
 
-internal fun ZmqProxy.handleBackend(frontend: ZMQ.Socket, backend: ZMQ.Socket) {
-    val msg = ZMsg.recvMsg(backend)
+internal fun ZmqProxy.handleBackend(frontend: ZmqSocket, backend: ZmqSocket) {
+    val msg = backend.recvMsg()
     val workerIdentity = msg.pop().data
-    val type = msg.pop().data[0]
-    when (type) {
 
+    when (msg.pop().data[0]) {
         // Ответ на запрос - завершен успешно
         11.toByte() -> {
             val queryID = msg.pop().data
             val queryResult = msg.pop().data
             val clientIdentity = receivedQueries[UniqueID(queryID)]
             clientIdentity ?: return
+
             sendMsg(frontend) {
                 +clientIdentity
                 +byteArrayOf(11)
@@ -46,6 +45,7 @@ internal fun ZmqProxy.handleBackend(frontend: ZMQ.Socket, backend: ZMQ.Socket) {
             val remoteArgSchemeStructure = msg.pop().data
             val clientIdentity = receivedQueries[UniqueID(queryID)]
             clientIdentity ?: return
+
             sendMsg(frontend) {
                 +clientIdentity
                 +byteArrayOf(13)
@@ -78,28 +78,29 @@ internal fun ZmqProxy.handleBackend(frontend: ZMQ.Socket, backend: ZMQ.Socket) {
 
         // Heart beat
         41.toByte() -> {
-            workers
-                    .filter { it.identity.contentEquals(workerIdentity) }
-                    .forEach { it.lastHeartbeatTime = currentTimeMillis() }
+            workers.asSequence()
+                .filter { it.identity.contentEquals(workerIdentity) }
+                .forEach { it.lastHeartbeatTime = currentTimeMillis() }
         }
 
         // Запрос воркера на подключение к прокси и передача всех схем
         51.toByte() -> {
             val worker = Worker(workerIdentity, arrayListOf(), currentTimeMillis())
             val functionsCount = ByteBuffer.wrap(msg.pop().data).int
+
             repeat(functionsCount) {
                 val functionName = msg.pop().data.decodeToString()
                 val functionArgScheme = msg.pop().data.decodeToString()
                 val functionResultScheme = msg.pop().data.decodeToString()
                 worker.functions.add(functionName)
                 val existingSchemes = functionSchemes[functionName]
+
                 if (existingSchemes == null) {
                     functionSchemes[functionName] = Pair(
-                            functionArgScheme,
-                            functionResultScheme
+                        functionArgScheme,
+                        functionResultScheme
                     )
-                }
-                else if (existingSchemes.first != functionArgScheme || existingSchemes.second != functionResultScheme) {
+                } else if (existingSchemes.first != functionArgScheme || existingSchemes.second != functionResultScheme) {
                     sendMsg(backend) {
                         +workerIdentity
                         +byteArrayOf(41)
@@ -107,13 +108,13 @@ internal fun ZmqProxy.handleBackend(frontend: ZMQ.Socket, backend: ZMQ.Socket) {
                         +existingSchemes.first
                         +existingSchemes.second
                     }
+
                     return
                 }
             }
+
             workers.add(worker)
-            worker.functions.forEach {
-                workersByFunction.computeIfAbsent(it) { arrayListOf() }.add(worker)
-            }
+            worker.functions.forEach { workersByFunction.computeIfAbsent(it) { mutableListOf() }.add(worker) }
         }
     }
 }

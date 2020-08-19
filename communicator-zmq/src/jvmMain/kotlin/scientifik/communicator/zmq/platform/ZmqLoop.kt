@@ -20,9 +20,4 @@ internal actual class ZmqLoop actual constructor(ctx: ZmqContext) {
     actual fun start() {
         backendLoop.start()
     }
-
-    actual fun destroy() {
-
-    }
-
 }

@@ -1,10 +1,10 @@
 package scientifik.communicator.zmq.platform
 
-/** zframe_t object (CZMQ). */
-internal expect class ZmqFrame {
+import kotlinx.io.Closeable
 
+/** zframe_t object (CZMQ). */
+internal expect class ZmqFrame : Closeable {
     val data: ByteArray
 
-    fun close()
-
+    override fun close()
 }

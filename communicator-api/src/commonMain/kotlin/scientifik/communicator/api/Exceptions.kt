@@ -2,7 +2,7 @@ package scientifik.communicator.api
 
 /**
  * Base class for RemoteCall library exceptions.
- * These exceptions can be thrown by the suspend function returned by [FunctionClient.function].
+ * These exceptions can be thrown by the suspend function returned by [FunctionClient.getFunction].
  * [IncompatibleSpecsException] can also be thrown by [FunctionServer.register] if it connects to a proxy as a worker,
  * and that proxy already has a worker with a different coder.
  */

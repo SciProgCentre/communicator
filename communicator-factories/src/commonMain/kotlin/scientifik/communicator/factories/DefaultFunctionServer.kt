@@ -1,7 +1,7 @@
 package scientifik.communicator.factories
 
 import scientifik.communicator.api.*
-import scientifik.communicator.zmq.server.ZMQTransportServer
+import scientifik.communicator.zmq.server.ZmqTransportServer
 
 /**
  * Function server that can use multiple transport servers to listen to requests using multiple protocols.
@@ -15,14 +15,14 @@ class DefaultFunctionServer(override val endpoints: List<Endpoint>) : FunctionSe
 
     init {
         val actualEndpoints = endpoints
-                .distinctBy { it.protocol }
-                .distinctBy { it.port }
-                .map { it.protocol to it.port }
+            .distinctBy { it.protocol }
+            .distinctBy { it.port }
+            .map { it.protocol to it.port }
         if (actualEndpoints.size != endpoints.size) error("Invalid endpoints list. Read docs for DefaultFunctionServer.")
         transportServers = actualEndpoints.map {
             val (protocol, port) = it
             when (protocol) {
-                "ZMQ" -> ZMQTransportServer(port)
+                "ZMQ" -> ZmqTransportServer(port)
                 else -> error("Protocol $protocol is not supported.")
             }
         }
@@ -44,5 +44,4 @@ class DefaultFunctionServer(override val endpoints: List<Endpoint>) : FunctionSe
     override fun stop() {
         //TODO
     }
-
 }

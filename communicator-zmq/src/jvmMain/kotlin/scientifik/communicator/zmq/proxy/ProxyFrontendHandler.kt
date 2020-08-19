@@ -1,14 +1,13 @@
 package scientifik.communicator.zmq.proxy
 
-import org.zeromq.ZMQ
-import org.zeromq.ZMsg
 import scientifik.communicator.zmq.platform.UniqueID
+import scientifik.communicator.zmq.platform.ZmqSocket
 
-internal fun ZmqProxy.handleFrontend(frontend: ZMQ.Socket, backend: ZMQ.Socket) {
-    val receivedMsg = ZMsg.recvMsg(frontend)
+internal fun ZmqProxy.handleFrontend(frontend: ZmqSocket, backend: ZmqSocket) {
+    val receivedMsg = frontend.recvMsg()
     val clientIdentity = receivedMsg.pop().data
-    val type = receivedMsg.pop().data[0]
-    when (type) {
+
+    when (receivedMsg.pop().data[0]) {
 
         // Запрос на вычисление функции
         11.toByte() -> {
@@ -16,6 +15,7 @@ internal fun ZmqProxy.handleFrontend(frontend: ZMQ.Socket, backend: ZMQ.Socket) 
             val queryArg = receivedMsg.pop().data
             val functionName = receivedMsg.pop().data.decodeToString()
             val worker = workersByFunction[functionName]?.randomOrNull()
+
             // Если воркера нет, возвращаем ошибку
             if (worker == null) sendMsg(frontend) {
                 +clientIdentity
@@ -23,6 +23,7 @@ internal fun ZmqProxy.handleFrontend(frontend: ZMQ.Socket, backend: ZMQ.Socket) 
                 +queryID
                 +functionName
             }
+
             // Если воркер есть, передаем ему запрос
             else {
                 sendMsg(backend) {
@@ -32,6 +33,7 @@ internal fun ZmqProxy.handleFrontend(frontend: ZMQ.Socket, backend: ZMQ.Socket) 
                     +queryArg
                     +functionName
                 }
+
                 receivedQueries[UniqueID(queryID)] = clientIdentity
             }
         }
@@ -40,6 +42,7 @@ internal fun ZmqProxy.handleFrontend(frontend: ZMQ.Socket, backend: ZMQ.Socket) 
         21.toByte() -> {
             val functionName = receivedMsg.pop().data.decodeToString()
             val schemesPair = functionSchemes[functionName]
+
             // Если функция зарегистрирована
             if (schemesPair != null) sendMsg(frontend) {
                 +clientIdentity

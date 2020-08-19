@@ -1,22 +1,13 @@
 package scientifik.communicator.zmq.platform
 
-internal actual class ZmqSocket {
-    actual fun connect(zmqAddress: String) {
-    }
+import kotlinx.io.Closeable
 
-    actual fun bind(zmqAddress: String) {
-    }
-
-    actual fun setIdentity(identity: ByteArray) {
-    }
-
-    actual fun close() {
-    }
+internal actual class ZmqSocket : Closeable {
+    actual fun connect(zmqAddress: String): Unit = TODO()
+    actual fun bind(zmqAddress: String): Unit = TODO()
+    actual fun setIdentity(identity: ByteArray): Unit = TODO()
+    actual override fun close(): Unit = TODO()
 
     /** zmsg_recv method (CZMQ) */
-    actual fun recvMsg(): ZmqMsg {
-        TODO("Not yet implemented")
-    }
-
-
+    actual fun recvMsg(): ZmqMsg = TODO()
 }

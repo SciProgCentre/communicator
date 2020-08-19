@@ -1,28 +1,19 @@
 package scientifik.communicator.zmq.proxy
 
-import org.zeromq.ZFrame
-import org.zeromq.ZMQ
-import org.zeromq.ZMsg
+import scientifik.communicator.zmq.platform.ZmqFrame
+import scientifik.communicator.zmq.platform.ZmqMsg
+import scientifik.communicator.zmq.platform.ZmqSocket
 
+internal class MsgBuilder(private val msg: ZmqMsg) {
+    operator fun ByteArray.unaryPlus(): Unit = msg.add(this)
 
-class MsgBuilder(private val msg: ZMsg) {
+    operator fun ZmqFrame.unaryPlus(): Unit = msg.add(this)
 
-    operator fun ByteArray.unaryPlus() {
-        msg.add(this)
-    }
-
-    operator fun ZFrame.unaryPlus() {
-        msg.add(this)
-    }
-
-    operator fun String.unaryPlus() {
-        msg.add(this)
-    }
-
+    operator fun String.unaryPlus(): Unit = msg.add(this)
 }
 
-inline fun sendMsg(socket: ZMQ.Socket, block: MsgBuilder.() -> Unit) {
-    val msg = ZMsg()
+internal inline fun sendMsg(socket: ZmqSocket, block: MsgBuilder.() -> Unit) {
+    val msg = ZmqMsg()
     MsgBuilder(msg).block()
     msg.send(socket)
 }

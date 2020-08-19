@@ -12,6 +12,6 @@ package scientifik.communicator.zmq.platform
  * [volatileJob] does not capture any state.
  */
 internal expect fun <T1, T2> runInBackground(
-        supplier: () -> T1,
-        volatileJob: (T1) -> T2
+    supplier: () -> T1,
+    volatileJob: (T1) -> T2
 )

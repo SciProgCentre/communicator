@@ -1,7 +1,6 @@
 package scientifik.communicator.api
 
 interface TransportServer {
-
     val port: Int
 
     fun register(name: String, function: PayloadFunction)
@@ -11,7 +10,6 @@ interface TransportServer {
 }
 
 interface FunctionServer {
-
     val endpoints: List<Endpoint>
 
     fun <T, R> register(name: String, spec: FunctionSpec<T, R>, function: suspend (T) -> R)
@@ -19,5 +17,4 @@ interface FunctionServer {
     fun unregister(name: String)
 
     fun stop()
-
 }

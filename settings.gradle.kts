@@ -14,8 +14,6 @@ pluginManagement {
     }
 
     plugins {
-
-
         kotlin("jvm") version kotlinVersion
         id("scientifik.mpp") version toolsVersion
         id("scientifik.jvm") version toolsVersion
@@ -36,9 +34,8 @@ pluginManagement {
 rootProject.name = "communicator"
 
 include(
-        ":communicator-api",
-        ":communicator-zmq",
-        ":communicator-factories",
-        ":demo",
-        ":communicator-userapi"
+    ":communicator-api",
+    ":communicator-zmq",
+    ":communicator-factories",
+    ":demo"
 )

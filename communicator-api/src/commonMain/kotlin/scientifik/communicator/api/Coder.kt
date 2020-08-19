@@ -11,7 +11,6 @@ interface Encoder<in T> {
 }
 
 interface Coder<T> {
-
     /**
      * This method may throw any exception if the value does not match the coder.
      * This exception will be delivered to the client as either [EncodingException] or [RemoteEncodingException]

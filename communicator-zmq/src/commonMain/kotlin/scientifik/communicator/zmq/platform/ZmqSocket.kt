@@ -1,15 +1,14 @@
 package scientifik.communicator.zmq.platform
 
-internal expect class ZmqSocket {
+import kotlinx.io.Closeable
 
+internal expect class ZmqSocket : Closeable {
     fun connect(zmqAddress: String)
     fun bind(zmqAddress: String)
-
     fun setIdentity(identity: ByteArray)
 
     /** zmsg_recv method (CZMQ) */
     fun recvMsg(): ZmqMsg
 
-    fun close()
-
+    override fun close()
 }

@@ -1,11 +1,10 @@
 package scientifik.communicator.zmq.platform
 
-/** Constructor must create a context with its init method */
-internal expect class ZmqContext() {
+import kotlinx.io.Closeable
 
+/** Constructor must create a context with its init method */
+internal expect class ZmqContext() : Closeable {
     fun createRouterSocket(): ZmqSocket
     fun createDealerSocket(): ZmqSocket
-
-    fun close()
-
+    override fun close()
 }

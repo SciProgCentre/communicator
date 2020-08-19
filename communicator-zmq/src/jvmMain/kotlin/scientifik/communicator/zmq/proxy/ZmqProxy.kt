@@ -1,7 +1,7 @@
 package scientifik.communicator.zmq.proxy
 
-import org.zeromq.*
 import scientifik.communicator.zmq.platform.UniqueID
+import scientifik.communicator.zmq.platform.ZmqContext
 
 /**
  * Starts a proxy that listens to the given port.
@@ -12,35 +12,34 @@ fun startProxy(port: Int) {
 }
 
 internal class Worker(
-        val identity: ByteArray,
-        val functions: MutableList<String>,
-        var lastHeartbeatTime: Long
+    val identity: ByteArray,
+    val functions: MutableList<String>,
+    var lastHeartbeatTime: Long
 )
 
 internal class ZmqProxy(private val port: Int) {
+    internal val workers: MutableList<Worker> = mutableListOf()
+    internal val functionSchemes: MutableMap<String, Pair<String, String>> = hashMapOf()
+    internal val workersByFunction: MutableMap<String, MutableList<Worker>> = hashMapOf()
 
-    internal val workers = mutableListOf<Worker>()
-    internal val functionSchemes = hashMapOf<String, Pair<String, String>>()
-    internal val workersByFunction = hashMapOf<String, MutableList<Worker>>()
     // query id -> client identity
-    internal val receivedQueries = hashMapOf<UniqueID, ByteArray>()
-    internal val sentQueries = hashSetOf<UniqueID>()
-    internal val sentResults = hashSetOf<UniqueID>()
+    internal val receivedQueries: MutableMap<UniqueID, ByteArray> = hashMapOf()
+    internal val sentQueries: MutableSet<UniqueID> = hashSetOf()
+    internal val sentResults: MutableSet<UniqueID> = hashSetOf()
 
-    fun start() {
-        val ctx = ZContext()
-        val frontend = ctx.createSocket(SocketType.ROUTER)
-        val backend = ctx.createSocket(SocketType.ROUTER)
+    fun start(): Unit = ZmqContext().use { ctx ->
+        val frontend = ctx.createRouterSocket()
+        val backend = ctx.createRouterSocket()
         frontend.bind("tcp://*:$port")
         backend.bind("tcp://*:${port + 1}")
-        val poller = ctx.createPoller(2)
-        poller.register(frontend)
-        poller.register(backend)
+        val poller = ctx.backendContext.createPoller(2)
+        poller.register(frontend.backendSocket)
+        poller.register(backend.backendSocket)
+
         while (true) {
             if (poller.poll() < 0) continue
             if (poller.pollin(0)) handleFrontend(frontend, backend)
             if (poller.pollin(1)) handleBackend(frontend, backend)
         }
     }
-
 }
