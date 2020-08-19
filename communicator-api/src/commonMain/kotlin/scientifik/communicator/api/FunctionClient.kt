@@ -1,5 +1,6 @@
 package scientifik.communicator.api
 
+import kotlinx.io.use
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
@@ -23,9 +24,12 @@ fun <T, R> function(
 
 class TransportFunctionClient(private val factory: TransportFactory) : FunctionClient {
     override fun <T, R> getFunction(endpoint: Endpoint, name: String, spec: FunctionSpec<T, R>): suspend (T) -> R {
-        val transport =
-            factory[endpoint.protocol] ?: error("Protocol ${endpoint.protocol} is not supported by this client.")
+        var res: (suspend (T) -> R)? = null
 
-        return transport.channel(endpoint.address, name).toFunction(spec)
+        (factory[endpoint.protocol] ?: error("Protocol ${endpoint.protocol} is not supported by this client.")).use {
+            res = it.channel(endpoint.address, name).toFunction(spec)
+        }
+
+        return checkNotNull(res)
     }
 }

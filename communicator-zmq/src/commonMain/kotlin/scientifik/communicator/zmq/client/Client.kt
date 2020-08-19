@@ -22,15 +22,15 @@ internal class Query(
 )
 
 private class ClientContext(
-    val ctx: ZmqContext,
+    val ctx: ZmqContext = ZmqContext(),
     val mainDealer: ZmqSocket = ctx.createDealerSocket(),
-    val identity: UniqueID,
+    val identity: UniqueID = UniqueID(),
     // В эту очередь попадают запросы при вызове remoteFunction.invoke()
     val newQueriesQueue: ConcurrentQueue<Query>,
     // В этот словарь попадают запросы, которые уже отправлены на сервер и сервер ответил о том, что он получил их
     val queriesInWork: MutableMap<UniqueID, ResultCallback> = hashMapOf(),
     val forwardSockets: MutableMap<String, ZmqSocket> = hashMapOf(),
-    val reactor: ZmqLoop
+    val reactor: ZmqLoop = ZmqLoop(ctx)
 ) : Closeable {
     val log: KLogger = KotlinLogging.logger(this::class.simpleName.orEmpty())
 
@@ -43,29 +43,15 @@ private class ClientContext(
 /**
  * Принимает запросы о вызове удаленной функции из любых потоков и вызывает коллбек при получении результата
  */
-internal class Client {
+internal class Client : Closeable {
     private val log: KLogger = KotlinLogging.logger("Client")
-
     private val newQueriesQueue = ConcurrentQueue<Query>()
-
-    fun makeQuery(query: Query) {
-        log.info { "Adding query ${query.functionName} to the internal queue" }
-        newQueriesQueue.add(query)
-    }
+    private val ctx: ClientContext = ClientContext(newQueriesQueue = newQueriesQueue)
 
     init {
         // TODO
         runInBackground({}) {
-            val ctx = ZmqContext()
-
-            val clientContext = ClientContext(
-                ctx = ctx,
-                identity = UniqueID(),
-                newQueriesQueue = newQueriesQueue,
-                reactor = ZmqLoop(ctx)
-            )
-
-            with(clientContext) {
+            with(ctx) {
                 reactor.addTimer(
                     NEW_QUERIES_QUEUE_UPDATE_INTERVAL,
                     0,
@@ -73,7 +59,7 @@ internal class Client {
                         (arg as ClientContext).handleQueue()
                         0
                     },
-                    clientContext
+                    this
                 )
 
                 reactor.addReader(mainDealer, { _, _, _ -> 0 }, Unit)
@@ -81,6 +67,13 @@ internal class Client {
             }
         }
     }
+
+    fun makeQuery(query: Query) {
+        log.info { "Adding query ${query.functionName} to the internal queue" }
+        newQueriesQueue.add(query)
+    }
+
+    override fun close(): Unit = ctx.close()
 }
 
 private fun ClientContext.handleQueue() {

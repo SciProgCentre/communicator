@@ -5,7 +5,6 @@ import org.zeromq.ZMsg
 
 /** zmsg_t object (CZMQ). Constructor must create it via its init method. */
 internal actual class ZmqMsg(internal val backendMsg: ZMsg) : Closeable {
-
     actual constructor() : this(ZMsg())
 
     actual fun add(data: ByteArray) {

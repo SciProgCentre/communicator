@@ -2,7 +2,6 @@ package scientifik.communicator.zmq.platform
 
 /** 16-byte unique query ID */
 class UniqueID(val bytes: ByteArray) {
-
     /** Generates random query ID using UUID */
     constructor() : this(generateUuid())
 
@@ -12,12 +11,9 @@ class UniqueID(val bytes: ByteArray) {
         return bytes.contentEquals(other.bytes)
     }
 
-    override fun hashCode(): Int {
-        return bytes.contentHashCode()
-    }
+    override fun hashCode(): Int = bytes.contentHashCode()
 
     override fun toString(): String = uuidToString(bytes)
-
 }
 
 internal expect fun generateUuid(): ByteArray

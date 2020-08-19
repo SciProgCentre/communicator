@@ -22,4 +22,6 @@ class ZmqTransport : Transport {
 
         return deferred.await()
     }
+
+    override fun close(): Unit = client.close()
 }

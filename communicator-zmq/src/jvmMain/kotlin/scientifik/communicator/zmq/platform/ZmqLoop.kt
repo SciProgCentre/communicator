@@ -5,7 +5,6 @@ import org.zeromq.ZMQ
 
 /** Constructor must create a loop with its "new" method */
 internal actual class ZmqLoop actual constructor(ctx: ZmqContext) {
-
     internal val backendLoop = ZLoop(ctx.backendContext)
 
     actual fun addReader(socket: ZmqSocket, handler: (Any?, Any?, Any?) -> Int, arg: Any?) {
