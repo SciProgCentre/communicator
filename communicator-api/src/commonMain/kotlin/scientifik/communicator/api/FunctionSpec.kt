@@ -9,7 +9,7 @@ data class FunctionSpecOut<T, R>(val argumentCoder: Decoder<T>, val resultCoder:
  * and will throw receiver function's exceptions as-is.
  */
 fun <T, R> (suspend (T) -> R).toBinary(spec: FunctionSpec<T, R>): PayloadFunction = { bin ->
-    val arg: T = try {
+    val arg = try {
         spec.argumentCoder.decode(bin)
     } catch (ex: Exception) {
         throw DecodingException(bin, spec.argumentCoder, ex.message.orEmpty())
@@ -29,12 +29,14 @@ fun <T, R> (suspend (T) -> R).toBinary(spec: FunctionSpec<T, R>): PayloadFunctio
  * and will throw receiver function's exceptions as-is.
  */
 fun <T, R> PayloadFunction.toFunction(spec: FunctionSpec<T, R>): (suspend (T) -> R) = { arg ->
-    val bin: Payload = try {
+    val bin = try {
         spec.argumentCoder.encode(arg)
     } catch (ex: Exception) {
         throw EncodingException(arg, spec.argumentCoder, ex.message.orEmpty())
     }
-    val res: Payload = invoke(bin)
+
+    val res = invoke(bin)
+
     try {
         spec.resultCoder.decode(res)
     } catch (ex: Exception) {

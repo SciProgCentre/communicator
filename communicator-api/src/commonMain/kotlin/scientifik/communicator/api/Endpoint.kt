@@ -8,9 +8,6 @@ data class Endpoint(
      */
     val address: String
 ) {
-    val host: String
-        get() = address.split(":")[0]
-
-    val port: Int
-        get() = address.split(":")[1].toInt()
+    val host: String by lazy { address.split(":")[0] }
+    val port: Int by lazy { address.split(":")[1].toInt() }
 }

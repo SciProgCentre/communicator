@@ -35,6 +35,7 @@ private class ClientContext(
     val log: KLogger = KotlinLogging.logger(this::class.simpleName.orEmpty())
 
     override fun close() {
+        reactor.close()
         mainDealer.close()
         ctx.close()
     }
@@ -82,7 +83,7 @@ private fun ClientContext.handleQueue() {
         log.info { "Making query ${query.functionName}" }
         val id = UniqueID()
         queriesInWork[id] = query.callback
-        getForwardSocket(query.address).use { sendQuery(it, query, id) }
+        sendQuery(getForwardSocket(query.address), query, id)
     }
 }
 
@@ -93,22 +94,25 @@ private fun ClientContext.getForwardSocket(address: String): ZmqSocket {
     forwardSocket.setIdentity(identity.bytes)
     forwardSocket.connect("tcp://$address")
 
-    reactor.addReader(forwardSocket, { _, _, arg ->
-        arg as ResultHandlerArg
-        arg.clientContext.handleResult(arg)
-        0
-    }, ResultHandlerArg(forwardSocket, this))
+    reactor.addReader(
+        forwardSocket,
+        { _, _, arg ->
+            arg as ResultHandlerArg
+            arg.clientContext.handleResult(arg)
+            0
+        },
+        ResultHandlerArg(forwardSocket, this)
+    )
 
     forwardSockets[address] = forwardSocket
     return forwardSocket
 }
 
-private fun sendQuery(socket: ZmqSocket, query: Query, queryID: UniqueID) {
-    val msg = ZmqMsg()
-    msg.add(queryID.bytes)
-    msg.add(query.functionName.encodeToByteArray())
-    msg.add(query.arg)
-    msg.send(socket)
+private fun sendQuery(socket: ZmqSocket, query: Query, queryID: UniqueID): Unit = ZmqMsg().use {
+    it.add(queryID.bytes)
+    it.add(query.functionName.encodeToByteArray())
+    it.add(query.arg)
+    it.send(socket)
 }
 
 private class ResultHandlerArg(
@@ -118,10 +122,10 @@ private class ResultHandlerArg(
 
 private fun ClientContext.handleResult(arg: ResultHandlerArg) {
     log.info { "Handling result" }
-    val msg: ZmqMsg = arg.socket.recvMsg()
+    val msg = arg.socket.recvMsg()
     val queryID = UniqueID(msg.pop().data)
     val result = msg.pop().data
-    log.info { "Got result to the query [$queryID]: $result" }
+    log.info { "Got result to the query [$queryID]: ${result.contentToString()}" }
     val callback = queriesInWork[queryID]
 
     if (callback == null) {

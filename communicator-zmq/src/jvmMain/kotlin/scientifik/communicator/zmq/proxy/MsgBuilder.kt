@@ -5,11 +5,17 @@ import scientifik.communicator.zmq.platform.ZmqMsg
 import scientifik.communicator.zmq.platform.ZmqSocket
 
 internal class MsgBuilder(private val msg: ZmqMsg) {
-    operator fun ByteArray.unaryPlus(): Unit = msg.add(this)
+    operator fun ByteArray.unaryPlus() {
+        msg.add(this)
+    }
 
-    operator fun ZmqFrame.unaryPlus(): Unit = msg.add(this)
+    operator fun ZmqFrame.unaryPlus() {
+        msg.add(this)
+    }
 
-    operator fun String.unaryPlus(): Unit = msg.add(this)
+    operator fun String.unaryPlus() {
+        msg.add(this)
+    }
 }
 
 internal inline fun sendMsg(socket: ZmqSocket, block: MsgBuilder.() -> Unit) {

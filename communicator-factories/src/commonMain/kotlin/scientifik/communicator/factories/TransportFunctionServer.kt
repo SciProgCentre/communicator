@@ -9,18 +9,21 @@ import scientifik.communicator.zmq.server.ZmqTransportServer
  * Multiple endpoints with the same protocol are ignored, only one port for each protocol is supported.
  * Multiple protocols on one port are not supported.
  */
-class DefaultFunctionServer(override val endpoints: List<Endpoint>) : FunctionServer {
+class TransportFunctionServer(override val endpoints: List<Endpoint>) : FunctionServer {
+    constructor(vararg endpoints: Endpoint) : this(endpoints.toList())
 
     private val transportServers: List<TransportServer>
 
     init {
         val actualEndpoints = endpoints
-            .distinctBy { it.protocol }
-            .distinctBy { it.port }
+            .asSequence()
+            .map { Endpoint(it.protocol, ":${it.port}") }
             .map { it.protocol to it.port }
-        if (actualEndpoints.size != endpoints.size) error("Invalid endpoints list. Read docs for DefaultFunctionServer.")
-        transportServers = actualEndpoints.map {
-            val (protocol, port) = it
+            .toSet()
+
+        check(actualEndpoints.size == endpoints.size) { "Invalid endpoints list. Read docs for DefaultFunctionServer." }
+
+        transportServers = actualEndpoints.map { (protocol, port) ->
             when (protocol) {
                 "ZMQ" -> ZmqTransportServer(port)
                 else -> error("Protocol $protocol is not supported.")
@@ -28,20 +31,12 @@ class DefaultFunctionServer(override val endpoints: List<Endpoint>) : FunctionSe
         }
     }
 
-    override fun <T, R> register(name: String, spec: FunctionSpec<T, R>, function: suspend (T) -> R) {
+    override fun <T, R> register(name: String, spec: FunctionSpec<T, R>, function: suspend (T) -> R): suspend (T) -> R {
         val payloadFunction = function.toBinary(spec)
-        transportServers.forEach {
-            it.register(name, payloadFunction)
-        }
+        transportServers.forEach { it.register(name, payloadFunction) }
+        return function
     }
 
-    override fun unregister(name: String) {
-        transportServers.forEach {
-            it.unregister(name)
-        }
-    }
-
-    override fun stop() {
-        //TODO
-    }
+    override fun unregister(name: String): Unit = transportServers.forEach { it.unregister(name) }
+    override fun close(): Unit = transportServers.forEach(TransportServer::close)
 }

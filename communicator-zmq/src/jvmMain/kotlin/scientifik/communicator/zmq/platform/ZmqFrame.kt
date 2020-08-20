@@ -5,9 +5,8 @@ import org.zeromq.ZFrame
 
 /** zframe_t object (CZMQ). */
 internal actual class ZmqFrame(internal val backendFrame: ZFrame) : Closeable {
-
     actual val data: ByteArray
         get() = backendFrame.data
 
-    actual override fun close() = backendFrame.destroy()
+    actual override fun close(): Unit = backendFrame.destroy()
 }

@@ -5,7 +5,7 @@ import scientifik.communicator.api.TransportFactory
 import scientifik.communicator.zmq.client.ZmqTransport
 import kotlin.jvm.Synchronized
 
-class DefaultTransportFactory : TransportFactory {
+object DefaultTransportFactory : TransportFactory {
     private val transports: MutableMap<String, Transport> = hashMapOf()
 
     @Synchronized
