@@ -10,10 +10,10 @@ import scientifik.communicator.zmq.platform.*
 
 private const val NEW_QUERIES_QUEUE_UPDATE_INTERVAL = 1
 
-typealias ResultHandler = (ByteArray) -> Unit
-typealias ErrorHandler = (Throwable) -> Unit
+internal typealias ResultHandler = (ByteArray) -> Unit
+internal typealias ErrorHandler = (Throwable) -> Unit
 
-class ResultCallback(val onResult: ResultHandler, val onError: ErrorHandler)
+internal class ResultCallback(val onResult: ResultHandler, val onError: ErrorHandler)
 
 internal class Query(
     val functionName: String,
@@ -77,9 +77,7 @@ internal class Client : Closeable {
         state.newQueriesQueue.send(query)
     }
 
-    override fun close(): Unit {
-        state.close()
-    }
+    override fun close(): Unit = state.close()
 }
 
 private fun ClientState.handleQueue() {

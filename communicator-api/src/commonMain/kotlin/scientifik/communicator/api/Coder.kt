@@ -1,26 +1,11 @@
 package scientifik.communicator.api
 
-interface Decoder<out T> {
-    fun decode(bin: Payload): T
-}
-
-interface Encoder<in T> {
-    fun encode(value: T): Payload
-}
-
+/**
+ * Coder object exposed to the communicator API to bind objects to [Payload]. Also provides identity.
+ *
+ * @param T the type of decoded and encoded object.
+ */
 interface Coder<T> {
-    /**
-     * This method may throw any exception if the value does not match the coder.
-     * This exception will be delivered to the client as either [EncodingException] or [RemoteEncodingException]
-     */
-    fun encode(value: T): Payload
-
-    /**
-     * This method may throw any exception if the payload does not match the coder.
-     * This exception will be delivered to the client as either [LocalDecodingException] or [DecodingException]
-     */
-    fun decode(bin: Payload): T
-
     /**
      * Identity of the coder is some data that is equal for the structurally equal coders
      * (coders that work with equal types of data).
@@ -28,6 +13,22 @@ interface Coder<T> {
      * Identity may be called "hash code", but this property has completely different purposes than [Any.hashCode].
      */
     val identity: ByteArray
+
+    /**
+     * Decodes payload to object.
+     *
+     * @param payload the payload.
+     * @return the decoded object.
+     */
+    fun decode(payload: Payload): T
+
+    /**
+     * Encodes object to payload.
+     *
+     * @param value the object.
+     * @return the payload.
+     */
+    fun encode(value: T): Payload
 
     /**
      * Force to reimplement [toString]

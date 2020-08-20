@@ -1,5 +1,4 @@
 import kotlinx.coroutines.runBlocking
-import mu.KLogger
 import mu.KotlinLogging
 import scientifik.communicator.api.*
 import scientifik.communicator.factories.DefaultTransportFactory
@@ -14,6 +13,10 @@ private object Functions : FunctionSet(endpoint) {
 
 private val log = KotlinLogging.logger { }
 
+/**
+ * Launches [TransportFunctionServer] with function f(x) = x^2 + 1 and [TransportFunctionClient] calling that
+ * function, calls f from 123, and prints the result.
+ */
 fun main() {
     runBlocking {
         val server = TransportFunctionServer(endpoint).configure(Functions) { it.impl(f) { x -> x * x + 1 } }

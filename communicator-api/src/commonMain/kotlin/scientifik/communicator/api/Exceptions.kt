@@ -15,9 +15,9 @@ sealed class RemoteCallException : Exception()
  * Spec strings are the strings received from [FunctionSpec.toString] method, which uses [Coder.toString].
  */
 class IncompatibleSpecsException(
-        val functionName: String,
-        val localSpec: String,
-        val remoteSpec: String
+    val functionName: String,
+    val localSpec: String,
+    val remoteSpec: String
 ) : RemoteCallException() {
 
     override val message: String?
@@ -41,8 +41,7 @@ class UnsupportedFunctionNameException(val functionName: String) : RemoteCallExc
  * This exception is thrown if the timeout for invoking remote function has ended,
  * and the client retried the query enough times.
  */
-class TimeoutException() : RemoteCallException() {
-
+class TimeoutException : RemoteCallException() {
     override val message: String?
         get() = "Timeout for the query has ended."
 }
@@ -69,7 +68,6 @@ sealed class CoderException : RemoteCallException()
  * This exception is thrown if the coder can't serialize the object.
  */
 class EncodingException(val obj: Any?, val coder: Coder<*>, val coderExceptionMessage: String) : CoderException() {
-
     override val message: String?
         get() = """Object serialization exception.
                 Object: $obj
@@ -81,7 +79,8 @@ class EncodingException(val obj: Any?, val coder: Coder<*>, val coderExceptionMe
 /**
  * This exception is thrown if the coder can't deserialize the payload.
  */
-class DecodingException(val payload: Payload, val coder: Coder<*>, val coderExceptionMessage: String) : CoderException() {
+class DecodingException(val payload: Payload, val coder: Coder<*>, val coderExceptionMessage: String) :
+    CoderException() {
 
     override val message: String?
         get() = """Payload deserialization exception.

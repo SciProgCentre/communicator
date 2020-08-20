@@ -4,6 +4,10 @@ import kotlinx.coroutines.CompletableDeferred
 import scientifik.communicator.api.Payload
 import scientifik.communicator.api.Transport
 
+/**
+ * Implements transport with ZeroMQ-based machinery. Associated server transport is
+ * [scientifik.communicator.zmq.server.ZmqTransportServer].
+ */
 class ZmqTransport : Transport {
     private val client = Client()
 

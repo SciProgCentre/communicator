@@ -9,14 +9,18 @@ import scientifik.communicator.api.PayloadFunction
 import scientifik.communicator.api.TransportServer
 import scientifik.communicator.zmq.platform.*
 
+/**
+ * Implements transport server with ZeroMQ-based machinery. Associated client transport is
+ * [scientifik.communicator.zmq.client.ZmqTransport].
+ */
 class ZmqTransportServer(override val port: Int) : TransportServer {
     internal val log: KLogger = KotlinLogging.logger("ZmqTransportServer")
     private val serverFunctions: MutableMap<String, PayloadFunction> = hashMapOf()
     private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default
     private val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob())
-    private val ctx = ZmqContext()
-    private val repliesQueue = Channel<Reply>()
-    private val editFunctionQueriesQueue = Channel<EditFunctionQuery>()
+    private val ctx: ZmqContext = ZmqContext()
+    private val repliesQueue: Channel<Reply> = Channel()
+    private val editFunctionQueriesQueue: Channel<EditFunctionQuery> = Channel()
     private val frontend: ZmqSocket = ctx.createDealerSocket()
 
     init {

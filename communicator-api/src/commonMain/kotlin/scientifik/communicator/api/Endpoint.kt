@@ -1,13 +1,19 @@
 package scientifik.communicator.api
 
-data class Endpoint(
-    val protocol: String,
+/**
+ * Represents communicator end-point, i.e. pair of protocol and address.
+ *
+ * @property protocol The transport protocol to find [Transport].
+ * @property address Address string in the format "host:port". For example, "localhost:1234" or "127.0.0.1:4321"
+ */
+data class Endpoint(val protocol: String, val address: String) {
     /**
-     * Address string in the format "host:port".
-     * For example, "localhost:1234" or "127.0.0.1:4321"
+     * The host part (before :) of [address].
      */
-    val address: String
-) {
     val host: String by lazy { address.split(":")[0] }
+
+    /**
+     * The port part (after :) of [address].
+     */
     val port: Int by lazy { address.split(":")[1].toInt() }
 }

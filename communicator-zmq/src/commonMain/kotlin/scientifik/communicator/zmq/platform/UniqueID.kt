@@ -1,7 +1,7 @@
 package scientifik.communicator.zmq.platform
 
 /** 16-byte unique query ID */
-class UniqueID(val bytes: ByteArray) {
+internal data class UniqueID(val bytes: ByteArray) {
     /** Generates random query ID using UUID */
     constructor() : this(generateUuid())
 

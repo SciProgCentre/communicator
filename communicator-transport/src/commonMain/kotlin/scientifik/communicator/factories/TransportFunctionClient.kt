@@ -1,9 +1,8 @@
 package scientifik.communicator.factories
 
-import kotlinx.io.Closeable
 import scientifik.communicator.api.*
 
-class TransportFunctionClient(private val factory: TransportFactory) : FunctionClient, Closeable {
+class TransportFunctionClient(private val factory: TransportFactory) : FunctionClient {
     private val transportCache: MutableMap<String, Transport> = hashMapOf()
 
     override fun <T, R> getFunction(endpoint: Endpoint, name: String, spec: FunctionSpec<T, R>): suspend (T) -> R =

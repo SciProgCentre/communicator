@@ -9,8 +9,8 @@ import scientifik.communicator.zmq.server.ZmqTransportServer
  * Multiple endpoints with the same protocol are ignored, only one port for each protocol is supported.
  * Multiple protocols on one port are not supported.
  */
-class TransportFunctionServer(override val endpoints: List<Endpoint>) : FunctionServer {
-    constructor(vararg endpoints: Endpoint) : this(endpoints.toList())
+class TransportFunctionServer(override val endpoints: Set<Endpoint>) : FunctionServer {
+    constructor(vararg endpoints: Endpoint) : this(endpoints.toSet())
 
     private val transportServers: List<TransportServer>
 
@@ -18,8 +18,7 @@ class TransportFunctionServer(override val endpoints: List<Endpoint>) : Function
         val actualEndpoints = endpoints
             .asSequence()
             .map { Endpoint(it.protocol, ":${it.port}") }
-            .map { it.protocol to it.port }
-            .toSet()
+            .mapTo(hashSetOf()) { it.protocol to it.port }
 
         check(actualEndpoints.size == endpoints.size) { "Invalid endpoints list. Read docs for DefaultFunctionServer." }
 
@@ -31,7 +30,11 @@ class TransportFunctionServer(override val endpoints: List<Endpoint>) : Function
         }
     }
 
-    override suspend fun <T, R> register(name: String, spec: FunctionSpec<T, R>, function: suspend (T) -> R): suspend (T) -> R {
+    override suspend fun <T, R> register(
+        name: String,
+        spec: FunctionSpec<T, R>,
+        function: suspend (T) -> R
+    ): suspend (T) -> R {
         val payloadFunction = function.toBinary(spec)
         transportServers.forEach { it.register(name, payloadFunction) }
         return function

@@ -1,8 +1,14 @@
 package scientifik.communicator.api
 
+/**
+ * Represents typed specification of function.
+ *
+ * @param T the type of argument.
+ * @param R the type of result.
+ * @property argumentCoder the coder of [T].
+ * @property resultCoder the coder of [R].
+ */
 data class FunctionSpec<T, R>(val argumentCoder: Coder<T>, val resultCoder: Coder<R>)
-data class FunctionSpecIn<T, R>(val argumentCoder: Encoder<T>, val resultCoder: Decoder<R>)
-data class FunctionSpecOut<T, R>(val argumentCoder: Decoder<T>, val resultCoder: Encoder<R>)
 
 /**
  * Returned function will wrap serialization exceptions into [CoderException],

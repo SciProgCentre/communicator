@@ -5,6 +5,9 @@ import scientifik.communicator.api.TransportFactory
 import scientifik.communicator.zmq.client.ZmqTransport
 import kotlin.jvm.Synchronized
 
+/**
+ * Standard [TransportFactory] implementation. Currently, it only supports ZeroMQ protocol.
+ */
 object DefaultTransportFactory : TransportFactory {
     private val transports: MutableMap<String, Transport> = hashMapOf()
 
