@@ -4,9 +4,11 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.BUFFERED
 import kotlinx.io.use
+import kscience.communicator.api.FunctionSpec
 import kscience.communicator.api.PayloadFunction
 import kscience.communicator.api.TransportServer
 import kscience.communicator.zmq.platform.*
+import kscience.communicator.zmq.util.sendMsg
 import mu.KLogger
 import mu.KotlinLogging
 
@@ -17,12 +19,13 @@ import mu.KotlinLogging
 class ZmqTransportServer(override val port: Int) : TransportServer {
     internal val log: KLogger = KotlinLogging.logger("ZmqTransportServer")
     private val serverFunctions: MutableMap<String, PayloadFunction> = hashMapOf()
+    private val serverFunctionSpecs: MutableMap<String, FunctionSpec<*, *>> = hashMapOf()
     private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default
     private val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob())
     private val ctx: ZmqContext = ZmqContext()
-    private val repliesQueue: Channel<Reply> = Channel(BUFFERED)
+    private val repliesQueue: Channel<Response> = Channel(BUFFERED)
     private val editFunctionQueriesQueue: Channel<EditFunctionQuery> = Channel(BUFFERED)
-    private val frontend: ZmqSocket = ctx.createDealerSocket()
+    private val frontend: ZmqSocket = ctx.createRouterSocket()
 
     init {
         //TODO
@@ -32,8 +35,8 @@ class ZmqTransportServer(override val port: Int) : TransportServer {
         }
     }
 
-    override suspend fun register(name: String, function: PayloadFunction) {
-        editFunctionQueriesQueue.send(RegisterFunctionQuery(name, function))
+    override suspend fun register(name: String, function: PayloadFunction, spec: FunctionSpec<*, *>) {
+        editFunctionQueriesQueue.send(RegisterFunctionQuery(name, function, spec))
     }
 
     override suspend fun unregister(name: String) {
@@ -56,7 +59,7 @@ class ZmqTransportServer(override val port: Int) : TransportServer {
                 handleFrontend(arg as FrontendHandlerArg)
                 0
             },
-            FrontendHandlerArg(workerScope, frontend, serverFunctions, repliesQueue)
+            FrontendHandlerArg(workerScope, frontend, serverFunctions, serverFunctionSpecs, repliesQueue)
         )
 
         reactor.addTimer(
@@ -76,7 +79,7 @@ class ZmqTransportServer(override val port: Int) : TransportServer {
                 handleEditFunctionQueue(arg as EditFunctionQueueHandlerArg)
                 0
             },
-            EditFunctionQueueHandlerArg(serverFunctions, editFunctionQueriesQueue)
+            EditFunctionQueueHandlerArg(serverFunctions, serverFunctionSpecs, editFunctionQueriesQueue)
         )
 
         reactor.start()
@@ -84,50 +87,44 @@ class ZmqTransportServer(override val port: Int) : TransportServer {
 }
 
 private sealed class EditFunctionQuery
-private class RegisterFunctionQuery(val name: String, val function: PayloadFunction) : EditFunctionQuery()
+private class RegisterFunctionQuery(val name: String, val function: PayloadFunction, val spec: FunctionSpec<*, *>) : EditFunctionQuery()
 private class UnregisterFunctionQuery(val name: String) : EditFunctionQuery()
 
-internal data class Reply(val queryID: ByteArray, val resultBytes: ByteArray) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other == null || this::class != other::class) return false
-
-        other as Reply
-
-        if (!queryID.contentEquals(other.queryID)) return false
-        if (!resultBytes.contentEquals(other.resultBytes)) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = queryID.contentHashCode()
-        result = 31 * result + resultBytes.contentHashCode()
-        return result
-    }
-}
+internal sealed class Response
+internal class ResponseResult(val clientIdentity: ByteArray, val queryID: ByteArray, val resultBytes: ByteArray) : Response()
+internal class ResponseException(val clientIdentity: ByteArray, val queryID: ByteArray, val exceptionMessage: String) : Response()
 
 
 private class ReplyQueueHandlerArg(
     val frontend: ZmqSocket,
-    val repliesQueue: Channel<Reply>
+    val repliesQueue: Channel<Response>
 )
 
-private fun ZmqTransportServer.handleReplyQueue(arg: ReplyQueueHandlerArg): Unit = with(arg) {
+private fun handleReplyQueue(arg: ReplyQueueHandlerArg): Unit = with(arg) {
     while (true) {
         val reply = repliesQueue.poll() ?: break
-        log.info { "Received reply $reply from internal queue" }
-
-        ZmqMsg().use {
-            it.add(reply.queryID)
-            it.add(reply.resultBytes)
-            it.send(frontend)
+        sendMsg(frontend) {
+            when (reply) {
+                is ResponseResult -> {
+                    +reply.clientIdentity
+                    +"RESPONSE_RESULT"
+                    +reply.queryID
+                    +reply.resultBytes
+                }
+                is ResponseException -> {
+                    +reply.clientIdentity
+                    +"RESPONSE_EXCEPTION"
+                    +reply.queryID
+                    +reply.exceptionMessage
+                }
+            }
         }
     }
 }
 
 private class EditFunctionQueueHandlerArg(
     val serverFunctions: MutableMap<String, PayloadFunction>,
+    val serverFunctionSpecs: MutableMap<String, FunctionSpec<*, *>>,
     val editFunctionQueue: Channel<EditFunctionQuery>
 )
 
@@ -136,7 +133,10 @@ private fun handleEditFunctionQueue(arg: EditFunctionQueueHandlerArg): Unit = wi
         val editFunctionMessage = editFunctionQueue.poll() ?: break
 
         when (editFunctionMessage) {
-            is RegisterFunctionQuery -> arg.serverFunctions[editFunctionMessage.name] = editFunctionMessage.function
+            is RegisterFunctionQuery -> {
+                arg.serverFunctions[editFunctionMessage.name] = editFunctionMessage.function
+                arg.serverFunctionSpecs[editFunctionMessage.name] = editFunctionMessage.spec
+            }
             is UnregisterFunctionQuery -> arg.serverFunctions.remove(editFunctionMessage.name)
         }
     }

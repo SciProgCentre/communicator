@@ -17,7 +17,7 @@ interface TransportServer : Closeable {
      * @param name the name of function.
      * @param function the implementation of function.
      */
-    suspend fun register(name: String, function: PayloadFunction)
+    suspend fun register(name: String, function: PayloadFunction, spec: FunctionSpec<*, *>)
 
     /**
      * Unregisters function by its name.

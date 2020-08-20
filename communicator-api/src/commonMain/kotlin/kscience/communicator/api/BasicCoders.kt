@@ -6,8 +6,8 @@ import kotlinx.io.*
  * Binds [Int] to 4-byte [Payload].
  */
 object IntCoder : Coder<Int> {
-    override val identity: ByteArray
-        get() = TODO("Not yet implemented")
+    override val identity: String
+        get() = "Int"
 
     override fun decode(payload: Payload): Int = ByteArrayInput(payload).readInt()
     override fun encode(value: Int): Payload = ByteArrayOutput(Int.SIZE_BYTES).also { it.writeInt(value) }.toByteArray()
@@ -18,8 +18,8 @@ object IntCoder : Coder<Int> {
  * Binds [Long] to 8-byte [Payload].
  */
 object LongCoder : Coder<Long> {
-    override val identity: ByteArray
-        get() = TODO("Not yet implemented")
+    override val identity: String
+        get() = "Long"
 
     override fun decode(payload: Payload): Long = ByteArrayInput(payload).readLong()
 
@@ -33,8 +33,8 @@ object LongCoder : Coder<Long> {
  * Binds [ULong] to 8-byte [Payload].
  */
 object ULongCoder : Coder<ULong> {
-    override val identity: ByteArray
-        get() = TODO("Not yet implemented")
+    override val identity: String
+        get() = "ULong"
 
     override fun decode(payload: Payload): ULong = ByteArrayInput(payload).readULong()
 
@@ -48,8 +48,8 @@ object ULongCoder : Coder<ULong> {
  * Binds [Float] to 4-byte [Payload].
  */
 object FloatCoder : Coder<Float> {
-    override val identity: ByteArray
-        get() = TODO("Not yet implemented")
+    override val identity: String
+        get() = "Float"
 
     override fun decode(payload: Payload): Float = ByteArrayInput(payload).readFloat()
 
@@ -63,8 +63,8 @@ object FloatCoder : Coder<Float> {
  * Binds [Double] to 8-byte [Payload].
  */
 object DoubleCoder : Coder<Double> {
-    override val identity: ByteArray
-        get() = TODO("Not yet implemented")
+    override val identity: String
+        get() = "Double"
 
     override fun decode(payload: Payload): Double = ByteArrayInput(payload).readDouble()
 
@@ -78,8 +78,8 @@ object DoubleCoder : Coder<Double> {
  * Binds [String] to payload of array of size N and int N before it.
  */
 object StringCoder : Coder<String> {
-    override val identity: ByteArray
-        get() = TODO("Not yet implemented")
+    override val identity: String
+        get() = "String"
 
     override fun decode(payload: Payload): String {
         val inp = ByteArrayInput(payload)
@@ -105,11 +105,12 @@ object StringCoder : Coder<String> {
  * @property elementCoder The coder of [T].
  */
 class ListCoder<T>(val elementCoder: Coder<T>) : Coder<List<T>> {
-    override val identity: ByteArray
-        get() = TODO("Not yet implemented")
+    override val identity: String
+        get() = "List<${elementCoder.identity}>"
 
     override fun encode(value: List<T>): Payload {
         val out = ByteArrayOutput()
+        out.writeInt(value.size)
         value.asSequence().map(elementCoder::encode).forEach { out.writeByteArray(it) }
         return out.toByteArray()
     }
@@ -117,14 +118,82 @@ class ListCoder<T>(val elementCoder: Coder<T>) : Coder<List<T>> {
     override fun decode(payload: Payload): List<T> {
         val res = mutableListOf<T>()
         val inp = ByteArrayInput(payload)
-
-        while (!inp.exhausted()) {
+        val length = inp.readInt()
+        repeat(length) {
             val elem = elementCoder.decode(inp.preview { inp.readByteArray() })
             res.add(elem)
             inp.readByteArray(elementCoder.encode(elem).size)
         }
 
         return res
+    }
+
+    override fun toString(): String = "arrayCoder"
+}
+
+class MapCoder<K, V>(val keyCoder: Coder<K>, val valueCoder: Coder<V>) : Coder<Map<K, V>> {
+
+    private val actualCoder = ListCoder(PairCoder(keyCoder, valueCoder))
+
+    override val identity: String
+        get() = "Map<${keyCoder.identity}, ${valueCoder.identity}>"
+
+    override fun encode(value: Map<K, V>): Payload = actualCoder.encode(value.toList())
+
+    override fun decode(payload: Payload): Map<K, V> = actualCoder.decode(payload).toMap()
+
+    override fun toString(): String = "arrayCoder"
+}
+
+abstract class CustomCoder<T> : Coder<T> {
+
+    override fun encode(value: T): Payload {
+        val out = ByteArrayOutput()
+        val encoded = customEncode(value)
+        out.writeInt(encoded.size)
+        out.writeByteArray(encoded)
+        return out.toByteArray()
+    }
+
+    abstract fun customEncode(value: T): Payload
+
+    override fun decode(payload: Payload): T {
+        val inp = ByteArrayInput(payload)
+        val length = inp.readInt()
+        val encoded = inp.readByteArray(length)
+        return customDecode(encoded)
+    }
+
+    abstract fun customDecode(payload: Payload): T
+
+}
+
+class CompositeObjectField<T, F>(val getter: (T) -> F, val coder: Coder<F>)
+
+class CompositeCoder<T>(val composer: (List<*>) -> T, val fields: List<CompositeObjectField<T, *>>) : Coder<T> {
+
+    override val identity: String
+        get() = "Object<${fields.joinToString(prefix = "", postfix = "") { it.coder.identity }}>"
+
+    override fun encode(value: T): Payload {
+        val out = ByteArrayOutput()
+        fields.asSequence().map {
+            @Suppress("UNCHECKED_CAST")
+            (it.coder as Coder<Any?>).encode(it.getter(value))
+        }.forEach { out.writeByteArray(it) }
+        return out.toByteArray()
+    }
+
+    override fun decode(payload: Payload): T {
+        val res = mutableListOf<Any?>()
+        val inp = ByteArrayInput(payload)
+        fields.forEach {
+            val elem = it.coder.decode(inp.preview { inp.readByteArray() })
+            res.add(elem)
+            @Suppress("UNCHECKED_CAST")
+            inp.readByteArray((it.coder as Coder<Any?>).encode(elem).size)
+        }
+        return composer(res)
     }
 
     override fun toString(): String = "arrayCoder"
@@ -140,8 +209,8 @@ class PairCoder<A, B>(
     val firstCoder: Coder<A>,
     val secondCoder: Coder<B>
 ) : Coder<Pair<A, B>> {
-    override val identity: ByteArray
-        get() = TODO("Not yet implemented")
+    override val identity: String
+        get() = "Pair<${firstCoder.identity}, ${secondCoder.identity}>"
 
     override fun encode(value: Pair<A, B>): Payload = firstCoder.encode(value.first) +
             secondCoder.encode(value.second)
@@ -170,8 +239,8 @@ class TripleCoder<A, B, C>(
     val secondCoder: Coder<B>,
     val thirdCoder: Coder<C>
 ) : Coder<Triple<A, B, C>> {
-    override val identity: ByteArray
-        get() = TODO("Not yet implemented")
+    override val identity: String
+        get() = "Triple<${firstCoder.identity}, ${secondCoder.identity}, ${thirdCoder.identity}>"
 
     override fun encode(value: Triple<A, B, C>): Payload = firstCoder
         .encode(value.first)
