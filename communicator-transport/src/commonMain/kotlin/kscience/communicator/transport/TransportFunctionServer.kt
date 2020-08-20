@@ -1,8 +1,7 @@
 package kscience.communicator.transport
 
 import kscience.communicator.api.*
-import scientifik.communicator.api.*
-import scientifik.communicator.zmq.server.ZmqTransportServer
+import kscience.communicator.zmq.server.ZmqTransportServer
 
 /**
  * Function server that can use multiple transport servers to listen to requests using multiple protocols.

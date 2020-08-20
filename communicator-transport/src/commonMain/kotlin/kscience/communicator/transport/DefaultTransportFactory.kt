@@ -2,7 +2,7 @@ package kscience.communicator.transport
 
 import kscience.communicator.api.Transport
 import kscience.communicator.api.TransportFactory
-import scientifik.communicator.zmq.client.ZmqTransport
+import kscience.communicator.zmq.client.ZmqTransport
 import kotlin.jvm.Synchronized
 
 /**

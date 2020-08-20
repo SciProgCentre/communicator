@@ -6,7 +6,11 @@ import kotlinx.io.use
 import mu.KLogger
 import mu.KotlinLogging
 import kscience.communicator.api.Payload
-import scientifik.communicator.zmq.platform.*
+import kscience.communicator.zmq.platform.*
+import kscience.communicator.zmq.platform.UniqueID
+import kscience.communicator.zmq.platform.ZmqContext
+import kscience.communicator.zmq.platform.ZmqLoop
+import kscience.communicator.zmq.platform.ZmqSocket
 
 private const val NEW_QUERIES_QUEUE_UPDATE_INTERVAL = 1
 

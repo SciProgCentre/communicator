@@ -1,10 +1,9 @@
 import kotlinx.coroutines.runBlocking
 import kscience.communicator.api.*
-import mu.KotlinLogging
-import scientifik.communicator.api.*
 import kscience.communicator.transport.DefaultTransportFactory
 import kscience.communicator.transport.TransportFunctionClient
 import kscience.communicator.transport.TransportFunctionServer
+import mu.KotlinLogging
 
 private val endpoint = Endpoint("ZMQ", ":8888")
 

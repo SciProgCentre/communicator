@@ -3,15 +3,15 @@ package kscience.communicator.zmq.server
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.io.use
-import mu.KLogger
-import mu.KotlinLogging
 import kscience.communicator.api.PayloadFunction
 import kscience.communicator.api.TransportServer
-import scientifik.communicator.zmq.platform.*
+import kscience.communicator.zmq.platform.*
+import mu.KLogger
+import mu.KotlinLogging
 
 /**
  * Implements transport server with ZeroMQ-based machinery. Associated client transport is
- * [scientifik.communicator.zmq.client.ZmqTransport].
+ * [kscience.communicator.zmq.client.ZmqTransport].
  */
 class ZmqTransportServer(override val port: Int) : TransportServer {
     internal val log: KLogger = KotlinLogging.logger("ZmqTransportServer")

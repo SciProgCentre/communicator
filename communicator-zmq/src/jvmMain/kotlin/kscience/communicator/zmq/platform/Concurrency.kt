@@ -1,13 +1,20 @@
 package kscience.communicator.zmq.platform
 
 import kotlin.concurrent.thread
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
-internal actual fun <T1, T2> runInBackground(
+@OptIn(ExperimentalContracts::class)
+internal actual inline fun <T1, T2> runInBackground(
     supplier: () -> T1,
-    volatileJob: (T1) -> T2
+    noinline volatileJob: (T1) -> T2
 ) {
-    val arg = supplier()
-    thread(isDaemon = true) {
-        volatileJob(arg)
+    contract {
+        callsInPlace(supplier, InvocationKind.EXACTLY_ONCE)
+        callsInPlace(volatileJob)
     }
+
+    val arg = supplier()
+    thread(isDaemon = true) { volatileJob(arg) }
 }

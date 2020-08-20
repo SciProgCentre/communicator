@@ -1,7 +1,6 @@
 package kscience.communicator.transport
 
 import kscience.communicator.api.*
-import scientifik.communicator.api.*
 
 /**
  * Function client implementation based on [Transport] object provided by [TransportFactory].
