@@ -12,7 +12,6 @@ internal actual inline fun <T1, T2> runInBackground(
 ) {
     contract {
         callsInPlace(supplier, InvocationKind.EXACTLY_ONCE)
-        callsInPlace(volatileJob)
     }
 
     val arg = supplier()

@@ -2,6 +2,7 @@ package kscience.communicator.zmq.server
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.Channel.Factory.BUFFERED
 import kotlinx.io.use
 import kscience.communicator.api.PayloadFunction
 import kscience.communicator.api.TransportServer
@@ -19,8 +20,8 @@ class ZmqTransportServer(override val port: Int) : TransportServer {
     private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default
     private val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob())
     private val ctx: ZmqContext = ZmqContext()
-    private val repliesQueue: Channel<Reply> = Channel()
-    private val editFunctionQueriesQueue: Channel<EditFunctionQuery> = Channel()
+    private val repliesQueue: Channel<Reply> = Channel(BUFFERED)
+    private val editFunctionQueriesQueue: Channel<EditFunctionQuery> = Channel(BUFFERED)
     private val frontend: ZmqSocket = ctx.createDealerSocket()
 
     init {
@@ -86,7 +87,7 @@ private sealed class EditFunctionQuery
 private class RegisterFunctionQuery(val name: String, val function: PayloadFunction) : EditFunctionQuery()
 private class UnregisterFunctionQuery(val name: String) : EditFunctionQuery()
 
-private data class Reply(val queryID: ByteArray, val resultBytes: ByteArray) {
+internal data class Reply(val queryID: ByteArray, val resultBytes: ByteArray) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
@@ -106,27 +107,6 @@ private data class Reply(val queryID: ByteArray, val resultBytes: ByteArray) {
     }
 }
 
-private class FrontendHandlerArg(
-    val workerScope: CoroutineScope,
-    val frontend: ZmqSocket,
-    val serverFunctions: MutableMap<String, PayloadFunction>,
-    val repliesQueue: Channel<Reply>
-)
-
-private fun handleFrontend(arg: FrontendHandlerArg) {
-    with(arg) {
-        val msg = frontend.recvMsg()
-        val queryID = msg.pop().data
-        val functionName = msg.pop().data.decodeToString()
-        val argBytes = msg.pop().data
-        val serverFunction = serverFunctions[functionName]!!
-
-        workerScope.launch {
-            val result = serverFunction(argBytes)
-            repliesQueue.send(Reply(queryID, result))
-        }
-    }
-}
 
 private class ReplyQueueHandlerArg(
     val frontend: ZmqSocket,

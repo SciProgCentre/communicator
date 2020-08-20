@@ -1,6 +1,7 @@
 package kscience.communicator.zmq.client
 
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.Channel.Factory.BUFFERED
 import kotlinx.io.Closeable
 import kotlinx.io.use
 import mu.KLogger
@@ -31,7 +32,7 @@ private class ClientState(
     val mainDealer: ZmqSocket = ctx.createDealerSocket(),
     val identity: UniqueID = UniqueID(),
     // В эту очередь попадают запросы при вызове remoteFunction.invoke()
-    val newQueriesQueue: Channel<Query> = Channel(),
+    val newQueriesQueue: Channel<Query> = Channel(BUFFERED),
     // В этот словарь попадают запросы, которые уже отправлены на сервер и сервер ответил о том, что он получил их
     val queriesInWork: MutableMap<UniqueID, ResultCallback> = hashMapOf(),
     val forwardSockets: MutableMap<String, ZmqSocket> = hashMapOf(),
