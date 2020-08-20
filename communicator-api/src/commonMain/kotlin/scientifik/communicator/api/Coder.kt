@@ -1,7 +1,5 @@
 package scientifik.communicator.api
 
-typealias Payload = ByteArray
-
 interface Decoder<out T> {
     fun decode(bin: Payload): T
 }

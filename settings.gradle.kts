@@ -36,6 +36,6 @@ rootProject.name = "communicator"
 include(
     ":communicator-api",
     ":communicator-zmq",
-    ":communicator-factories",
+    ":communicator-transport",
     ":demo"
 )

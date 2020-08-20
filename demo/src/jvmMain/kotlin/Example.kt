@@ -3,6 +3,7 @@ import mu.KLogger
 import mu.KotlinLogging
 import scientifik.communicator.api.*
 import scientifik.communicator.factories.DefaultTransportFactory
+import scientifik.communicator.factories.TransportFunctionClient
 import scientifik.communicator.factories.TransportFunctionServer
 
 private val endpoint = Endpoint("ZMQ", ":8888")
