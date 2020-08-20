@@ -1,2 +1,0 @@
-package scientifik.communicator.factories
-
