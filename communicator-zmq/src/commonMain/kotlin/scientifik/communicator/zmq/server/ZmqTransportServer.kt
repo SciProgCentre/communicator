@@ -1,6 +1,7 @@
 package scientifik.communicator.zmq.server
 
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import kotlinx.io.use
 import mu.KLogger
 import mu.KotlinLogging
@@ -14,8 +15,8 @@ class ZmqTransportServer(override val port: Int) : TransportServer {
     private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default
     private val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob())
     private val ctx = ZmqContext()
-    private val repliesQueue = ConcurrentQueue<Reply>()
-    private val editFunctionQueriesQueue = ConcurrentQueue<EditFunctionQuery>()
+    private val repliesQueue = Channel<Reply>()
+    private val editFunctionQueriesQueue = Channel<EditFunctionQuery>()
     private val frontend: ZmqSocket = ctx.createDealerSocket()
 
     init {
@@ -26,12 +27,12 @@ class ZmqTransportServer(override val port: Int) : TransportServer {
         }
     }
 
-    override fun register(name: String, function: PayloadFunction) {
-        editFunctionQueriesQueue.add(RegisterFunctionQuery(name, function))
+    override suspend fun register(name: String, function: PayloadFunction) {
+        editFunctionQueriesQueue.send(RegisterFunctionQuery(name, function))
     }
 
-    override fun unregister(name: String) {
-        editFunctionQueriesQueue.add(UnregisterFunctionQuery(name))
+    override suspend fun unregister(name: String) {
+        editFunctionQueriesQueue.send(UnregisterFunctionQuery(name))
     }
 
     override fun close() {
@@ -103,7 +104,7 @@ private class FrontendHandlerArg(
     val workerScope: CoroutineScope,
     val frontend: ZmqSocket,
     val serverFunctions: MutableMap<String, PayloadFunction>,
-    val repliesQueue: ConcurrentQueue<Reply>
+    val repliesQueue: Channel<Reply>
 )
 
 private fun handleFrontend(arg: FrontendHandlerArg) {
@@ -116,14 +117,14 @@ private fun handleFrontend(arg: FrontendHandlerArg) {
 
         workerScope.launch {
             val result = serverFunction(argBytes)
-            repliesQueue.add(Reply(queryID, result))
+            repliesQueue.send(Reply(queryID, result))
         }
     }
 }
 
 private class ReplyQueueHandlerArg(
     val frontend: ZmqSocket,
-    val repliesQueue: ConcurrentQueue<Reply>
+    val repliesQueue: Channel<Reply>
 )
 
 private fun ZmqTransportServer.handleReplyQueue(arg: ReplyQueueHandlerArg): Unit = with(arg) {
@@ -141,7 +142,7 @@ private fun ZmqTransportServer.handleReplyQueue(arg: ReplyQueueHandlerArg): Unit
 
 private class EditFunctionQueueHandlerArg(
     val serverFunctions: MutableMap<String, PayloadFunction>,
-    val editFunctionQueue: ConcurrentQueue<EditFunctionQuery>
+    val editFunctionQueue: Channel<EditFunctionQuery>
 )
 
 private fun handleEditFunctionQueue(arg: EditFunctionQueueHandlerArg): Unit = with(arg) {

@@ -14,15 +14,13 @@ private object Functions : FunctionSet(endpoint) {
 private val log: KLogger = KotlinLogging.logger { }
 
 fun main() {
-    val server = TransportFunctionServer(endpoint).configure(Functions) { it.impl(f) { x -> x * x + 1 } }
-    val client = TransportFunctionClient(DefaultTransportFactory)
-    log.info { "Calling ${Functions.f}" }
-
     runBlocking {
+        val server = TransportFunctionServer(endpoint).configure(Functions) { it.impl(f) { x -> x * x + 1 } }
+        val client = TransportFunctionClient(DefaultTransportFactory)
+        log.info { "Calling ${Functions.f}" }
         val result = Functions.f(client, 123)
         log.info { "Result is $result" }
+        server.close()
+        client.close()
     }
-
-    server.close()
-    client.close()
 }

@@ -43,7 +43,7 @@ operator fun <T, R> FunctionSet.Declaration<T, R>.getValue(
 fun <T, R> FunctionSet.declare(nameToSpec: Pair<String, FunctionSpec<T, R>>): FunctionSet.Declaration<T, R> =
     declare(nameToSpec.first, nameToSpec.second)
 
-fun <T, R> FunctionServer.impl(declaration: FunctionSet.Declaration<T, R>, function: suspend (T) -> R) {
+suspend fun <T, R> FunctionServer.impl(declaration: FunctionSet.Declaration<T, R>, function: suspend (T) -> R) {
     register(declaration.name, declaration.spec, function)
 }
 

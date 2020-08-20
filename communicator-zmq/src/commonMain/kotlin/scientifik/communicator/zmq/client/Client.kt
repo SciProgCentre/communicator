@@ -1,5 +1,6 @@
 package scientifik.communicator.zmq.client
 
+import kotlinx.coroutines.channels.Channel
 import kotlinx.io.Closeable
 import kotlinx.io.use
 import mu.KLogger
@@ -26,7 +27,7 @@ private class ClientContext(
     val mainDealer: ZmqSocket = ctx.createDealerSocket(),
     val identity: UniqueID = UniqueID(),
     // В эту очередь попадают запросы при вызове remoteFunction.invoke()
-    val newQueriesQueue: ConcurrentQueue<Query>,
+    val newQueriesQueue: Channel<Query>,
     // В этот словарь попадают запросы, которые уже отправлены на сервер и сервер ответил о том, что он получил их
     val queriesInWork: MutableMap<UniqueID, ResultCallback> = hashMapOf(),
     val forwardSockets: MutableMap<String, ZmqSocket> = hashMapOf(),
@@ -46,7 +47,7 @@ private class ClientContext(
  */
 internal class Client : Closeable {
     private val log: KLogger = KotlinLogging.logger("Client")
-    private val newQueriesQueue = ConcurrentQueue<Query>()
+    private val newQueriesQueue = Channel<Query>()
     private val ctx: ClientContext = ClientContext(newQueriesQueue = newQueriesQueue)
 
     init {
@@ -56,10 +57,12 @@ internal class Client : Closeable {
                 reactor.addTimer(
                     NEW_QUERIES_QUEUE_UPDATE_INTERVAL,
                     0,
+
                     { _, _, arg ->
                         (arg as ClientContext).handleQueue()
                         0
                     },
+
                     this
                 )
 
@@ -69,9 +72,9 @@ internal class Client : Closeable {
         }
     }
 
-    fun makeQuery(query: Query) {
+    suspend fun makeQuery(query: Query) {
         log.info { "Adding query ${query.functionName} to the internal queue" }
-        newQueriesQueue.add(query)
+        newQueriesQueue.send(query)
     }
 
     override fun close(): Unit = ctx.close()
