@@ -12,7 +12,7 @@ private object Functions : FunctionSet(endpoint) {
     val f = declare("f" to FunctionSpec(IntCoder, IntCoder))
 }
 
-private val log: KLogger = KotlinLogging.logger { }
+private val log = KotlinLogging.logger { }
 
 fun main() {
     runBlocking {
