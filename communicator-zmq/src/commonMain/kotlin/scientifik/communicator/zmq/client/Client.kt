@@ -22,12 +22,12 @@ internal class Query(
     val callback: ResultCallback
 )
 
-private class ClientContext(
+private class ClientState(
     val ctx: ZmqContext = ZmqContext(),
     val mainDealer: ZmqSocket = ctx.createDealerSocket(),
     val identity: UniqueID = UniqueID(),
     // В эту очередь попадают запросы при вызове remoteFunction.invoke()
-    val newQueriesQueue: Channel<Query>,
+    val newQueriesQueue: Channel<Query> = Channel(),
     // В этот словарь попадают запросы, которые уже отправлены на сервер и сервер ответил о том, что он получил их
     val queriesInWork: MutableMap<UniqueID, ResultCallback> = hashMapOf(),
     val forwardSockets: MutableMap<String, ZmqSocket> = hashMapOf(),
@@ -36,6 +36,7 @@ private class ClientContext(
     val log: KLogger = KotlinLogging.logger(this::class.simpleName.orEmpty())
 
     override fun close() {
+        newQueriesQueue.close()
         reactor.close()
         mainDealer.close()
         ctx.close()
@@ -46,20 +47,19 @@ private class ClientContext(
  * Принимает запросы о вызове удаленной функции из любых потоков и вызывает коллбек при получении результата
  */
 internal class Client : Closeable {
-    private val log: KLogger = KotlinLogging.logger("Client")
-    private val newQueriesQueue = Channel<Query>()
-    private val ctx: ClientContext = ClientContext(newQueriesQueue = newQueriesQueue)
+    private val log: KLogger = KotlinLogging.logger(this::class.simpleName.orEmpty())
+    private val state: ClientState = ClientState()
 
     init {
         // TODO
         runInBackground({}) {
-            with(ctx) {
+            with(state) {
                 reactor.addTimer(
                     NEW_QUERIES_QUEUE_UPDATE_INTERVAL,
                     0,
 
                     { _, _, arg ->
-                        (arg as ClientContext).handleQueue()
+                        (arg as ClientState).handleQueue()
                         0
                     },
 
@@ -74,13 +74,15 @@ internal class Client : Closeable {
 
     suspend fun makeQuery(query: Query) {
         log.info { "Adding query ${query.functionName} to the internal queue" }
-        newQueriesQueue.send(query)
+        state.newQueriesQueue.send(query)
     }
 
-    override fun close(): Unit = ctx.close()
+    override fun close(): Unit {
+        state.close()
+    }
 }
 
-private fun ClientContext.handleQueue() {
+private fun ClientState.handleQueue() {
     while (true) {
         val query = newQueriesQueue.poll() ?: break
         log.info { "Making query ${query.functionName}" }
@@ -90,7 +92,7 @@ private fun ClientContext.handleQueue() {
     }
 }
 
-private fun ClientContext.getForwardSocket(address: String): ZmqSocket {
+private fun ClientState.getForwardSocket(address: String): ZmqSocket {
     val existing = forwardSockets[address]
     if (existing != null) return existing
     val forwardSocket = ctx.createDealerSocket()
@@ -120,10 +122,10 @@ private fun sendQuery(socket: ZmqSocket, query: Query, queryID: UniqueID): Unit 
 
 private class ResultHandlerArg(
     val socket: ZmqSocket,
-    val clientContext: ClientContext
+    val clientContext: ClientState
 )
 
-private fun ClientContext.handleResult(arg: ResultHandlerArg) {
+private fun ClientState.handleResult(arg: ResultHandlerArg) {
     log.info { "Handling result" }
     val msg = arg.socket.recvMsg()
     val queryID = UniqueID(msg.pop().data)

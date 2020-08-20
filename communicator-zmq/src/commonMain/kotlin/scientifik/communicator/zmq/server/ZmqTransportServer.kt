@@ -36,6 +36,8 @@ class ZmqTransportServer(override val port: Int) : TransportServer {
     }
 
     override fun close() {
+        editFunctionQueriesQueue.close()
+        repliesQueue.close()
         frontend.close()
         ctx.close()
     }
