@@ -2,6 +2,9 @@ package scientifik.communicator.factories
 
 import scientifik.communicator.api.*
 
+/**
+ * Function client implementation based on [Transport] object provided by [TransportFactory].
+ */
 class TransportFunctionClient(private val factory: TransportFactory) : FunctionClient {
     private val transportCache: MutableMap<String, Transport> = hashMapOf()
 
