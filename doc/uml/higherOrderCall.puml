@@ -1,0 +1,30 @@
+@startuml
+
+!$java_fserv = "Java Functional Server"
+!$cpp_lib = "Cpp Functional Server"
+!$java = "Java Program"
+!$java_tool = "Our java tool"
+
+box "Process 1" #LightBlue
+participant "$java"
+participant "$java_tool"
+participant "$java_fserv"
+end box
+box "Process 2"
+participant "$cpp_lib"
+
+"$java" -> "$java_tool": Call
+"$java_tool" -> "$java_fserv": Start
+"$java_tool" -> "$java_fserv": Register lambda
+"$java_tool" -> "$cpp_lib": Start
+"$java_tool" -> "$cpp_lib": Compute Request (for initial function)
+"$cpp_lib" -> "$java_fserv" : Compute Request (for lambda)
+"$java_fserv" -> "$cpp_lib" : Result (for lambda)
+... Repeat vector.size() times ...
+"$cpp_lib" -> "$java_fserv" : Compute Request (for lambda)
+"$java_fserv" -> "$cpp_lib" : Result (for lambda)
+
+"$cpp_lib" -> "$java_tool" : Result (for initial function)
+"$java_tool" -> "$java": Return Result
+
+@enduml
