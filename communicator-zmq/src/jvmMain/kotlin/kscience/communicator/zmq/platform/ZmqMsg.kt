@@ -22,7 +22,7 @@ internal actual class ZmqMsg(internal val backendMsg: ZMsg) : Closeable, Mutable
 
     fun add(s: String): Boolean = backendMsg.add(s)
 
-    override fun iterator(): MutableIterator<ZmqFrame> {
+    override operator fun iterator(): MutableIterator<ZmqFrame> {
         val it = backendMsg.iterator()
 
         return object : MutableIterator<ZmqFrame> {
@@ -32,7 +32,7 @@ internal actual class ZmqMsg(internal val backendMsg: ZMsg) : Closeable, Mutable
         }
     }
 
-    override fun contains(element: ZmqFrame): Boolean = backendMsg.contains(element.backendFrame)
+    override operator fun contains(element: ZmqFrame): Boolean = backendMsg.contains(element.backendFrame)
 
     override fun containsAll(elements: Collection<ZmqFrame>): Boolean =
         backendMsg.containsAll(elements.map(ZmqFrame::backendFrame))
@@ -47,4 +47,8 @@ internal actual class ZmqMsg(internal val backendMsg: ZMsg) : Closeable, Mutable
 
     override fun retainAll(elements: Collection<ZmqFrame>): Boolean =
         backendMsg.retainAll(elements.map(ZmqFrame::backendFrame))
+
+    actual companion object {
+        actual fun recvMsg(socket: ZmqSocket): ZmqMsg = ZmqMsg(ZMsg.recvMsg(socket.backendSocket))
+    }
 }

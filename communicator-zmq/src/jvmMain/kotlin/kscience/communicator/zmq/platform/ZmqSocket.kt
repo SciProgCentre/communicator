@@ -18,7 +18,5 @@ internal actual class ZmqSocket(internal val backendSocket: ZMQ.Socket) : Closea
     }
 
     actual override fun close(): Unit = backendSocket.close()
-
-    /** zmsg_recv method (CZMQ) */
-    actual fun recvMsg(): ZmqMsg = ZmqMsg(ZMsg.recvMsg(backendSocket))
+    actual fun recv(): ByteArray = backendSocket.recv()
 }

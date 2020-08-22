@@ -1,10 +1,11 @@
 package kscience.communicator.zmq.proxy
 
 import kscience.communicator.zmq.platform.UniqueID
+import kscience.communicator.zmq.platform.ZmqMsg
 import kscience.communicator.zmq.platform.ZmqSocket
 
 internal fun ZmqProxy.handleFrontend(frontend: ZmqSocket, backend: ZmqSocket) {
-    val receivedMsg = frontend.recvMsg()
+    val receivedMsg = ZmqMsg.recvMsg(frontend)
     val clientIdentity = receivedMsg.pop().data
 
     when (receivedMsg.pop().data[0]) {

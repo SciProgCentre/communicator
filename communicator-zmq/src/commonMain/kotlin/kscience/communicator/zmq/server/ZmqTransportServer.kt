@@ -51,7 +51,7 @@ class ZmqTransportServer(override val port: Int) : TransportServer {
 
         reactor.addReader(
             frontend,
-            { _, _, arg ->
+            { _, arg ->
                 handleFrontend(arg as FrontendHandlerArg)
                 0
             },
@@ -61,7 +61,7 @@ class ZmqTransportServer(override val port: Int) : TransportServer {
         reactor.addTimer(
             1,
             0,
-            { _, _, arg ->
+            { _, arg ->
                 handleReplyQueue(arg as ReplyQueueHandlerArg)
                 0
             },
@@ -71,7 +71,7 @@ class ZmqTransportServer(override val port: Int) : TransportServer {
         reactor.addTimer(
             1,
             0,
-            { _, _, arg ->
+            { _, arg ->
                 handleEditFunctionQueue(arg as EditFunctionQueueHandlerArg)
                 0
             },
@@ -113,19 +113,19 @@ private class FrontendHandlerArg(
     val repliesQueue: Channel<Reply>
 )
 
-private fun handleFrontend(arg: FrontendHandlerArg) {
-    with(arg) {
-        val msg = frontend.recvMsg()
-        val queryID = msg.pop().data
-        val functionName = msg.pop().data.decodeToString()
-        val argBytes = msg.pop().data
-        val serverFunction = serverFunctions[functionName]!!
+private fun handleFrontend(arg: FrontendHandlerArg) = with(arg) {
+    val msg = ZmqMsg.recvMsg(frontend)
+    val queryID = msg.pop().data
+    val functionName = msg.pop().data.decodeToString()
+    val argBytes = msg.pop().data
+    val serverFunction = checkNotNull(serverFunctions[functionName])
 
-        workerScope.launch {
-            val result = serverFunction(argBytes)
-            repliesQueue.send(Reply(queryID, result))
-        }
+    workerScope.launch {
+        val result = serverFunction(argBytes)
+        repliesQueue.send(Reply(queryID, result))
     }
+
+    Unit
 }
 
 private class ReplyQueueHandlerArg(

@@ -8,4 +8,8 @@ internal expect class ZmqMsg() : Closeable, MutableCollection<ZmqFrame> {
     fun pop(): ZmqFrame
     fun send(socket: ZmqSocket)
     override fun close()
+
+    companion object {
+        fun recvMsg(socket: ZmqSocket): ZmqMsg
+    }
 }

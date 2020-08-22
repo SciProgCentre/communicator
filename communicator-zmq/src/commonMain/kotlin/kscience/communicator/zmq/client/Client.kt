@@ -3,14 +3,10 @@ package kscience.communicator.zmq.client
 import kotlinx.coroutines.channels.Channel
 import kotlinx.io.Closeable
 import kotlinx.io.use
-import mu.KLogger
-import mu.KotlinLogging
 import kscience.communicator.api.Payload
 import kscience.communicator.zmq.platform.*
-import kscience.communicator.zmq.platform.UniqueID
-import kscience.communicator.zmq.platform.ZmqContext
-import kscience.communicator.zmq.platform.ZmqLoop
-import kscience.communicator.zmq.platform.ZmqSocket
+import mu.KLogger
+import mu.KotlinLogging
 
 private const val NEW_QUERIES_QUEUE_UPDATE_INTERVAL = 1
 
@@ -62,7 +58,7 @@ internal class Client : Closeable {
                     NEW_QUERIES_QUEUE_UPDATE_INTERVAL,
                     0,
 
-                    { _, _, arg ->
+                    { _, arg ->
                         (arg as ClientState).handleQueue()
                         0
                     },
@@ -70,7 +66,7 @@ internal class Client : Closeable {
                     this
                 )
 
-                reactor.addReader(mainDealer, { _, _, _ -> 0 }, Unit)
+                reactor.addReader(mainDealer, { _, _ -> 0 }, Unit)
                 reactor.start()
             }
         }
@@ -103,7 +99,7 @@ private fun ClientState.getForwardSocket(address: String): ZmqSocket {
 
     reactor.addReader(
         forwardSocket,
-        { _, _, arg ->
+        { _, arg ->
             arg as ResultHandlerArg
             arg.clientContext.handleResult(arg)
             0
@@ -129,7 +125,7 @@ private class ResultHandlerArg(
 
 private fun ClientState.handleResult(arg: ResultHandlerArg) {
     log.info { "Handling result" }
-    val msg = arg.socket.recvMsg()
+    val msg = ZmqMsg.recvMsg(arg.socket)
     val queryID = UniqueID(msg.pop().data)
     val result = msg.pop().data
     log.info { "Got result to the query [$queryID]: ${result.contentToString()}" }

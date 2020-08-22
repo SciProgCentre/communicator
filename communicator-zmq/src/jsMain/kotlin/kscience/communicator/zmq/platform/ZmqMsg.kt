@@ -21,4 +21,8 @@ internal actual class ZmqMsg actual constructor() : Closeable, MutableCollection
     override fun remove(element: ZmqFrame): Boolean = TODO()
     override fun removeAll(elements: Collection<ZmqFrame>): Boolean = TODO()
     override fun retainAll(elements: Collection<ZmqFrame>): Boolean = TODO()
+
+    actual companion object {
+        actual fun recvMsg(socket: ZmqSocket): ZmqMsg = TODO()
+    }
 }
