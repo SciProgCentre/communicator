@@ -1,0 +1,44 @@
+@startuml
+
+!$js_fserv = "JS Functional Server"
+!$cpp_lib = "Cpp Functional Server"
+!$js = "JS Program"
+!$js_tool = "Our js tool"
+!$proxy = "Java Proxy"
+
+box "Process 1" #LightBlue
+participant "$js"
+participant "$js_tool"
+participant "$js_fserv"
+end box
+
+box "Process 2" #Yellow
+participant "$proxy"
+end box
+
+box "Process 3"
+participant "$cpp_lib"
+end box
+
+"$js" -> "$js_tool": Call
+"$js_tool" -> "$js_fserv": Start
+"$js_tool" -> "$js_fserv": Register lambda
+"$js_tool" -> "$proxy": Compute Request (for initial function)
+"$proxy" -> "$cpp_lib": Compute Request (for initial function)
+
+"$cpp_lib" -> "$proxy": Compute Request (for lambda)
+"$proxy" -> "$js_fserv" : Compute Request (for lambda)
+"$js_fserv" -> "$proxy" : Result (for lambda)
+"$proxy" -> "$cpp_lib" : Result (for lambda)
+
+... Repeat vector.size() times ...
+"$cpp_lib" -> "$proxy": Compute Request (for lambda)
+"$proxy" -> "$js_fserv" : Compute Request (for lambda)
+"$js_fserv" -> "$proxy" : Result (for lambda)
+"$proxy" -> "$cpp_lib" : Result (for lambda)
+
+"$cpp_lib" -> "$proxy" : Result (for initial function)
+"$proxy" -> "$js_tool" : Result (for initial function)
+"$js_tool" -> "$js": Return Result
+
+@enduml
