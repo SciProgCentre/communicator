@@ -21,7 +21,6 @@ internal class MsgBuilder(private val msg: ZmqMsg) {
     }
 }
 
-@OptIn(ExperimentalContracts::class)
 internal inline fun sendMsg(socket: ZmqSocket, block: MsgBuilder.() -> Unit) {
     contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
     val msg = ZmqMsg()
