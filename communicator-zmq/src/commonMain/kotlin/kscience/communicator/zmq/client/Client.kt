@@ -1,14 +1,17 @@
 package kscience.communicator.zmq.client
 
-import kotlinx.coroutines.channels.Channel
+import co.touchlab.stately.collections.IsoArrayDeque
+import co.touchlab.stately.collections.IsoMutableMap
+import co.touchlab.stately.isolate.IsolateState
 import kotlinx.io.Closeable
 import kotlinx.io.use
 import kscience.communicator.api.Payload
 import kscience.communicator.zmq.platform.*
-import mu.KLogger
-import mu.KotlinLogging
 
-private const val NEW_QUERIES_QUEUE_UPDATE_INTERVAL = 1
+//import mu.KLogger
+//import mu.KotlinLogging
+
+internal const val NEW_QUERIES_QUEUE_UPDATE_INTERVAL = 1
 
 internal typealias ResultHandler = (ByteArray) -> Unit
 internal typealias ErrorHandler = (Throwable) -> Unit
@@ -22,24 +25,25 @@ internal class Query(
     val callback: ResultCallback
 )
 
-private class ClientState(
-    val ctx: ZmqContext = ZmqContext(),
-    val mainDealer: ZmqSocket = ctx.createDealerSocket(),
+internal class ClientState(
+    val ctx: IsolateState<ZmqContext> = IsolateState(::ZmqContext),
+    val mainDealer: IsolateState<ZmqSocket> = IsolateState { ctx.access(ZmqContext::createDealerSocket) },
     val identity: UniqueID = UniqueID(),
     // В эту очередь попадают запросы при вызове remoteFunction.invoke()
-    val newQueriesQueue: Channel<Query> = Channel(),
+    val newQueriesQueue: IsoArrayDeque<Query> = IsoArrayDeque(),
     // В этот словарь попадают запросы, которые уже отправлены на сервер и сервер ответил о том, что он получил их
-    val queriesInWork: MutableMap<UniqueID, ResultCallback> = hashMapOf(),
-    val forwardSockets: MutableMap<String, ZmqSocket> = hashMapOf(),
-    val reactor: ZmqLoop = ZmqLoop(ctx)
+    val queriesInWork: IsoMutableMap<UniqueID, ResultCallback> = IsoMutableMap(),
+    val forwardSockets: IsoMutableMap<String, ZmqSocket> = IsoMutableMap(),
+    val reactor: ZmqLoop = ctx.access(::ZmqLoop)
 ) : Closeable {
-    val log: KLogger = KotlinLogging.logger(this::class.simpleName.orEmpty())
-
     override fun close() {
-        newQueriesQueue.close()
+        queriesInWork.dispose()
+        newQueriesQueue.dispose()
         reactor.close()
-        mainDealer.close()
-        ctx.close()
+        mainDealer.access(ZmqSocket::close)
+        mainDealer.dispose()
+        ctx.access(ZmqContext::close)
+        ctx.dispose()
     }
 }
 
@@ -47,43 +51,45 @@ private class ClientState(
  * Принимает запросы о вызове удаленной функции из любых потоков и вызывает коллбек при получении результата
  */
 internal class Client : Closeable {
-    private val log: KLogger = KotlinLogging.logger(this::class.simpleName.orEmpty())
-    private val state: ClientState = ClientState()
+    internal val state: ClientState = ClientState()
 
     init {
-        // TODO
-        runInBackground({}) {
-            with(state) {
-                reactor.addTimer(
-                    NEW_QUERIES_QUEUE_UPDATE_INTERVAL,
-                    0,
-
-                    { _, arg ->
-                        (arg as ClientState).handleQueue()
-                        0
-                    },
-
-                    this
-                )
-
-                reactor.addReader(mainDealer, { _, _ -> 0 }, Unit)
-                reactor.start()
-            }
-        }
+        initClient(state)
     }
 
-    suspend fun makeQuery(query: Query) {
-        log.info { "Adding query ${query.functionName} to the internal queue" }
-        state.newQueriesQueue.send(query)
+    fun makeQuery(query: Query) {
+//        log.info { "Adding query ${query.functionName} to the internal queue" }
+        state.newQueriesQueue.addFirst(query)
     }
 
     override fun close(): Unit = state.close()
 }
 
+internal fun initClientBlocking(state: ClientState) {
+    with(state) {
+        reactor.addTimer(
+            NEW_QUERIES_QUEUE_UPDATE_INTERVAL,
+            0,
+
+            { _: Any?, arg ->
+                (arg?.value as ClientState).handleQueue()
+                0
+            },
+
+            ZmqLoop.Argument(this)
+        )
+
+        mainDealer.access { reactor.addReader(it, { _, _ -> 0 }, ZmqLoop.Argument(Unit)) }
+        reactor.start()
+    }
+}
+
+internal expect fun initClient(state: ClientState)
+
 private fun ClientState.handleQueue() {
     while (true) {
-        val query = newQueriesQueue.poll() ?: break
-        log.info { "Making query ${query.functionName}" }
+        val query = newQueriesQueue.removeFirstOrNull() ?: break
+//        log.info { "Making query ${query.functionName}" }
         val id = UniqueID()
         queriesInWork[id] = query.callback
         sendQuery(getForwardSocket(query.address), query, id)
@@ -93,18 +99,20 @@ private fun ClientState.handleQueue() {
 private fun ClientState.getForwardSocket(address: String): ZmqSocket {
     val existing = forwardSockets[address]
     if (existing != null) return existing
-    val forwardSocket = ctx.createDealerSocket()
+    val forwardSocket = ctx.access(ZmqContext::createDealerSocket)
     forwardSocket.setIdentity(identity.bytes)
     forwardSocket.connect("tcp://$address")
 
     reactor.addReader(
         forwardSocket,
-        { _, arg ->
-            arg as ResultHandlerArg
-            arg.clientContext.handleResult(arg)
+
+        { _, argParam ->
+            argParam?.value as ResultHandlerArg
+            argParam.value.clientContext.handleResult(argParam.value)
             0
         },
-        ResultHandlerArg(forwardSocket, this)
+
+        ZmqLoop.Argument(ResultHandlerArg(forwardSocket, this))
     )
 
     forwardSockets[address] = forwardSocket
@@ -124,17 +132,14 @@ private class ResultHandlerArg(
 )
 
 private fun ClientState.handleResult(arg: ResultHandlerArg) {
-    log.info { "Handling result" }
+//    log.info { "Handling result" }
     val msg = ZmqMsg.recvMsg(arg.socket)
     val queryID = UniqueID(msg.pop().data)
     val result = msg.pop().data
-    log.info { "Got result to the query [$queryID]: ${result.contentToString()}" }
+//    log.info { "Got result to the query [$queryID]: ${result.contentToString()}" }
     val callback = queriesInWork[queryID]
-
-    if (callback == null) {
-        log.error { "handler can't find callback in waitingQueries queue" }
+        ?: //        log.error { "handler can't find callback in waitingQueries queue" }
         return
-    }
 
     callback.onResult(result)
 }

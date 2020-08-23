@@ -7,5 +7,4 @@ internal expect class ZmqSocket : Closeable {
     fun bind(zmqAddress: String)
     fun setIdentity(identity: ByteArray)
     fun recv(): ByteArray
-    override fun close()
 }

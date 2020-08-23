@@ -6,6 +6,24 @@ import kotlinx.io.Closeable
 internal actual class ZmqLoop actual constructor(ctx: ZmqContext) : Closeable {
     actual fun start(): Unit = TODO()
     override fun close(): Unit = TODO()
-    actual fun addReader(socket: ZmqSocket, handler: ZmqLoop.(Any?, Any?) -> Int, arg: Any?): Unit = TODO()
-    actual fun addTimer(delay: Int, times: Int, handler: ZmqLoop.(Any?, Any?) -> Int, arg: Any?): Unit = TODO()
+
+    actual inline fun <reified T : Any> addReader(
+        socket: ZmqSocket,
+        crossinline handler: ZmqLoop.(Any?, Argument<T>?) -> Int,
+        arg: Argument<T>?
+    ): Unit = TODO()
+
+    actual inline fun <reified T : Any> addTimer(
+        delay: Int,
+        times: Int,
+        noinline handler: ZmqLoop.(Any?, Argument<T>?) -> Int,
+        arg: Argument<T>?
+    ): Unit = TODO()
+
+    actual class Argument<T : Any> actual constructor(value: T) : Closeable {
+        actual val value: T
+            get() = TODO()
+
+        override fun close() = TODO()
+    }
 }

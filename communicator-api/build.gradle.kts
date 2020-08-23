@@ -2,7 +2,11 @@ import scientifik.useCoroutines
 
 plugins { id("scientifik.mpp") }
 useCoroutines()
-kotlin.sourceSets.all { languageSettings.useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts") }
+
+kotlin {
+    linuxX64("linux") { binaries.sharedLib() }
+    sourceSets.all { languageSettings.useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts") }
+}
 
 dependencies {
     val serializationVersion = "0.20.0"

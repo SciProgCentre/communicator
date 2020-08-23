@@ -12,7 +12,6 @@ internal data class UniqueID(val bytes: ByteArray) {
     }
 
     override fun hashCode(): Int = bytes.contentHashCode()
-
     override fun toString(): String = uuidToString(bytes)
 }
 

@@ -8,16 +8,32 @@ import org.zeromq.ZMQ
 internal actual class ZmqLoop private constructor(val backendLoop: ZLoop) : Closeable {
     actual constructor(ctx: ZmqContext) : this(ZLoop(ctx.backendContext))
 
-    actual fun addReader(socket: ZmqSocket, handler: ZmqLoop.(Any?, Any?) -> Int, arg: Any?) {
+    @Suppress("UNCHECKED_CAST")
+    actual inline fun <reified T : Any> addReader(
+        socket: ZmqSocket,
+        crossinline handler: ZmqLoop.(Any?, Argument<T>?) -> Int,
+        arg: Argument<T>?
+    ) {
         backendLoop.addPoller(
             ZMQ.PollItem(socket.backendSocket, ZMQ.Poller.POLLIN),
-            { loop, item, argParam -> ZmqLoop(loop).handler(item, argParam) },
+            { loop, item, argParam -> ZmqLoop(loop).handler(item, Argument(argParam as T)) },
             arg
         )
     }
 
-    actual fun addTimer(delay: Int, times: Int, handler: ZmqLoop.(Any?, Any?) -> Int, arg: Any?) {
-        backendLoop.addTimer(delay, times, { loop, item, argParam -> ZmqLoop(loop).handler(item, argParam) }, arg)
+    @Suppress("UNCHECKED_CAST")
+    actual inline fun <reified T : Any> addTimer(
+        delay: Int,
+        times: Int,
+        noinline handler: ZmqLoop.(Any?, Argument<T>?) -> Int,
+        arg: Argument<T>?
+    ) {
+        backendLoop.addTimer(
+            delay,
+            times,
+            { loop, item, argParam -> ZmqLoop(loop).handler(item, Argument(argParam as T)) },
+            arg
+        )
     }
 
     actual fun start() {
@@ -25,4 +41,8 @@ internal actual class ZmqLoop private constructor(val backendLoop: ZLoop) : Clos
     }
 
     override fun close(): Unit = Unit
+
+    actual class Argument<T : Any> actual constructor(actual val value: T) : Closeable {
+        override fun close(): Unit = Unit
+    }
 }

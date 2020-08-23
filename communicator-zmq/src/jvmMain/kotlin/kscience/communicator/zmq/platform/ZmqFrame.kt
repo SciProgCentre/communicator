@@ -8,7 +8,7 @@ internal actual class ZmqFrame(internal val backendFrame: ZFrame) : Closeable {
     actual val data: ByteArray
         get() = backendFrame.data
 
-    actual override fun close(): Unit = backendFrame.destroy()
+    override fun close(): Unit = backendFrame.destroy()
 
     actual companion object {
         actual fun recvFrame(socket: ZmqSocket): ZmqFrame = ZmqFrame(ZFrame.recvFrame(socket.backendSocket))

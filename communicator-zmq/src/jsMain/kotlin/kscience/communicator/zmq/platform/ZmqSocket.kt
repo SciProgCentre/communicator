@@ -6,6 +6,6 @@ internal actual class ZmqSocket : Closeable {
     actual fun connect(zmqAddress: String): Unit = TODO()
     actual fun bind(zmqAddress: String): Unit = TODO()
     actual fun setIdentity(identity: ByteArray): Unit = TODO()
-    actual override fun close(): Unit = TODO()
+    override fun close(): Unit = TODO()
     actual fun recv(): ByteArray = TODO()
 }

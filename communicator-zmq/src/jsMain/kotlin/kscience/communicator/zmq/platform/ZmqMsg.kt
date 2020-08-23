@@ -9,7 +9,7 @@ internal actual class ZmqMsg actual constructor() : Closeable, MutableCollection
 
     actual fun pop(): ZmqFrame = TODO()
     actual fun send(socket: ZmqSocket): Unit = TODO()
-    actual override fun close(): Unit = TODO()
+    override fun close(): Unit = TODO()
     actual fun add(data: ByteArray): Boolean = TODO()
     override fun contains(element: ZmqFrame): Boolean = TODO()
     override fun containsAll(elements: Collection<ZmqFrame>): Boolean = TODO()
