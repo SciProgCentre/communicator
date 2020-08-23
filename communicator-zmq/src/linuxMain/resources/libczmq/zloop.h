@@ -24,15 +24,16 @@ extern "C" {
 //  This is a stable class, and may not change except for emergencies. It
 //  is provided in stable builds.
 // Callback function for reactor socket activity
-typedef int (zloop_reader_fn) (
-    zloop_t *loop, zsock_t *reader, void *arg);
+//typedef int (zloop_reader_fn) (
+//    zloop_t *loop, zsock_t *reader, void *arg);
 
 // Callback function for reactor events (low-level)
-typedef int (zloop_fn) (
-    zloop_t *loop, zmq_pollitem_t *item, void *arg);
+//typedef int (zloop_fn) (
+//    zloop_t *loop, zmq_pollitem_t *item, void *arg);
 
 // Callback for reactor timer events
-typedef int (zloop_timer_fn) (zloop_t *loop, int timer_id, void *arg);
+//typedef int (zloop_timer_fn) (
+//    zloop_t *loop, int timer_id, void *arg);
 
 //  Create a new zloop reactor
 CZMQ_EXPORT zloop_t *
@@ -65,7 +66,7 @@ CZMQ_EXPORT void
 //  instance will invoke its corresponding handler. A pollitem with
 //  socket=NULL and fd=0 means 'poll on FD zero'.
 CZMQ_EXPORT int
-    zloop_poller (zloop_t *self, zmq_pollitem_t *item, zloop_fn handler, void *arg);
+    zloop_poller (zloop_t *self, zmq_pollitem_t *item, int (*handler) (zloop_t *, zmq_pollitem_t *, void *), void *arg);
 
 //  Cancel a pollitem from the reactor, specified by socket or FD. If both
 //  are specified, uses only socket. If multiple poll items exist for same
@@ -82,7 +83,6 @@ CZMQ_EXPORT void
 //  times. At each expiry, will call the handler, passing the arg. To run a
 //  timer forever, use 0 times. Returns a timer_id that is used to cancel the
 //  timer in the future. Returns -1 if there was an error.
-//typedef int (zloop_timer_fn) (zloop_t *loop, int timer_id, void *arg);
 CZMQ_EXPORT int
     zloop_timer (zloop_t *self, size_t delay, size_t times, int (*handler) (zloop_t *, int, void *), void *arg);
 
@@ -101,7 +101,7 @@ CZMQ_EXPORT int
 //  ticket. Returns a handle to the timer that you should use in
 //  zloop_ticket_reset and zloop_ticket_delete.
 CZMQ_EXPORT void *
-    zloop_ticket (zloop_t *self, zloop_timer_fn handler, void *arg);
+    zloop_ticket (zloop_t *self, int (*handler) (zloop_t *, int, void *), void *arg);
 
 //  Reset a ticket timer, which moves it to the end of the ticket list and
 //  resets its execution time. This is a very fast operation.
