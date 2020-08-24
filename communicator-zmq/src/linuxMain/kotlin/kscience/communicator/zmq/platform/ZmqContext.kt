@@ -15,5 +15,5 @@ internal actual class ZmqContext actual constructor() : Closeable {
 
     actual fun createRouterSocket(): ZmqSocket = ZmqSocket(checkNotNull(zsock_new_router(null))).also { sockets += it }
     actual fun createDealerSocket(): ZmqSocket = ZmqSocket(checkNotNull(zsock_new_dealer(null))).also { sockets += it }
-    actual override fun close(): Unit = sockets.forEach { it.close() }
+    actual override fun close(): Unit = sockets.forEach(ZmqSocket::close)
 }

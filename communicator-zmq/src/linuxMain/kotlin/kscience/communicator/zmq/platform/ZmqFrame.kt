@@ -9,6 +9,10 @@ internal actual class ZmqFrame internal constructor(val backendFrame: CPointer<z
     actual val data: ByteArray
         get() = checkNotNull(zframe_data(backendFrame)).readBytes(zframe_size(backendFrame).toInt())
 
+    init {
+        require(zframe_is(backendFrame)) { "Provided pointer $backendFrame doesn't point to zframe_t." }
+    }
+
     override fun close(): Unit = memScoped {
         val cpv: CPointerVar<zframe_t> = alloc()
         cpv.value = backendFrame

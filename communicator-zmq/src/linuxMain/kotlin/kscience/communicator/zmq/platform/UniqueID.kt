@@ -1,10 +1,12 @@
 package kscience.communicator.zmq.platform
 
+import co.touchlab.stately.freeze
 import kotlin.Long.Companion.SIZE_BITS
 import kotlin.experimental.and
 import kotlin.math.max
 import kotlin.random.Random
 
+@SharedImmutable
 private val DIGITS: CharArray = charArrayOf(
     '0', '1', '2', '3', '4', '5',
     '6', '7', '8', '9', 'a', 'b',
@@ -12,7 +14,7 @@ private val DIGITS: CharArray = charArrayOf(
     'i', 'j', 'k', 'l', 'm', 'n',
     'o', 'p', 'q', 'r', 's', 't',
     'u', 'v', 'w', 'x', 'y', 'z'
-)
+).freeze()
 
 private fun numberOfLeadingZeros(i: Long): Int {
     if (i == 0L) return 64

@@ -8,15 +8,9 @@ import kotlinx.io.use
 import kscience.communicator.api.Payload
 import kscience.communicator.zmq.platform.*
 
-//import mu.KLogger
-//import mu.KotlinLogging
-
 internal const val NEW_QUERIES_QUEUE_UPDATE_INTERVAL = 1
 
-internal typealias ResultHandler = (ByteArray) -> Unit
-internal typealias ErrorHandler = (Throwable) -> Unit
-
-internal class ResultCallback(val onResult: ResultHandler, val onError: ErrorHandler)
+internal class ResultCallback(val onResult: (ByteArray) -> Unit, val onError: (Throwable) -> Unit)
 
 internal class Query(
     val functionName: String,
@@ -58,7 +52,7 @@ internal class Client : Closeable {
     }
 
     fun makeQuery(query: Query) {
-//        log.info { "Adding query ${query.functionName} to the internal queue" }
+        println("Adding query ${query.functionName} to the internal queue")
         state.newQueriesQueue.addFirst(query)
     }
 
@@ -89,7 +83,7 @@ internal expect fun initClient(state: ClientState)
 private fun ClientState.handleQueue() {
     while (true) {
         val query = newQueriesQueue.removeFirstOrNull() ?: break
-//        log.info { "Making query ${query.functionName}" }
+        println("Making query ${query.functionName}")
         val id = UniqueID()
         queriesInWork[id] = query.callback
         sendQuery(getForwardSocket(query.address), query, id)
@@ -132,14 +126,16 @@ private class ResultHandlerArg(
 )
 
 private fun ClientState.handleResult(arg: ResultHandlerArg) {
-//    log.info { "Handling result" }
+    println("Handling result")
     val msg = ZmqMsg.recvMsg(arg.socket)
     val queryID = UniqueID(msg.pop().data)
     val result = msg.pop().data
-//    log.info { "Got result to the query [$queryID]: ${result.contentToString()}" }
-    val callback = queriesInWork[queryID]
-        ?: //        log.error { "handler can't find callback in waitingQueries queue" }
+    println("Got result to the query [$queryID]: ${result.contentToString()}")
+
+    val callback = queriesInWork[queryID] ?: run {
+        println("handler can't find callback in waitingQueries queue")
         return
+    }
 
     callback.onResult(result)
 }

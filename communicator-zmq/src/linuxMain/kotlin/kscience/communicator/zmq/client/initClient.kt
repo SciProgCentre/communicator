@@ -5,5 +5,6 @@ import kotlin.native.concurrent.Worker
 import kotlin.native.concurrent.freeze
 
 internal actual fun initClient(state: ClientState) {
-    Worker.start().execute(TransferMode.SAFE, { state.freeze() }, ::initClientBlocking)
+//    GlobalScope.launch { initClientBlocking(state/*.freeze()*/) }
+    Worker.start().execute(TransferMode.SAFE, state::freeze, ::initClientBlocking)
 }

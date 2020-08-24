@@ -5,10 +5,16 @@ import kotlinx.cinterop.*
 import kotlinx.io.Closeable
 
 /** zmsg_t object (CZMQ). Constructor must create it via its init method. */
-internal actual class ZmqMsg(val backendMsg: CPointer<zmsg_t>) : Closeable,
+internal actual class ZmqMsg internal constructor(val backendMsg: CPointer<zmsg_t>) : Closeable,
     AbstractMutableCollection<ZmqFrame>(),
     MutableCollection<ZmqFrame> {
+    var isClosed = false
+
     actual constructor() : this(checkNotNull(zmsg_new()))
+
+    init {
+        require(zmsg_is(backendMsg)) { "Provided pointer $backendMsg doesn't point to zmsg_t." }
+    }
 
     override val size: Int
         get() = zmsg_size(backendMsg).toInt()
@@ -21,9 +27,12 @@ internal actual class ZmqMsg(val backendMsg: CPointer<zmsg_t>) : Closeable,
         val a = allocPointerTo<CPointerVar<zmsg_t>>()
         a.pointed = cpv
         zmsg_send(a.value, socket.backendSocket).checkZeroMQCode("zmsg_send")
+        isClosed = true
     }
 
     override fun close(): Unit = memScoped {
+        if (isClosed) return@memScoped
+        isClosed = true
         val cpv: CPointerVar<zmsg_t> = alloc()
         cpv.value = backendMsg
         val a = allocPointerTo<CPointerVar<zmsg_t>>()
@@ -46,7 +55,8 @@ internal actual class ZmqMsg(val backendMsg: CPointer<zmsg_t>) : Closeable,
     }
 
     override fun iterator(): MutableIterator<ZmqFrame> {
-        val copy = zmsg_dup(backendMsg)
+        check(zmsg_is(backendMsg)) { "Not a message!" }
+        val copy = checkNotNull(zmsg_dup(backendMsg))
 
         return object : MutableIterator<ZmqFrame> {
             var current: CPointer<zframe_t>? = null
