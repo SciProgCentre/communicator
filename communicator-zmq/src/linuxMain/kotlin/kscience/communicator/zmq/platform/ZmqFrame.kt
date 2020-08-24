@@ -14,6 +14,7 @@ internal actual class ZmqFrame internal constructor(val backendFrame: CPointer<z
     }
 
     override fun close(): Unit = memScoped {
+        if (!zframe_is(backendFrame)) return@memScoped
         val cpv: CPointerVar<zframe_t> = alloc()
         cpv.value = backendFrame
         val a = allocPointerTo<CPointerVar<zframe_t>>()

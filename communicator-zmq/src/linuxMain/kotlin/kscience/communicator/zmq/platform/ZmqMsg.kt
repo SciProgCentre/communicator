@@ -8,8 +8,6 @@ import kotlinx.io.Closeable
 internal actual class ZmqMsg internal constructor(val backendMsg: CPointer<zmsg_t>) : Closeable,
     AbstractMutableCollection<ZmqFrame>(),
     MutableCollection<ZmqFrame> {
-    var isClosed = false
-
     actual constructor() : this(checkNotNull(zmsg_new()))
 
     init {
@@ -27,12 +25,10 @@ internal actual class ZmqMsg internal constructor(val backendMsg: CPointer<zmsg_
         val a = allocPointerTo<CPointerVar<zmsg_t>>()
         a.pointed = cpv
         zmsg_send(a.value, socket.backendSocket).checkZeroMQCode("zmsg_send")
-        isClosed = true
     }
 
     override fun close(): Unit = memScoped {
-        if (isClosed) return@memScoped
-        isClosed = true
+        if (!zmsg_is(backendMsg)) return@memScoped
         val cpv: CPointerVar<zmsg_t> = alloc()
         cpv.value = backendMsg
         val a = allocPointerTo<CPointerVar<zmsg_t>>()
