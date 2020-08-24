@@ -27,35 +27,41 @@ class ZmqTransportServer(override val port: Int) : TransportServer {
         internal val editFunctionQueriesQueue: IsoArrayDeque<EditFunctionQuery> = IsoArrayDeque(),
         internal val frontend: ZmqSocket = ctx.createDealerSocket()
     ) : Closeable {
-        internal fun start() {
+        fun start() {
             val reactor = ZmqLoop(ctx)
 
             reactor.addReader(
                 frontend,
+
                 { _, arg ->
                     handleFrontend(arg?.value as FrontendHandlerArg)
                     0
                 },
+
                 ZmqLoop.Argument(FrontendHandlerArg(workerScope, frontend, serverFunctions, repliesQueue))
             )
 
             reactor.addTimer(
                 1,
                 0,
+
                 { _, arg ->
                     handleReplyQueue(arg?.value as ReplyQueueHandlerArg)
                     0
                 },
+
                 ZmqLoop.Argument(ReplyQueueHandlerArg(frontend, repliesQueue))
             )
 
             reactor.addTimer(
                 1,
                 0,
+
                 { _, arg ->
                     handleEditFunctionQueue(arg?.value as EditFunctionQueueHandlerArg)
                     0
                 },
+
                 ZmqLoop.Argument(EditFunctionQueueHandlerArg(serverFunctions, editFunctionQueriesQueue))
             )
 

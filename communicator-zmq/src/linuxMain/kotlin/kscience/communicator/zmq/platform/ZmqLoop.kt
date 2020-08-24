@@ -3,6 +3,7 @@ package kscience.communicator.zmq.platform
 import czmq.*
 import kotlinx.cinterop.*
 import kotlinx.io.Closeable
+import kotlin.native.concurrent.AtomicInt
 
 /** Constructor must create a loop with its "new" method */
 internal actual class ZmqLoop(val backendLoop: CPointer<zloop_t> = checkNotNull(zloop_new())) : Closeable {
@@ -59,7 +60,6 @@ internal actual class ZmqLoop(val backendLoop: CPointer<zloop_t> = checkNotNull(
         noinline handler: ZmqLoop.(Any?, Argument<T>?) -> Int,
         arg: Argument<T>?
     ) {
-
         zloop_timer(
             backendLoop,
             delay.toULong(),
@@ -89,9 +89,16 @@ internal actual class ZmqLoop(val backendLoop: CPointer<zloop_t> = checkNotNull(
 
     actual class Argument<T : Any> actual constructor(actual val value: T) : Closeable {
         internal lateinit var handler: ZmqLoop.(Any?, Argument<T>?) -> Int
+        private val disposed: AtomicInt = AtomicInt(0)
 
-        val ref: StableRef<Pair<T, ZmqLoop.(Any?, Argument<T>?) -> Int>> get() = StableRef.create(value to handler)
+        internal val ref: StableRef<Pair<T, ZmqLoop.(Any?, Argument<T>?) -> Int>>
+            get() = StableRef.create(value to handler)
 
-        override fun close(): Unit = ref.dispose()
+        override fun close() {
+            if (disposed.value == 0) {
+                ref.dispose()
+                disposed.value = 1
+            }
+        }
     }
 }
