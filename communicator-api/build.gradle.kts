@@ -1,17 +1,27 @@
-import scientifik.useCoroutines
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
-plugins { id("scientifik.mpp") }
-useCoroutines()
+plugins { kotlin(module = "multiplatform") }
 
 kotlin {
-    linuxX64("linux") { binaries.sharedLib() }
-    sourceSets.all { languageSettings.useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts") }
-}
+    js()
+    jvm()
+    configure(listOf<KotlinNativeTarget>(linuxX64(), mingwX64())) { binaries.sharedLib() }
 
-dependencies {
-    val serializationVersion = "0.20.0"
-    commonMainApi("org.jetbrains.kotlinx:kotlinx-io:0.2.0-npm-dev-8")
-    commonMainImplementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime-common:$serializationVersion")
-    jvmMainImplementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime:$serializationVersion")
-    jsMainImplementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime-js:$serializationVersion")
+    sourceSets {
+        all { languageSettings.useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts") }
+        val commonMain by getting {/* dependencies { api("org.jetbrains.kotlinx:kotlinx-io:0.2.0-npm-dev-10") }*/ }
+        val jsMain by getting { dependencies { api("org.jetbrains.kotlinx:kotlinx-io-js:0.2.0-npm-dev-8") } }
+        val jvmMain by getting { dependencies { api("org.jetbrains.kotlinx:kotlinx-io-jvm:0.2.0-npm-dev-8") } }
+        val nativeMain by creating { dependsOn(commonMain) }
+
+        val linuxX64Main by getting {
+            dependsOn(nativeMain)
+            dependencies { api("org.jetbrains.kotlinx:kotlinx-io-linuxx64:0.2.0-npm-dev-8") }
+        }
+
+        val mingwX64Main by getting { dependsOn(nativeMain)
+            dependencies { api("org.jetbrains.kotlinx:kotlinx-io-mingwx64:0.2.0-npm-dev-8") }
+        }
+    }
+
 }

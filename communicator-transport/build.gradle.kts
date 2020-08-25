@@ -1,41 +1,27 @@
-import scientifik.useCoroutines
-
-plugins { id("scientifik.mpp") }
-useCoroutines()
+plugins { kotlin("multiplatform") }
 
 kotlin {
-    linuxX64("linux") { binaries.sharedLib() }
+    jvm()
+    js()
+    configure(listOf(linuxX64(), mingwX64())) { binaries.sharedLib() }
 
     sourceSets {
-        commonMain {
+        val commonMain by getting {
             dependencies {
                 api(project(":communicator-api"))
                 api(project(":communicator-zmq"))
-                implementation("co.touchlab:stately-isolate:1.0.3-a4")
-                implementation("co.touchlab:stately-iso-collections:1.0.3-a4")
             }
         }
 
-        jsMain {
-            dependencies {
-                implementation("co.touchlab:stately-isolate-js:1.0.3-a4")
-                implementation("co.touchlab:stately-iso-collections-js:1.0.3-a4")
-            }
+        val jsMain by getting {}
+        val jvmMain by getting {}
+
+        val nativeMain by creating {
+            dependsOn(commonMain)
+            dependencies { api("org.jetbrains.kotlinx:kotlinx-coroutines-core-native:1.3.8") }
         }
 
-        jvmMain {
-            dependencies {
-                implementation("co.touchlab:stately-isolate-jvm:1.0.3-a4")
-                implementation("co.touchlab:stately-iso-collections-jvm:1.0.3-a4")
-            }
-        }
-
-        val linuxMain by getting {
-            dependencies {
-                implementation("co.touchlab:stately-isolate-linuxx64:1.0.3-a4")
-                implementation("co.touchlab:stately-iso-collections-linuxx64:1.0.3-a4")
-                api("org.jetbrains.kotlinx:kotlinx-coroutines-core-native:1.3.7")
-            }
-        }
+        val linuxX64Main by getting { dependsOn(nativeMain) }
+        val mingwX64Main by getting { dependsOn(nativeMain) }
     }
 }

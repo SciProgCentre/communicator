@@ -1,6 +1,4 @@
 headers = libczmq/czmq.h
 headerFilter = libczmq/*
-
-compilerOpts.linux = -I/usr/include -I/usr/include/x86_64-linux-gnu -Ilibczmq
-#linkerOpts.osx = -L/opt/local/lib -L/usr/local/opt/curl/lib -lcurl
-linkerOpts.linux = -L/usr/lib/x86_64-linux-gnu -lczmq
+compilerOpts = -I/usr/include -I/usr/include/x86_64-linux-gnu -Ilibczmq
+linkerOpts = -L/usr/lib/x86_64-linux-gnu -lczmq
