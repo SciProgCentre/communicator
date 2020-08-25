@@ -1,9 +1,17 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+
 plugins { kotlin("multiplatform") }
 
 kotlin {
     jvm()
-    js()
-    configure(listOf(linuxX64(), mingwX64())) { binaries.sharedLib() }
+    val hostOs = System.getProperty("os.name")
+    val nativeTargets = mutableListOf<KotlinNativeTarget>()
+
+    nativeTargets += when {
+        hostOs == "Linux" -> linuxX64()
+        hostOs.startsWith("Windows") -> mingwX64()
+        else -> throw GradleException("Host OS '$hostOs' is not supported in Kotlin/Native $project.")
+    }
 
     sourceSets {
         val commonMain by getting {
@@ -13,15 +21,12 @@ kotlin {
             }
         }
 
-        val jsMain by getting {}
-        val jvmMain by getting {}
+        val nativeMain by creating { dependsOn(commonMain) }
+        val nativeTest by creating { dependsOn(commonTest.get()) }
 
-        val nativeMain by creating {
-            dependsOn(commonMain)
-            dependencies { api("org.jetbrains.kotlinx:kotlinx-coroutines-core-native:1.3.8") }
+        configure(nativeTargets) {
+            val main by compilations.getting { kotlinSourceSets.forEach { it.dependsOn(nativeMain) } }
+            val test by compilations.getting { kotlinSourceSets.forEach { it.dependsOn(nativeTest) } }
         }
-
-        val linuxX64Main by getting { dependsOn(nativeMain) }
-        val mingwX64Main by getting { dependsOn(nativeMain) }
     }
 }

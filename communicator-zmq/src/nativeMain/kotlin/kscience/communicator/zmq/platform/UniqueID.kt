@@ -1,9 +1,9 @@
 package kscience.communicator.zmq.platform
 
-import co.touchlab.stately.freeze
 import kotlin.Long.Companion.SIZE_BITS
 import kotlin.experimental.and
 import kotlin.math.max
+import kotlin.native.concurrent.*
 import kotlin.random.Random
 
 @SharedImmutable
@@ -89,7 +89,7 @@ private fun digits(`val`: Long, digits: Int): String? {
         val2 = val2 ushr 4
     } while (val2 != 0L && charPos > 0)
 
-    return String(buf).substring(1)
+    return buf.concatToString().substring(1)
 }
 
 internal actual fun generateUuid(): ByteArray = Random.nextBytes(ByteArray(16))

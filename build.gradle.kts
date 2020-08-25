@@ -6,6 +6,6 @@ allprojects {
 subprojects {
     repositories {
         jcenter()
-        maven("https://dl.bintray.com/mipt-npm/dev")
+        maven("https://dl.bintray.com/commandertvis/kotlinx-io")
     }
 }

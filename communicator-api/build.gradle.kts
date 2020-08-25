@@ -1,27 +1,41 @@
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
+val ioVersion: String by project
 plugins { kotlin(module = "multiplatform") }
 
 kotlin {
     js()
     jvm()
-    configure(listOf<KotlinNativeTarget>(linuxX64(), mingwX64())) { binaries.sharedLib() }
+    val hostOs = System.getProperty("os.name")
+    val nativeTargets = mutableListOf<KotlinNativeTarget>()
+    var hasLinux = false
+    var hasWindows = false
+
+    nativeTargets += when {
+        hostOs == "Linux" -> {
+            hasLinux = true
+            linuxX64()
+        }
+
+        hostOs.startsWith("Windows") -> {
+            hasWindows = true
+            mingwX64()
+        }
+
+        else -> throw GradleException("Host OS '$hostOs' is not supported in Kotlin/Native $project.")
+    }
+
+    configure(nativeTargets) { binaries.sharedLib() }
 
     sourceSets {
         all { languageSettings.useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts") }
-        val commonMain by getting {/* dependencies { api("org.jetbrains.kotlinx:kotlinx-io:0.2.0-npm-dev-10") }*/ }
-        val jsMain by getting { dependencies { api("org.jetbrains.kotlinx:kotlinx-io-js:0.2.0-npm-dev-8") } }
-        val jvmMain by getting { dependencies { api("org.jetbrains.kotlinx:kotlinx-io-jvm:0.2.0-npm-dev-8") } }
+        val commonMain by getting { dependencies { api("org.jetbrains.kotlinx:kotlinx-io:$ioVersion") } }
         val nativeMain by creating { dependsOn(commonMain) }
+        val nativeTest by creating { dependsOn(commonTest.get()) }
 
-        val linuxX64Main by getting {
-            dependsOn(nativeMain)
-            dependencies { api("org.jetbrains.kotlinx:kotlinx-io-linuxx64:0.2.0-npm-dev-8") }
-        }
-
-        val mingwX64Main by getting { dependsOn(nativeMain)
-            dependencies { api("org.jetbrains.kotlinx:kotlinx-io-mingwx64:0.2.0-npm-dev-8") }
+        configure(nativeTargets) {
+            val main by compilations.getting { kotlinSourceSets.forEach { it.dependsOn(nativeMain) } }
+            val test by compilations.getting { kotlinSourceSets.forEach { it.dependsOn(nativeTest) } }
         }
     }
-
 }
