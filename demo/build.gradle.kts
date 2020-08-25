@@ -1,11 +1,14 @@
-import scientifik.useCoroutines
 
-plugins { id("scientifik.mpp") }
-useCoroutines()
+plugins {
+    id("org.jetbrains.kotlin.multiplatform") version "1.4.0"
+}
 
 kotlin {
     sourceSets {
-        commonMain {
+        jvm()
+        linuxX64("linux")
+
+        val commonMain by getting {
             dependencies {
                 implementation(project(":communicator-api"))
                 implementation(project(":communicator-zmq"))
@@ -13,7 +16,7 @@ kotlin {
             }
         }
 
-        jvmMain {
+        val jvmMain by getting {
             dependencies {
                 implementation(project(":communicator-api"))
                 implementation(project(":communicator-zmq"))
@@ -21,5 +24,14 @@ kotlin {
                 implementation("org.slf4j:slf4j-simple:1.7.30")
             }
         }
+
+        val linuxMain by getting {
+
+        }
+
+        val dsadMain by getting {
+
+        }
+
     }
 }
