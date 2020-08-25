@@ -8,20 +8,10 @@ kotlin {
     jvm()
     val hostOs = System.getProperty("os.name")
     val nativeTargets = mutableListOf<KotlinNativeTarget>()
-    var hasLinux = false
-    var hasWindows = false
 
     nativeTargets += when {
-        hostOs == "Linux" -> {
-            hasLinux = true
-            linuxX64()
-        }
-
-        hostOs.startsWith("Windows") -> {
-            hasWindows = true
-            mingwX64()
-        }
-
+        hostOs == "Linux" -> linuxX64()
+        hostOs.startsWith("Windows") -> mingwX64()
         else -> throw GradleException("Host OS '$hostOs' is not supported in Kotlin/Native $project.")
     }
 
