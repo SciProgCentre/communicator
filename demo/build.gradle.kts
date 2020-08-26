@@ -6,7 +6,6 @@ plugins {
 kotlin {
     sourceSets {
         jvm()
-        linuxX64("linux")
 
         val commonMain by getting {
             dependencies {
@@ -23,14 +22,6 @@ kotlin {
                 implementation(project(":communicator-transport"))
                 implementation("org.slf4j:slf4j-simple:1.7.30")
             }
-        }
-
-        val linuxMain by getting {
-
-        }
-
-        val dsadMain by getting {
-
         }
 
     }
