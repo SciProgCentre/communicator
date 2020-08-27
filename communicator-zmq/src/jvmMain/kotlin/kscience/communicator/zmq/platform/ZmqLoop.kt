@@ -5,16 +5,19 @@ import org.zeromq.ZLoop
 import org.zeromq.ZMQ
 
 /** Constructor must create a loop with its "new" method */
-internal actual class ZmqLoop actual constructor(ctx: ZmqContext) : Closeable {
-    internal val backendLoop = ZLoop(ctx.backendContext)
+internal actual class ZmqLoop private constructor(val backendLoop: ZLoop) : Closeable {
+    actual constructor(ctx: ZmqContext) : this(ZLoop(ctx.backendContext))
 
-    actual fun addReader(socket: ZmqSocket, handler: (Any?, Any?, Any?) -> Int, arg: Any?) {
-        val pollItem = ZMQ.PollItem(socket.backendSocket, ZMQ.Poller.POLLIN)
-        backendLoop.addPoller(pollItem, handler, arg)
+    actual fun addReader(socket: ZmqSocket, handler: ZmqLoop.(Any?, Any?) -> Int, arg: Any?) {
+        backendLoop.addPoller(
+            ZMQ.PollItem(socket.backendSocket, ZMQ.Poller.POLLIN),
+            { loop, item, argParam -> ZmqLoop(loop).handler(item, argParam) },
+            arg
+        )
     }
 
-    actual fun addTimer(delay: Int, times: Int, handler: (Any?, Any?, Any?) -> Int, arg: Any?) {
-        backendLoop.addTimer(delay, times, handler, arg)
+    actual fun addTimer(delay: Int, times: Int, handler: ZmqLoop.(Any?, Any?) -> Int, arg: Any?) {
+        backendLoop.addTimer(delay, times, { loop, item, argParam -> ZmqLoop(loop).handler(item, argParam) }, arg)
     }
 
     actual fun start() {

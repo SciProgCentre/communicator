@@ -8,4 +8,8 @@ internal actual class ZmqFrame : Closeable {
         get() = TODO("Not yet implemented")
 
     actual override fun close(): Unit = TODO()
+
+    actual companion object {
+        actual fun recvFrame(socket: ZmqSocket): ZmqFrame = TODO()
+    }
 }

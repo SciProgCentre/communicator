@@ -55,7 +55,7 @@ class ZmqTransportServer(override val port: Int) : TransportServer {
 
         reactor.addReader(
             frontend,
-            { _, _, arg ->
+            { _, arg ->
                 handleFrontend(arg as FrontendHandlerArg)
                 0
             },
@@ -65,7 +65,7 @@ class ZmqTransportServer(override val port: Int) : TransportServer {
         reactor.addTimer(
             1,
             0,
-            { _, _, arg ->
+            { _, arg ->
                 handleReplyQueue(arg as ReplyQueueHandlerArg)
                 0
             },
@@ -75,7 +75,7 @@ class ZmqTransportServer(override val port: Int) : TransportServer {
         reactor.addTimer(
             1,
             0,
-            { _, _, arg ->
+            { _, arg ->
                 handleEditFunctionQueue(arg as EditFunctionQueueHandlerArg)
                 0
             },
@@ -100,7 +100,7 @@ private class ReplyQueueHandlerArg(
     val repliesQueue: Channel<Response>
 )
 
-private fun handleReplyQueue(arg: ReplyQueueHandlerArg): Unit = with(arg) {
+private fun ZmqTransportServer.handleReplyQueue(arg: ReplyQueueHandlerArg): Unit = with(arg) {
     while (true) {
         val reply = repliesQueue.poll() ?: break
         sendMsg(frontend) {

@@ -4,10 +4,10 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.BUFFERED
 import kotlinx.io.Closeable
 import kotlinx.io.use
-import mu.KLogger
-import mu.KotlinLogging
 import kscience.communicator.api.Payload
 import kscience.communicator.zmq.platform.*
+import mu.KLogger
+import mu.KotlinLogging
 import kscience.communicator.zmq.platform.UniqueID
 import kscience.communicator.zmq.platform.ZmqContext
 import kscience.communicator.zmq.platform.ZmqLoop
@@ -73,7 +73,7 @@ internal class Client : Closeable {
                     NEW_QUERIES_QUEUE_UPDATE_INTERVAL,
                     0,
 
-                    { _, _, arg ->
+                    { _, arg ->
                         arg as ClientState
                         arg.handleQueue()
                         arg.handleSpecQueue()
@@ -83,7 +83,7 @@ internal class Client : Closeable {
                     this
                 )
 
-                reactor.addReader(mainDealer, { _, _, _ -> 0 }, Unit)
+                reactor.addReader(mainDealer, { _, _ -> 0 }, Unit)
                 reactor.start()
             }
         }

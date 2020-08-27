@@ -99,7 +99,6 @@ fun <T, R> FunctionSet.declare(nameToSpec: Pair<String, FunctionSpec<T, R>>): Fu
  * @param function the function's implementation.
  * @receiver the function's implementation.
  */
-@OptIn(ExperimentalContracts::class)
 suspend fun <T, R> FunctionServer.impl(
     declaration: FunctionSet.Declaration<T, R>,
     function: suspend (T) -> R
@@ -132,7 +131,6 @@ suspend operator fun <T, R> FunctionSet.Declaration<T, R>.invoke(client: Functio
  * @param action the lambda to apply.
  * @return this function server.
  */
-@OptIn(ExperimentalContracts::class)
 inline fun <F, S> F.configure(set: S, action: S.(_: F) -> Unit): F where F : FunctionServer, S : FunctionSet {
     contract { callsInPlace(action, InvocationKind.EXACTLY_ONCE) }
     action(set, this)

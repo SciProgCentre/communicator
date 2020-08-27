@@ -1,12 +1,13 @@
 package kscience.communicator.zmq.proxy
 
 import kscience.communicator.zmq.platform.UniqueID
+import kscience.communicator.zmq.platform.ZmqMsg
 import kscience.communicator.zmq.platform.ZmqSocket
 import java.lang.System.currentTimeMillis
 import java.nio.ByteBuffer
 
 internal fun ZmqProxy.handleBackend(frontend: ZmqSocket, backend: ZmqSocket) {
-    val msg = backend.recvMsg()
+    val msg = ZmqMsg.recvMsg(frontend)
     val workerIdentity = msg.pop().data
 
     when (msg.pop().data.decodeToString()) {

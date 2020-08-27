@@ -9,4 +9,8 @@ internal actual class ZmqFrame(internal val backendFrame: ZFrame) : Closeable {
         get() = backendFrame.data
 
     actual override fun close(): Unit = backendFrame.destroy()
+
+    actual companion object {
+        actual fun recvFrame(socket: ZmqSocket): ZmqFrame = ZmqFrame(ZFrame.recvFrame(socket.backendSocket))
+    }
 }

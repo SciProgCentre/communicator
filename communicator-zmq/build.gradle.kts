@@ -4,6 +4,8 @@ plugins { id("scientifik.mpp") }
 useCoroutines()
 
 kotlin.sourceSets {
+    all { languageSettings.useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts") }
+
     commonMain {
         dependencies {
             api(project(":communicator-api"))
