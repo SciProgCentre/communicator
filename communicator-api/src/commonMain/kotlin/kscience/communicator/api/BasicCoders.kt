@@ -98,6 +98,39 @@ object StringCoder : Coder<String> {
     override fun toString(): String = "stringCoder"
 }
 
+class RemoteFunctionCoder<T, R>(val functionSpec: FunctionSpec<T, R>) : Coder<RemoteFunction<T, R>> {
+
+    override val identity: String
+        get() = "RemoteFunction<${functionSpec.argumentCoder.identity}, ${functionSpec.resultCoder.identity}>"
+
+    override fun encode(value: RemoteFunction<T, R>): Payload {
+        val out = ByteArrayOutput()
+        out.writeInt(value.name.length)
+        out.writeByteArray(value.name.encodeToByteArray())
+        out.writeInt(value.endpoint.protocol.length)
+        out.writeByteArray(value.endpoint.protocol.encodeToByteArray())
+        out.writeInt(value.endpoint.address.length)
+        out.writeByteArray(value.endpoint.address.encodeToByteArray())
+        return out.toByteArray()
+    }
+
+    override fun decode(payload: Payload): RemoteFunction<T, R> {
+        val inp = ByteArrayInput(payload)
+
+        val nameLength = inp.readInt()
+        val name = inp.readByteArray(nameLength).decodeToString()
+        val protocolLength = inp.readInt()
+        val protocol = inp.readByteArray(protocolLength).decodeToString()
+        val addressLength = inp.readInt()
+        val address = inp.readByteArray(addressLength).decodeToString()
+
+        return RemoteFunction(name, Endpoint(protocol, address), functionSpec)
+    }
+
+    override fun toString(): String = "functionCoder"
+
+}
+
 /**
  * Binds [List] to payload of sequence of sub-payloads for [T].
  *
