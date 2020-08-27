@@ -3,16 +3,11 @@ package kscience.communicator.zmq.client
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.BUFFERED
 import kotlinx.io.Closeable
-import kotlinx.io.use
 import kscience.communicator.api.Payload
 import kscience.communicator.zmq.platform.*
+import kscience.communicator.zmq.util.sendMsg
 import mu.KLogger
 import mu.KotlinLogging
-import kscience.communicator.zmq.platform.UniqueID
-import kscience.communicator.zmq.platform.ZmqContext
-import kscience.communicator.zmq.platform.ZmqLoop
-import kscience.communicator.zmq.platform.ZmqSocket
-import kscience.communicator.zmq.util.sendMsg
 
 private const val NEW_QUERIES_QUEUE_UPDATE_INTERVAL = 1
 
@@ -139,7 +134,7 @@ private fun ClientState.getForwardSocket(address: String): ZmqSocket {
 
     reactor.addReader(
         forwardSocket,
-        { _, _, arg ->
+        { _, arg ->
             arg as ForwardSocketHandlerArg
             arg.clientContext.handleForwardSocket(arg)
             0

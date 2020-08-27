@@ -1,28 +1,8 @@
+plugins { id("scientifik.jvm") }
 
-plugins {
-    id("org.jetbrains.kotlin.multiplatform") version "1.4.0"
-}
-
-kotlin {
-    sourceSets {
-        jvm()
-
-        val commonMain by getting {
-            dependencies {
-                implementation(project(":communicator-api"))
-                implementation(project(":communicator-zmq"))
-                implementation(project(":communicator-transport"))
-            }
-        }
-
-        val jvmMain by getting {
-            dependencies {
-                implementation(project(":communicator-api"))
-                implementation(project(":communicator-zmq"))
-                implementation(project(":communicator-transport"))
-                implementation("org.slf4j:slf4j-simple:1.7.30")
-            }
-        }
-
-    }
+dependencies {
+    implementation(project(":communicator-api"))
+    implementation(project(":communicator-zmq"))
+    implementation(project(":communicator-transport"))
+    implementation("org.slf4j:slf4j-simple:1.7.30")
 }

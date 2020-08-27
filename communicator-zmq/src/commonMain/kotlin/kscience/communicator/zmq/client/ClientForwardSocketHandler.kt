@@ -3,6 +3,8 @@ package kscience.communicator.zmq.client
 import kscience.communicator.api.RemoteFunctionException
 import kscience.communicator.api.UnsupportedFunctionNameException
 import kscience.communicator.zmq.platform.UniqueID
+import kscience.communicator.zmq.platform.ZmqFrame
+import kscience.communicator.zmq.platform.ZmqMsg
 import kscience.communicator.zmq.platform.ZmqSocket
 import kscience.communicator.zmq.util.sendMsg
 
@@ -14,9 +16,9 @@ internal class ForwardSocketHandlerArg(
 
 internal fun ClientState.handleForwardSocket(arg: ForwardSocketHandlerArg) {
     log.debug { "Handling result" }
-    val msg = arg.socket.recvMsg()
+    val msg = ZmqMsg.recvMsg(arg.socket)
     val msgType = msg.pop().data
-    val msgData = msg.map { it.data }
+    val msgData = msg.map(ZmqFrame::data)
     when (msgType.decodeToString()) {
         "RESPONSE_RESULT" -> {
             val (queryID, resultBytes) = msgData

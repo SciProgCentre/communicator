@@ -1,17 +1,28 @@
 package kscience.communicator.zmq.server
 
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.BUFFERED
-import kscience.communicator.api.*
-import kscience.communicator.zmq.platform.*
+import kscience.communicator.api.Endpoint
+import kscience.communicator.api.FunctionSpec
+import kscience.communicator.api.IntCoder
+import kscience.communicator.api.PayloadFunction
+import kscience.communicator.zmq.platform.ZmqContext
+import kscience.communicator.zmq.platform.ZmqLoop
+import kscience.communicator.zmq.platform.ZmqSocket
+import kscience.communicator.zmq.platform.runInBackground
 import kscience.communicator.zmq.util.sendMsg
 import mu.KLogger
 import mu.KotlinLogging
 
-class ZmqWorker(private val proxy: Endpoint,
-                private val serverFunctions: MutableMap<String, PayloadFunction>,
-                private val serverFunctionSpecs: MutableMap<String, FunctionSpec<*, *>>) {
+class ZmqWorker(
+    private val proxy: Endpoint,
+    private val serverFunctions: MutableMap<String, PayloadFunction>,
+    private val serverFunctionSpecs: MutableMap<String, FunctionSpec<*, *>>
+) {
     internal val log: KLogger = KotlinLogging.logger("ZmqTransportServer")
     private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default
     private val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob())
@@ -47,32 +58,32 @@ class ZmqWorker(private val proxy: Endpoint,
         val reactor = ZmqLoop(ctx)
 
         reactor.addReader(
-                frontend,
-                { _, _, arg ->
-                    handleWorkerFrontend(arg as WorkerFrontendHandlerArg)
-                    0
-                },
-                WorkerFrontendHandlerArg(workerScope, frontend, serverFunctions, serverFunctionSpecs, repliesQueue)
+            frontend,
+            { _, arg ->
+                handleWorkerFrontend(arg as WorkerFrontendHandlerArg)
+                0
+            },
+            WorkerFrontendHandlerArg(workerScope, frontend, serverFunctions, serverFunctionSpecs, repliesQueue)
         )
 
         reactor.addTimer(
-                1,
-                0,
-                { _, _, arg ->
-                    handleReplyQueue(arg as WorkerReplyQueueHandlerArg)
-                    0
-                },
-                WorkerReplyQueueHandlerArg(frontend, repliesQueue)
+            1,
+            0,
+            { _, arg ->
+                handleReplyQueue(arg as WorkerReplyQueueHandlerArg)
+                0
+            },
+            WorkerReplyQueueHandlerArg(frontend, repliesQueue)
         )
 
         reactor.addTimer(
-                1,
-                0,
-                { _, _, arg ->
-                    handleEditFunctionQueue(arg as WorkerEditFunctionQueueHandlerArg)
-                    0
-                },
-                WorkerEditFunctionQueueHandlerArg(serverFunctions, serverFunctionSpecs, editFunctionQueriesQueue)
+            1,
+            0,
+            { _, arg ->
+                handleEditFunctionQueue(arg as WorkerEditFunctionQueueHandlerArg)
+                0
+            },
+            WorkerEditFunctionQueueHandlerArg(serverFunctions, serverFunctionSpecs, editFunctionQueriesQueue)
         )
 
         reactor.start()
@@ -80,17 +91,30 @@ class ZmqWorker(private val proxy: Endpoint,
 }
 
 private sealed class WorkerEditFunctionQuery
-private class WorkerRegisterFunctionQuery(val name: String, val function: PayloadFunction, val spec: FunctionSpec<*, *>) : WorkerEditFunctionQuery()
+
+private class WorkerRegisterFunctionQuery(
+    val name: String,
+    val function: PayloadFunction,
+    val spec: FunctionSpec<*, *>
+) : WorkerEditFunctionQuery()
+
 private class WorkerUnregisterFunctionQuery(val name: String) : WorkerEditFunctionQuery()
 
 internal sealed class WorkerResponse
-internal class WorkerResponseResult(val clientIdentity: ByteArray, val queryID: ByteArray, val resultBytes: ByteArray) : WorkerResponse()
-internal class WorkerResponseException(val clientIdentity: ByteArray, val queryID: ByteArray, val exceptionMessage: String) : WorkerResponse()
+
+internal class WorkerResponseResult(val clientIdentity: ByteArray, val queryID: ByteArray, val resultBytes: ByteArray) :
+    WorkerResponse()
+
+internal class WorkerResponseException(
+    val clientIdentity: ByteArray,
+    val queryID: ByteArray,
+    val exceptionMessage: String
+) : WorkerResponse()
 
 
 private class WorkerReplyQueueHandlerArg(
-        val frontend: ZmqSocket,
-        val repliesQueue: Channel<Response>
+    val frontend: ZmqSocket,
+    val repliesQueue: Channel<Response>
 )
 
 private fun handleReplyQueue(arg: WorkerReplyQueueHandlerArg): Unit = with(arg) {
@@ -114,9 +138,9 @@ private fun handleReplyQueue(arg: WorkerReplyQueueHandlerArg): Unit = with(arg) 
 }
 
 private class WorkerEditFunctionQueueHandlerArg(
-        val serverFunctions: MutableMap<String, PayloadFunction>,
-        val serverFunctionSpecs: MutableMap<String, FunctionSpec<*, *>>,
-        val editFunctionQueue: Channel<WorkerEditFunctionQuery>
+    val serverFunctions: MutableMap<String, PayloadFunction>,
+    val serverFunctionSpecs: MutableMap<String, FunctionSpec<*, *>>,
+    val editFunctionQueue: Channel<WorkerEditFunctionQuery>
 )
 
 private fun handleEditFunctionQueue(arg: WorkerEditFunctionQueueHandlerArg): Unit = with(arg) {

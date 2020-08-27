@@ -17,14 +17,13 @@ private val log = KotlinLogging.logger { }
  * Launches [TransportFunctionServer] with function f(x) = x^2 + 1 and [TransportFunctionClient] calling that
  * function, calls f from 123, and prints the result.
  */
-fun main() {
-    runBlocking {
-        val server = TransportFunctionServer(endpoint).configure(Functions) { it.impl(f) { x -> x * x + 1 } }
-        val client = TransportFunctionClient(DefaultTransportFactory)
-        log.info { "Calling ${Functions.f}" }
-        val result = Functions.f(client, 123)
-        log.info { "Result is $result" }
-        server.close()
-        client.close()
-    }
+fun main(): Unit = runBlocking {
+    val server = TransportFunctionServer(endpoint).configure(Functions) { it.impl(f) { x -> x * x + 1 } }
+    val client = TransportFunctionClient(DefaultTransportFactory)
+    log.info { "Calling ${Functions.f}" }
+    val result = Functions.f(client, 123)
+    assert(result == 15130)
+    log.info { "Result is $result" }
+    server.close()
+    client.close()
 }
