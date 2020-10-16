@@ -17,6 +17,9 @@ interface FunctionClient : Closeable {
      */
     fun <T, R> getFunction(endpoint: Endpoint, name: String, spec: FunctionSpec<T, R>): suspend (T) -> R
 
+    fun <T, R> getFunction(remoteFunction: RemoteFunction<T, R>): suspend (T) -> R =
+            getFunction(remoteFunction.endpoint, remoteFunction.name, remoteFunction.spec)
+
     /**
      * Disposes this function client.
      */

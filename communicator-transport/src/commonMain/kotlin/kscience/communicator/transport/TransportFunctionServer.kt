@@ -36,7 +36,7 @@ class TransportFunctionServer(override val endpoints: Set<Endpoint>) : FunctionS
         function: suspend (T) -> R
     ): suspend (T) -> R {
         val payloadFunction = function.toBinary(spec)
-        transportServers.forEach { it.register(name, payloadFunction) }
+        transportServers.forEach { it.register(name, payloadFunction, spec) }
         return function
     }
 

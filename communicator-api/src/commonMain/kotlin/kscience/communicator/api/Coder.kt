@@ -12,7 +12,7 @@ interface Coder<T> {
      * Coders on different processes (machines) are compared by their identity.
      * Identity may be called "hash code", but this property has completely different purposes than [Any.hashCode].
      */
-    val identity: ByteArray
+    val identity: String
 
     /**
      * Decodes payload to object.

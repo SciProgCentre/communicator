@@ -177,7 +177,10 @@ private fun handleEditFunctionQueue(arg: EditFunctionQueueHandlerArg): Unit = wi
         val editFunctionMessage = editFunctionQueue.removeFirstOrNull() ?: break
 
         when (editFunctionMessage) {
-            is RegisterFunctionQuery -> arg.serverFunctions[editFunctionMessage.name] = editFunctionMessage.function
+            is RegisterFunctionQuery -> {
+                arg.serverFunctions[editFunctionMessage.name] = editFunctionMessage.function
+                arg.serverFunctionSpecs[editFunctionMessage.name] = editFunctionMessage.spec
+            }
             is UnregisterFunctionQuery -> arg.serverFunctions.remove(editFunctionMessage.name)
         }
     }

@@ -10,9 +10,9 @@ internal fun ZmqProxy.handleBackend(frontend: ZmqSocket, backend: ZmqSocket) {
     val msg = ZmqMsg.recvMsg(frontend)
     val workerIdentity = msg.pop().data
 
-    when (msg.pop().data[0]) {
+    when (msg.pop().data.decodeToString()) {
         // Ответ на запрос - завершен успешно
-        11.toByte() -> {
+        "RESPONSE_RESULT" -> {
             val queryID = msg.pop().data
             val queryResult = msg.pop().data
             val clientIdentity = receivedQueries[UniqueID(queryID)]
@@ -20,72 +20,51 @@ internal fun ZmqProxy.handleBackend(frontend: ZmqSocket, backend: ZmqSocket) {
 
             sendMsg(frontend) {
                 +clientIdentity
-                +byteArrayOf(11)
+                +"RESPONSE_RESULT"
                 +queryID
                 +queryResult
+            }
+            sendMsg(backend) {
+                +workerIdentity
+                +"RESPONSE_RECEIVED"
+                +queryID
             }
         }
 
         // Ответ на запрос - ошибка RemoteFunctionException
-        12.toByte() -> {
+        "RESPONSE_EXCEPTION" -> {
             val queryID = msg.pop().data
             val remoteException = msg.pop().data
             val clientIdentity = receivedQueries[UniqueID(queryID)]
             clientIdentity ?: return
             sendMsg(frontend) {
                 +clientIdentity
-                +byteArrayOf(12)
+                +"RESPONSE_EXCEPTION"
                 +queryID
                 +remoteException
             }
-        }
-
-        // Ответ на запрос - ошибка RemoteDecodingException
-        13.toByte() -> {
-            val queryID = msg.pop().data
-            val remoteArgSchemeStructure = msg.pop().data
-            val clientIdentity = receivedQueries[UniqueID(queryID)]
-            clientIdentity ?: return
-
-            sendMsg(frontend) {
-                +clientIdentity
-                +byteArrayOf(13)
+            sendMsg(backend) {
+                +workerIdentity
+                +"RESPONSE_RECEIVED"
                 +queryID
-                +remoteArgSchemeStructure
-            }
-        }
-
-        // Ответ на запрос - ошибка RemoteEncodingException
-        14.toByte() -> {
-            val queryID = msg.pop().data
-            val resultString = msg.pop().data
-            val remoteResultSchemeStructure = msg.pop().data
-            val clientIdentity = receivedQueries[UniqueID(queryID)]
-            clientIdentity ?: return
-            sendMsg(frontend) {
-                +clientIdentity
-                +byteArrayOf(14)
-                +queryID
-                +resultString
-                +remoteResultSchemeStructure
             }
         }
 
         // Сообщение о том, что запрос получен
-        31.toByte() -> {
+        "QUERY_RECEIVED" -> {
             val queryID = msg.pop().data
             sentQueries.remove(UniqueID(queryID))
         }
 
         // Heart beat
-        41.toByte() -> {
+        "HEART_BEAT" -> {
             workers.asSequence()
                 .filter { it.identity.contentEquals(workerIdentity) }
                 .forEach { it.lastHeartbeatTime = currentTimeMillis() }
         }
 
         // Запрос воркера на подключение к прокси и передача всех схем
-        51.toByte() -> {
+        "WORKER_REGISTER" -> {
             val worker = Worker(workerIdentity, arrayListOf(), currentTimeMillis())
             val functionsCount = ByteBuffer.wrap(msg.pop().data).int
 
@@ -104,7 +83,7 @@ internal fun ZmqProxy.handleBackend(frontend: ZmqSocket, backend: ZmqSocket) {
                 } else if (existingSchemes.first != functionArgScheme || existingSchemes.second != functionResultScheme) {
                     sendMsg(backend) {
                         +workerIdentity
-                        +byteArrayOf(41)
+                        +"INCOMPATIBLE_SPECS_FAILURE"
                         +functionName
                         +existingSchemes.first
                         +existingSchemes.second

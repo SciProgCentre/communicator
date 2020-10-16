@@ -8,10 +8,10 @@ internal fun ZmqProxy.handleFrontend(frontend: ZmqSocket, backend: ZmqSocket) {
     val receivedMsg = ZmqMsg.recvMsg(frontend)
     val clientIdentity = receivedMsg.pop().data
 
-    when (receivedMsg.pop().data[0]) {
+    when (receivedMsg.pop().data.decodeToString()) {
 
         // Запрос на вычисление функции
-        11.toByte() -> {
+        "QUERY" -> {
             val queryID = receivedMsg.pop().data
             val queryArg = receivedMsg.pop().data
             val functionName = receivedMsg.pop().data.decodeToString()
@@ -20,7 +20,7 @@ internal fun ZmqProxy.handleFrontend(frontend: ZmqSocket, backend: ZmqSocket) {
             // Если воркера нет, возвращаем ошибку
             if (worker == null) sendMsg(frontend) {
                 +clientIdentity
-                +byteArrayOf(15)
+                +"RESPONSE_UNKNOWN_FUNCTION"
                 +queryID
                 +functionName
             }
@@ -29,7 +29,7 @@ internal fun ZmqProxy.handleFrontend(frontend: ZmqSocket, backend: ZmqSocket) {
             else {
                 sendMsg(backend) {
                     +worker.identity
-                    +byteArrayOf(11)
+                    +"QUERY"
                     +queryID
                     +queryArg
                     +functionName
@@ -40,26 +40,29 @@ internal fun ZmqProxy.handleFrontend(frontend: ZmqSocket, backend: ZmqSocket) {
         }
 
         // Запрос на получение структуры схемы для функции
-        21.toByte() -> {
+        "CODER_IDENTITY_QUERY" -> {
+            val queryID = receivedMsg.pop().data
             val functionName = receivedMsg.pop().data.decodeToString()
             val schemesPair = functionSchemes[functionName]
 
             // Если функция зарегистрирована
             if (schemesPair != null) sendMsg(frontend) {
                 +clientIdentity
-                +byteArrayOf(21)
+                +"CODER_IDENTITY_FOUND"
+                +queryID
                 +schemesPair.first
                 +schemesPair.second
             }
             // Если функция не зарегистрирована
             else sendMsg(frontend) {
                 +clientIdentity
-                +byteArrayOf(22)
+                +"CODER_IDENTITY_NOT_FOUND"
+                +queryID
             }
         }
 
         // Сообщение о том, что ответ на запрос получен
-        31.toByte() -> {
+        "RESPONSE_RECEIVED" -> {
             val queryID = receivedMsg.pop().data
             sentResults.remove(UniqueID(queryID))
         }

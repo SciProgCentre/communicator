@@ -72,6 +72,7 @@ class EncodingException(val obj: Any?, val coder: Coder<*>, val coderExceptionMe
         get() = """Object serialization exception.
                 Object: $obj
                 Coder: $coder
+                Coder identity: ${coder.identity}
                 Exception message: $coderExceptionMessage
                 """
 }
@@ -86,6 +87,7 @@ class DecodingException(val payload: Payload, val coder: Coder<*>, val coderExce
         get() = """Payload deserialization exception.
                 Payload: ${payload.contentToString()}
                 Coder: $coder
+                Coder identity: ${coder.identity}
                 Exception message: $coderExceptionMessage
                 """
 }
