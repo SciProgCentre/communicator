@@ -1,31 +1,28 @@
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+@file:Suppress("UNUSED_VARIABLE")
 
-val ioVersion: String by project
+internal val ktorVersion: String by project
 plugins { kotlin(module = "multiplatform") }
 
 kotlin {
-    js()
-    jvm()
-    val hostOs = System.getProperty("os.name")
-    val nativeTargets = mutableListOf<KotlinNativeTarget>()
+    explicitApi()
 
-    nativeTargets += when {
-        hostOs == "Linux" -> linuxX64()
-        hostOs.startsWith("Windows") -> mingwX64()
-        else -> throw GradleException("Host OS '$hostOs' is not supported in Kotlin/Native $project.")
+    js {
+        browser()
+        nodejs()
     }
 
-    configure(nativeTargets) { binaries.sharedLib() }
+    jvm()
 
     sourceSets {
-        all { languageSettings.useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts") }
-        val commonMain by getting { dependencies { api("org.jetbrains.kotlinx:kotlinx-io:$ioVersion") } }
-        val nativeMain by creating { dependsOn(commonMain) }
-        val nativeTest by creating { dependsOn(commonTest.get()) }
+        all {
+            with(languageSettings) {
+                useExperimentalAnnotation("kotlin.ExperimentalUnsignedTypes")
+                useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts")
+            }
+        }
 
-        configure(nativeTargets) {
-            val main by compilations.getting { kotlinSourceSets.forEach { it.dependsOn(nativeMain) } }
-            val test by compilations.getting { kotlinSourceSets.forEach { it.dependsOn(nativeTest) } }
+        commonMain {
+            dependencies { api("io.ktor:ktor-io:$ktorVersion") }
         }
     }
 }

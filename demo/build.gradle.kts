@@ -1,7 +1,16 @@
-plugins { kotlin(module = "jvm") }
+@file:Suppress("UNUSED_VARIABLE")
 
-dependencies {
-    implementation(project(":communicator-api"))
-    implementation(project(":communicator-zmq"))
-    implementation(project(":communicator-transport"))
+internal val slf4jVersion: String by project
+plugins { kotlin(module = "multiplatform") }
+
+kotlin {
+    jvm()
+
+    sourceSets {
+        commonMain.get().dependencies { implementation(project(":communicator-transport")) }
+
+        val jvmMain by getting {
+            dependencies { implementation("org.slf4j:slf4j-simple:$slf4jVersion") }
+        }
+    }
 }

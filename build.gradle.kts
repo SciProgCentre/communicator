@@ -1,11 +1,11 @@
-allprojects {
-    group = "kscience.communicator"
-    version = "0.0.1"
-}
+plugins { kotlin("multiplatform") apply false }
 
-subprojects {
+allprojects {
+    group = "space.kscience.communicator"
+    version = "0.0.1"
+
     repositories {
-        jcenter()
-        maven("https://dl.bintray.com/commandertvis/kotlinx-io")
+        mavenCentral()
+        mavenLocal()
     }
 }

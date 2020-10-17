@@ -2,11 +2,7 @@ rootProject.name = "communicator"
 
 pluginManagement {
     val kotlinVersion: String by settings
-
-    plugins {
-        kotlin("jvm") version kotlinVersion
-        kotlin("multiplatform") version kotlinVersion
-    }
+    plugins { kotlin("multiplatform") version kotlinVersion }
 }
 
 include(
