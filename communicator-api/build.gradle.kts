@@ -28,8 +28,8 @@ kotlin {
             }
         }
 
-        val commonMain by getting { dependencies { api("org.jetbrains.kotlinx:kotlinx-io:$ioVersion") } }
-        val nativeMain by creating { dependsOn(commonMain) }
+        commonMain.get().dependencies { api("org.jetbrains.kotlinx:kotlinx-io:$ioVersion") }
+        val nativeMain by creating { dependsOn(commonMain.get()) }
         val nativeTest by creating { dependsOn(commonTest.get()) }
 
         nativeTarget.apply {

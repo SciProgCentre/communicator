@@ -28,17 +28,26 @@ internal class SpecQuery(
     val callback: SpecCallback
 )
 
-internal class ClientState(
-    val ctx: IsolateState<ZmqContext> = IsolateState(::ZmqContext),
-    val mainDealer: IsolateState<ZmqSocket> = IsolateState { ctx.access(ZmqContext::createDealerSocket) },
-    val identity: UniqueID = UniqueID(),
-    val newQueriesQueue: IsoArrayDeque<Query> = IsoArrayDeque(),
-    val specQueriesQueue: IsoArrayDeque<SpecQuery> = IsoArrayDeque(),
-    val queriesInWork: IsoMutableMap<UniqueID, ResultCallback> = IsoMutableMap(),
-    val specQueriesInWork: IsoMutableMap<UniqueID, SpecCallback> = IsoMutableMap(),
-    val forwardSockets: IsoMutableMap<String, ZmqSocket> = IsoMutableMap(),
+internal class Client : Closeable {
+    val ctx: IsolateState<ZmqContext> = IsolateState(::ZmqContext)
+    val mainDealer: IsolateState<ZmqSocket> = IsolateState { ctx.access(ZmqContext::createDealerSocket) }
+    val identity: UniqueID = UniqueID()
+    val newQueriesQueue: IsoArrayDeque<Query> = IsoArrayDeque()
+    val specQueriesQueue: IsoArrayDeque<SpecQuery> = IsoArrayDeque()
+    val queriesInWork: IsoMutableMap<UniqueID, ResultCallback> = IsoMutableMap()
+    val specQueriesInWork: IsoMutableMap<UniqueID, SpecCallback> = IsoMutableMap()
+    val forwardSockets: IsoMutableMap<String, ZmqSocket> = IsoMutableMap()
     val reactor: ZmqLoop = ctx.access(::ZmqLoop)
-) : Closeable {
+
+    init {
+        initClient(this)
+    }
+
+    fun makeQuery(query: Query) {
+        println("Adding query ${query.functionName} to the internal queue")
+        newQueriesQueue.addFirst(query)
+    }
+
     override fun close() {
         queriesInWork.dispose()
         newQueriesQueue.dispose()
@@ -50,22 +59,7 @@ internal class ClientState(
     }
 }
 
-internal class Client : Closeable {
-    internal val state: ClientState = ClientState()
-
-    init {
-        initClient(state)
-    }
-
-    fun makeQuery(query: Query) {
-        println("Adding query ${query.functionName} to the internal queue")
-        state.newQueriesQueue.addFirst(query)
-    }
-
-    override fun close(): Unit = state.close()
-}
-
-internal fun initClientBlocking(state: ClientState): Unit = with(state) {
+internal fun initClientBlocking(client: Client): Unit = with(client) {
     reactor.addTimer(
         NEW_QUERIES_QUEUE_UPDATE_INTERVAL,
         0,
@@ -83,9 +77,9 @@ internal fun initClientBlocking(state: ClientState): Unit = with(state) {
     reactor.start()
 }
 
-internal expect fun initClient(state: ClientState)
+internal expect fun initClient(client: Client)
 
-private fun ClientState.handleQueriesQueue() {
+private fun Client.handleQueriesQueue() {
     while (true) {
         val query = newQueriesQueue.removeFirstOrNull() ?: break
         println("Making query ${query.functionName}")
@@ -95,7 +89,7 @@ private fun ClientState.handleQueriesQueue() {
     }
 }
 
-private fun ClientState.getForwardSocket(address: String): ZmqSocket {
+private fun Client.getForwardSocket(address: String): ZmqSocket {
     val existing = forwardSockets[address]
     if (existing != null) return existing
     val forwardSocket = ctx.access(ZmqContext::createDealerSocket)
@@ -106,8 +100,7 @@ private fun ClientState.getForwardSocket(address: String): ZmqSocket {
         forwardSocket,
 
         { _, argParam ->
-            argParam?.value as ResultHandlerArg
-            argParam.value.clientContext.handleResult(argParam.value)
+            argParam.value.client.handleResult(argParam.value)
             0
         },
 
@@ -118,12 +111,13 @@ private fun ClientState.getForwardSocket(address: String): ZmqSocket {
     return forwardSocket
 }
 
-private fun ClientState.handleSpecQueue() {
+private fun Client.handleSpecQueue() {
     while (true) {
         val specQuery = specQueriesQueue.removeFirstOrNull() ?: break
         println("Making spec query ${specQuery.functionName}")
         val id = UniqueID()
         specQueriesInWork[id] = specQuery.callback
+
         sendMsg(getForwardSocket(specQuery.address)) {
             +"CODER_IDENTITY_QUERY"
             +id
@@ -141,10 +135,10 @@ private fun sendQuery(socket: ZmqSocket, query: Query, queryID: UniqueID): Unit 
 
 private class ResultHandlerArg(
     val socket: ZmqSocket,
-    val clientContext: ClientState
+    val client: Client
 )
 
-private fun ClientState.handleResult(arg: ResultHandlerArg) {
+private fun Client.handleResult(arg: ResultHandlerArg) {
     println("Handling result")
     val msg = ZmqMsg.recvMsg(arg.socket)
     val queryID = UniqueID(msg.pop().data)

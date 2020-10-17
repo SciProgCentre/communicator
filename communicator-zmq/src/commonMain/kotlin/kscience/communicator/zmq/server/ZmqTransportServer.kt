@@ -6,7 +6,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.io.Closeable
 import kscience.communicator.api.FunctionSpec
 import kscience.communicator.api.PayloadFunction
 import kscience.communicator.api.TransportServer
@@ -20,97 +19,90 @@ import kscience.communicator.zmq.util.sendMsg
  * [kscience.communicator.zmq.client.ZmqTransport].
  */
 public class ZmqTransportServer(override val port: Int) : TransportServer {
-    internal class ServerState internal constructor(
-        val port: Int,
-        private val serverFunctionSpecs: IsoMutableMap<String, FunctionSpec<*, *>> = IsoMutableMap(),
-        private val serverFunctions: IsoMutableMap<String, PayloadFunction> = IsoMutableMap(),
-        private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default,
-        private val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob()),
-        private val ctx: ZmqContext = ZmqContext(),
-        private val repliesQueue: IsoArrayDeque<Response> = IsoArrayDeque(),
-        internal val editFunctionQueriesQueue: IsoArrayDeque<EditFunctionQuery> = IsoArrayDeque(),
-        internal val frontend: ZmqSocket = ctx.createDealerSocket()
-    ) : Closeable {
-        fun start() {
-            val reactor = ZmqLoop(ctx)
+    private val serverFunctionSpecs: IsoMutableMap<String, FunctionSpec<*, *>> = IsoMutableMap()
+    private val serverFunctions: IsoMutableMap<String, PayloadFunction> = IsoMutableMap()
+    private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default
+    private val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob())
+    private val ctx: ZmqContext = ZmqContext()
+    private val repliesQueue: IsoArrayDeque<Response> = IsoArrayDeque()
+    internal val editFunctionQueriesQueue: IsoArrayDeque<EditFunctionQuery> = IsoArrayDeque()
+    internal val frontend: ZmqSocket = ctx.createDealerSocket()
 
-            reactor.addReader(
-                frontend,
+    internal fun start() {
+        val reactor = ZmqLoop(ctx)
 
-                { _, arg ->
-                    handleFrontend(arg?.value as FrontendHandlerArg)
-                    0
-                },
+        reactor.addReader(
+            frontend,
 
-                ZmqLoop.Argument(
-                    FrontendHandlerArg(
-                        workerScope,
-                        frontend,
-                        serverFunctions,
-                        serverFunctionSpecs,
-                        repliesQueue
-                    )
+            { _, arg ->
+                handleFrontend(arg.value)
+                0
+            },
+
+            ZmqLoop.Argument(
+                FrontendHandlerArg(
+                    workerScope,
+                    frontend,
+                    serverFunctions,
+                    serverFunctionSpecs,
+                    repliesQueue
                 )
             )
+        )
 
-            reactor.addTimer(
-                1,
-                0,
+        reactor.addTimer(
+            1,
+            0,
 
-                { _, arg ->
-                    handleReplyQueue(arg?.value as ReplyQueueHandlerArg)
-                    0
-                },
+            { _, arg ->
+                handleReplyQueue(arg.value)
+                0
+            },
 
-                ZmqLoop.Argument(ReplyQueueHandlerArg(frontend, repliesQueue))
+            ZmqLoop.Argument(ReplyQueueHandlerArg(frontend, repliesQueue))
+        )
+
+        reactor.addTimer(
+            1,
+            0,
+
+            { _, arg ->
+                handleEditFunctionQueue(arg.value)
+                0
+            },
+
+            ZmqLoop.Argument(
+                EditFunctionQueueHandlerArg(serverFunctions, serverFunctionSpecs, editFunctionQueriesQueue)
             )
+        )
 
-            reactor.addTimer(
-                1,
-                0,
-
-                { _, arg ->
-                    handleEditFunctionQueue(arg?.value as EditFunctionQueueHandlerArg)
-                    0
-                },
-
-                ZmqLoop.Argument(
-                    EditFunctionQueueHandlerArg(serverFunctions, serverFunctionSpecs, editFunctionQueriesQueue)
-                )
-            )
-
-            reactor.start()
-        }
-
-        override fun close() {
-            editFunctionQueriesQueue.dispose()
-            repliesQueue.dispose()
-            serverFunctions.dispose()
-            frontend.close()
-            ctx.close()
-        }
+        reactor.start()
     }
 
-    private val state = ServerState(port = port)
+    override fun close() {
+        editFunctionQueriesQueue.dispose()
+        repliesQueue.dispose()
+        serverFunctions.dispose()
+        frontend.close()
+        ctx.close()
+    }
 
     init {
-        initServer(state)
+        initServer(this)
     }
 
     override suspend fun register(name: String, function: PayloadFunction, spec: FunctionSpec<*, *>) {
-        state.editFunctionQueriesQueue.addFirst(RegisterFunctionQuery(name, function, spec))
+        editFunctionQueriesQueue.addFirst(RegisterFunctionQuery(name, function, spec))
     }
 
     override suspend fun unregister(name: String) {
-        state.editFunctionQueriesQueue.addFirst(UnregisterFunctionQuery(name))
+        editFunctionQueriesQueue.addFirst(UnregisterFunctionQuery(name))
     }
-
-    override fun close(): Unit = state.close()
 }
 
-internal expect fun initServer(server: ZmqTransportServer.ServerState)
+internal expect fun initServer(server: ZmqTransportServer)
 
-internal fun initServerBlocking(server: ZmqTransportServer.ServerState) {
+internal fun initServerBlocking(server: ZmqTransportServer) {
     server.frontend.bind("tcp://127.0.0.1:${server.port}")
     server.start()
 }
@@ -129,7 +121,6 @@ internal class ResponseResult(val clientIdentity: ByteArray, val queryID: ByteAr
 
 internal class ResponseException(val clientIdentity: ByteArray, val queryID: ByteArray, val exceptionMessage: String) :
     Response()
-
 
 private class ReplyQueueHandlerArg(
     val frontend: ZmqSocket,

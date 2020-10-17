@@ -94,7 +94,7 @@ public class ZmqWorker(
     }
 }
 
-internal expect fun initWorker(state: ZmqWorker)
+internal expect fun initWorker(worker: ZmqWorker)
 
 internal fun initWorkerBlocking(state: ZmqWorker) = with(state) {
     frontend.connect("tcp://${proxy.host}:${proxy.port + 1}")
