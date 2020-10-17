@@ -18,7 +18,6 @@ kotlin {
 
     nativeTarget.apply {
         val main by compilations.getting
-        binaries.sharedLib()
 
         main.cinterops {
             val libczmq by creating {
