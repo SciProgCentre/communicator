@@ -2,7 +2,6 @@ package kscience.communicator.api
 
 import kotlinx.io.Closeable
 import kotlin.properties.ReadOnlyProperty
-import kotlin.reflect.KProperty
 
 /**
  * Represents function client that is able to provide named functions for given endpoint and specification.

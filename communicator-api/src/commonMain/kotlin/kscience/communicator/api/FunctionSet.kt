@@ -130,7 +130,7 @@ public suspend operator fun <T, R> FunctionSet.Declaration<T, R>.invoke(client: 
  * @param action the lambda to apply.
  * @return this function server.
  */
-public inline fun <F, S> F.configure(set: S, action: S.(_: F) -> Unit): F where F : FunctionServer, S : FunctionSet {
+public inline fun <F, S> F.configure(set: S, action: S.(F) -> Unit): F where F : FunctionServer, S : FunctionSet {
     contract { callsInPlace(action, InvocationKind.EXACTLY_ONCE) }
     action(set, this)
     return this

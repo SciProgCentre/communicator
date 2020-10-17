@@ -20,6 +20,7 @@ internal class FrontendHandlerArg(
 )
 
 internal fun handleFrontend(arg: FrontendHandlerArg) = with(arg) {
+    println("frontend caught something")
     val msg = ZmqMsg.recvMsg(frontend)
     val msgBlocks = msg.map(ZmqFrame::data)
     val (clientIdentity, msgType) = msgBlocks
@@ -60,6 +61,7 @@ internal fun handleFrontend(arg: FrontendHandlerArg) = with(arg) {
 
             sendMsg(frontend) {
                 +clientIdentity
+
                 if (functionSpec == null) {
                     +"CODER_IDENTITY_NOT_FOUND"
                     +functionName

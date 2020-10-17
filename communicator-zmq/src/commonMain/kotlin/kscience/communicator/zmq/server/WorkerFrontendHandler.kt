@@ -1,7 +1,7 @@
 package kscience.communicator.zmq.server
 
+import co.touchlab.stately.collections.IsoArrayDeque
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kscience.communicator.api.FunctionSpec
 import kscience.communicator.api.PayloadFunction
@@ -15,7 +15,7 @@ internal class WorkerFrontendHandlerArg(
     val frontend: ZmqSocket,
     val serverFunctions: MutableMap<String, PayloadFunction>,
     val serverFunctionSpecs: MutableMap<String, FunctionSpec<*, *>>,
-    val repliesQueue: Channel<Response>
+    val repliesQueue: IsoArrayDeque<Response>
 )
 
 internal fun handleWorkerFrontend(arg: WorkerFrontendHandlerArg) = with(arg) {
@@ -45,9 +45,9 @@ internal fun handleWorkerFrontend(arg: WorkerFrontendHandlerArg) = with(arg) {
                 workerScope.launch {
                     try {
                         val result = serverFunction(argBytes)
-                        repliesQueue.send(ResponseResult(byteArrayOf(), queryID, result))
+                        repliesQueue.addFirst(ResponseResult(byteArrayOf(), queryID, result))
                     } catch (ex: Exception) {
-                        repliesQueue.send(ResponseException(byteArrayOf(), queryID, ex.message.orEmpty()))
+                        repliesQueue.addFirst(ResponseException(byteArrayOf(), queryID, ex.message.orEmpty()))
                     }
                 }
             }

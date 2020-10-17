@@ -8,13 +8,12 @@ import kscience.communicator.zmq.platform.ZmqMsg
 import kscience.communicator.zmq.platform.ZmqSocket
 import kscience.communicator.zmq.util.sendMsg
 
-
 internal class ForwardSocketHandlerArg(
     val socket: ZmqSocket,
-    val clientContext: ClientState
+    val clientContext: ZmqTransport
 )
 
-internal fun ClientState.handleForwardSocket(arg: ForwardSocketHandlerArg) {
+internal fun ZmqTransport.handleForwardSocket(arg: ForwardSocketHandlerArg) {
     println("Handling result")
     val msg = ZmqMsg.recvMsg(arg.socket)
     val msgType = msg.pop().data

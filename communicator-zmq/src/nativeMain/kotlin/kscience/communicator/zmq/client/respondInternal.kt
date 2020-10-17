@@ -11,7 +11,7 @@ internal actual suspend fun ZmqTransport.respondImpl(
 ): ByteArray {
     val atom = AtomicReference<Result<ByteArray>?>(null)
 
-    client.makeQuery(Query(
+    makeQuery(Query(
         functionName = name,
         address = address,
         arg = payload,

@@ -18,15 +18,18 @@ import kscience.communicator.zmq.util.sendMsg
  * Implements transport server with ZeroMQ-based machinery. Associated client transport is
  * [kscience.communicator.zmq.client.ZmqTransport].
  */
-public class ZmqTransportServer(override val port: Int) : TransportServer {
-    private val serverFunctionSpecs: IsoMutableMap<String, FunctionSpec<*, *>> = IsoMutableMap()
-    private val serverFunctions: IsoMutableMap<String, PayloadFunction> = IsoMutableMap()
-    private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default
-    private val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob())
-    private val ctx: ZmqContext = ZmqContext()
-    private val repliesQueue: IsoArrayDeque<Response> = IsoArrayDeque()
-    internal val editFunctionQueriesQueue: IsoArrayDeque<EditFunctionQuery> = IsoArrayDeque()
+public class ZmqTransportServer private constructor(
+    public override val port: Int,
+    private val serverFunctionSpecs: IsoMutableMap<String, FunctionSpec<*, *>> = IsoMutableMap(),
+    private val serverFunctions: IsoMutableMap<String, PayloadFunction> = IsoMutableMap(),
+    private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob()),
+    private val ctx: ZmqContext = ZmqContext(),
+    private val repliesQueue: IsoArrayDeque<Response> = IsoArrayDeque(),
+    internal val editFunctionQueriesQueue: IsoArrayDeque<EditFunctionQuery> = IsoArrayDeque(),
     internal val frontend: ZmqSocket = ctx.createDealerSocket()
+) : TransportServer {
+    public constructor (port: Int) : this(port, serverFunctionSpecs = IsoMutableMap())
 
     internal fun start() {
         val reactor = ZmqLoop(ctx)
@@ -35,18 +38,12 @@ public class ZmqTransportServer(override val port: Int) : TransportServer {
             frontend,
 
             { _, arg ->
-                handleFrontend(arg.value)
+                handleFrontend(checkNotNull(arg).value)
                 0
             },
 
             ZmqLoop.Argument(
-                FrontendHandlerArg(
-                    workerScope,
-                    frontend,
-                    serverFunctions,
-                    serverFunctionSpecs,
-                    repliesQueue
-                )
+                FrontendHandlerArg(workerScope, frontend, serverFunctions, serverFunctionSpecs, repliesQueue)
             )
         )
 
@@ -55,7 +52,7 @@ public class ZmqTransportServer(override val port: Int) : TransportServer {
             0,
 
             { _, arg ->
-                handleReplyQueue(arg.value)
+                handleReplyQueue(checkNotNull(arg).value)
                 0
             },
 
@@ -67,7 +64,7 @@ public class ZmqTransportServer(override val port: Int) : TransportServer {
             0,
 
             { _, arg ->
-                handleEditFunctionQueue(arg.value)
+                handleEditFunctionQueue(checkNotNull(arg).value)
                 0
             },
 
@@ -173,7 +170,8 @@ private fun handleEditFunctionQueue(arg: EditFunctionQueueHandlerArg): Unit = wi
                 arg.serverFunctions[editFunctionMessage.name] = editFunctionMessage.function
                 arg.serverFunctionSpecs[editFunctionMessage.name] = editFunctionMessage.spec
             }
-            is UnregisterFunctionQuery -> arg.serverFunctions.remove(editFunctionMessage.name)
+
+            is UnregisterFunctionQuery -> arg.serverFunctions -= editFunctionMessage.name
         }
     }
 }

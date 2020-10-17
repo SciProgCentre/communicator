@@ -8,9 +8,13 @@ import kscience.communicator.zmq.platform.ZmqSocket
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
+internal operator fun ZmqMsg.plusAssign(data: ByteArray) {
+    add(data)
+}
+
 internal class MsgBuilder(private val msg: ZmqMsg) {
     operator fun ByteArray.unaryPlus() {
-        msg.add(this)
+        msg += this
     }
 
     operator fun ZmqFrame.unaryPlus() {
@@ -18,11 +22,11 @@ internal class MsgBuilder(private val msg: ZmqMsg) {
     }
 
     operator fun String.unaryPlus() {
-        msg.add(encodeToByteArray())
+        msg += encodeToByteArray()
     }
 
     operator fun UniqueID.unaryPlus() {
-        msg.add(bytes)
+        msg += bytes
     }
 }
 
