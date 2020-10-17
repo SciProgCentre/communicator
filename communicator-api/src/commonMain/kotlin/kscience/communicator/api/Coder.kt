@@ -5,14 +5,14 @@ package kscience.communicator.api
  *
  * @param T the type of decoded and encoded object.
  */
-interface Coder<T> {
+public interface Coder<T> {
     /**
      * Identity of the coder is some data that is equal for the structurally equal coders
      * (coders that work with equal types of data).
      * Coders on different processes (machines) are compared by their identity.
      * Identity may be called "hash code", but this property has completely different purposes than [Any.hashCode].
      */
-    val identity: String
+    public val identity: String
 
     /**
      * Decodes payload to object.
@@ -20,7 +20,7 @@ interface Coder<T> {
      * @param payload the payload.
      * @return the decoded object.
      */
-    fun decode(payload: Payload): T
+    public fun decode(payload: Payload): T
 
     /**
      * Encodes object to payload.
@@ -28,7 +28,7 @@ interface Coder<T> {
      * @param value the object.
      * @return the payload.
      */
-    fun encode(value: T): Payload
+    public fun encode(value: T): Payload
 
     /**
      * Force to reimplement [toString]

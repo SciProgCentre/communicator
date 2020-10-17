@@ -49,8 +49,8 @@ private fun numberOfLeadingZeros(i: Long): Int {
 }
 
 private class PseudoUuid(data: ByteArray) {
-    internal var mostSigBits: Long = 0L
-    internal var leastSigBits: Long = 0L
+    var mostSigBits: Long = 0L
+    var leastSigBits: Long = 0L
 
     init {
         var msb = 0L

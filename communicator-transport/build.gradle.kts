@@ -1,32 +1,36 @@
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+@file:Suppress("UNUSED_VARIABLE")
 
 plugins { kotlin("multiplatform") }
 
-kotlin {
-    jvm()
-    val hostOs = System.getProperty("os.name")
-    val nativeTargets = mutableListOf<KotlinNativeTarget>()
+internal val statelyIsoVersion: String by project
 
-    nativeTargets += when {
-        hostOs == "Linux" -> linuxX64()
-        hostOs.startsWith("Windows") -> mingwX64()
+kotlin {
+    explicitApi()
+    jvm()
+
+    val nativeTarget = when (val hostOs = System.getProperty("os.name")) {
+        "Linux" -> linuxX64()
+        "Mac OS X" -> macosX64()
         else -> throw GradleException("Host OS '$hostOs' is not supported in Kotlin/Native $project.")
     }
 
     sourceSets {
-        val commonMain by getting {
-            dependencies {
-                api(project(":communicator-api"))
-                api(project(":communicator-zmq"))
-            }
+        all { languageSettings.useExperimentalAnnotation("kotlin.ExperimentalUnsignedTypes") }
+
+        commonMain.get().dependencies {
+            api(project(":communicator-api"))
+            api(project(":communicator-zmq"))
+            implementation("co.touchlab:stately-isolate:$statelyIsoVersion")
+            implementation("co.touchlab:stately-iso-collections:$statelyIsoVersion")
         }
 
-        val nativeMain by creating { dependsOn(commonMain) }
+        commonTest.get().dependencies { implementation(kotlin("test")) }
+        val nativeMain by creating { dependsOn(commonMain.get()) }
         val nativeTest by creating { dependsOn(commonTest.get()) }
 
-        configure(nativeTargets) {
-            val main by compilations.getting { kotlinSourceSets.forEach { it.dependsOn(nativeMain) } }
-            val test by compilations.getting { kotlinSourceSets.forEach { it.dependsOn(nativeTest) } }
+        nativeTarget.apply {
+            val main by compilations.getting { defaultSourceSet.dependsOn(nativeMain) }
+            val test by compilations.getting { defaultSourceSet.dependsOn(nativeTest) }
         }
     }
 }

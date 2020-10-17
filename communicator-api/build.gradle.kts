@@ -1,31 +1,44 @@
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+@file:Suppress("UNUSED_VARIABLE")
 
-val ioVersion: String by project
+internal val coroutinesVersion: String by project
+internal val ioVersion: String by project
 plugins { kotlin(module = "multiplatform") }
 
 kotlin {
-    js()
-    jvm()
-    val hostOs = System.getProperty("os.name")
-    val nativeTargets = mutableListOf<KotlinNativeTarget>()
+    explicitApi()
 
-    nativeTargets += when {
-        hostOs == "Linux" -> linuxX64()
-        hostOs.startsWith("Windows") -> mingwX64()
+    js {
+        browser()
+        nodejs()
+    }
+
+    jvm()
+
+    val nativeTarget = when (val hostOs = System.getProperty("os.name")) {
+        "Linux" -> linuxX64()
+        "Mac OS X" -> macosX64()
         else -> throw GradleException("Host OS '$hostOs' is not supported in Kotlin/Native $project.")
     }
 
-    configure(nativeTargets) { binaries.sharedLib() }
-
     sourceSets {
-        all { languageSettings.useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts") }
-        val commonMain by getting { dependencies { api("org.jetbrains.kotlinx:kotlinx-io:$ioVersion") } }
-        val nativeMain by creating { dependsOn(commonMain) }
+        all {
+            with(languageSettings) {
+                useExperimentalAnnotation("kotlin.ExperimentalUnsignedTypes")
+                useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts")
+            }
+        }
+
+        commonMain.get().dependencies {
+            api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
+            api("org.jetbrains.kotlinx:kotlinx-io:$ioVersion")
+        }
+
+        val nativeMain by creating { dependsOn(commonMain.get()) }
         val nativeTest by creating { dependsOn(commonTest.get()) }
 
-        configure(nativeTargets) {
-            val main by compilations.getting { kotlinSourceSets.forEach { it.dependsOn(nativeMain) } }
-            val test by compilations.getting { kotlinSourceSets.forEach { it.dependsOn(nativeTest) } }
+        nativeTarget.apply {
+            val main by compilations.getting { defaultSourceSet.dependsOn(nativeMain) }
+            val test by compilations.getting { defaultSourceSet.dependsOn(nativeTest) }
         }
     }
 }

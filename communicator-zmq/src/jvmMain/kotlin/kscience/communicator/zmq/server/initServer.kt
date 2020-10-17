@@ -4,8 +4,8 @@ import kotlin.concurrent.thread
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
-internal actual fun initServer(server: ZmqTransportServer.ServerState) {
-    thread(isDaemon = true) { initServerBlocking(server) }
+internal actual fun initServer(server: ZmqTransportServer) {
+    thread(isDaemon = true, name = server.toString()) { server.start() }
 }
 
 internal actual inline fun runBlockingIfKotlinNative(crossinline action: () -> Any) {

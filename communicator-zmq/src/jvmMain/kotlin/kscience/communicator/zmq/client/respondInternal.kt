@@ -1,7 +1,6 @@
 package kscience.communicator.zmq.client
 
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Deferred
 
 internal actual suspend fun ZmqTransport.respondImpl(
     address: String,
@@ -10,7 +9,7 @@ internal actual suspend fun ZmqTransport.respondImpl(
 ): ByteArray {
     val deferred = CompletableDeferred<ByteArray>()
 
-    client.makeQuery(Query(
+    makeQuery(Query(
         functionName = name,
         address = address,
         arg = payload,

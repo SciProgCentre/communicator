@@ -1,7 +1,17 @@
-plugins { kotlin(module = "jvm") }
+@file:Suppress("UNUSED_VARIABLE")
 
-dependencies {
-    implementation(project(":communicator-api"))
-    implementation(project(":communicator-zmq"))
-    implementation(project(":communicator-transport"))
+plugins { kotlin(module = "multiplatform") }
+
+kotlin {
+    jvm()
+
+    sourceSets {
+        val jvmMain by getting {
+            dependencies {
+                implementation(project(":communicator-transport"))
+                implementation(project(":communicator-zmq"))
+                implementation(project(":communicator-api"))
+            }
+        }
+    }
 }

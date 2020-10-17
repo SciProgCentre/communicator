@@ -1,8 +1,9 @@
 package kscience.communicator.api
 
-import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
+import kotlin.properties.PropertyDelegateProvider
+import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
 /**
@@ -10,7 +11,7 @@ import kotlin.reflect.KProperty
  *
  * @property endpoint The endpoint of all functions in this set.
  */
-abstract class FunctionSet(val endpoint: Endpoint) {
+public abstract class FunctionSet(public val endpoint: Endpoint) {
     internal val functions: MutableMap<String, FunctionSpec<*, *>> = hashMapOf()
 
     /**
@@ -20,11 +21,14 @@ abstract class FunctionSet(val endpoint: Endpoint) {
      * @property name Tha name of function.
      * @property spec The spec of the function.
      */
-    data class Declaration<T, R> internal constructor(
+    @Suppress("UNCHECKED_CAST")
+    public data class Declaration<T, R> internal constructor(
         val owner: FunctionSet,
-        val name: String,
+        val name: String
+    ) {
         val spec: FunctionSpec<T, R>
-    )
+            get() = owner.functions[name] as FunctionSpec<T, R>
+    }
 
     /**
      * Creates a function, stores it and return declaration object pointing to this set.
@@ -35,12 +39,12 @@ abstract class FunctionSet(val endpoint: Endpoint) {
      * @param spec the spec of function.
      * @return a new declaration object.
      */
-    fun <T, R> declare(name: String, spec: FunctionSpec<T, R>): Declaration<T, R> {
+    public fun <T, R> declare(name: String, spec: FunctionSpec<T, R>): Declaration<T, R> {
         functions[name] = spec
-        return Declaration(this, name, spec)
+        return Declaration(this, name)
     }
 
-    override fun toString(): String = "FunctionSet(endpoint='$endpoint', functions=$functions)"
+    public override fun toString(): String = "FunctionSet(endpoint='$endpoint', functions=$functions)"
 }
 
 /**
@@ -53,7 +57,7 @@ abstract class FunctionSet(val endpoint: Endpoint) {
  * @return the function invoked by client.
  */
 @Suppress("UNCHECKED_CAST")
-operator fun <T, R> FunctionSet.getValue(
+public operator fun <T, R> FunctionSet.getValue(
     thisRef: FunctionClient,
     property: KProperty<*>
 ): suspend (T) -> R {
@@ -74,7 +78,7 @@ operator fun <T, R> FunctionSet.getValue(
  * @param property the property.
  * @return the function invoked by client.
  */
-operator fun <T, R> FunctionSet.Declaration<T, R>.getValue(
+public operator fun <T, R> FunctionSet.Declaration<T, R>.getValue(
     thisRef: FunctionClient,
     property: KProperty<*>
 ): suspend (T) -> R = owner.getValue(thisRef, property)
@@ -87,8 +91,14 @@ operator fun <T, R> FunctionSet.Declaration<T, R>.getValue(
  * @param nameToSpec pair of the name and the spec of function.
  * @return a new declaration object.
  */
-fun <T, R> FunctionSet.declare(nameToSpec: Pair<String, FunctionSpec<T, R>>): FunctionSet.Declaration<T, R> =
+public fun <T, R> FunctionSet.declare(nameToSpec: Pair<String, FunctionSpec<T, R>>): FunctionSet.Declaration<T, R> =
     declare(nameToSpec.first, nameToSpec.second)
+
+public fun <T, R> declare(spec: FunctionSpec<T, R>): PropertyDelegateProvider<FunctionSet, ReadOnlyProperty<FunctionSet, FunctionSet.Declaration<T, R>>> =
+    PropertyDelegateProvider { thisRef, property ->
+        val d = thisRef.declare(property.name to spec)
+        ReadOnlyProperty { _, _ -> d }
+    }
 
 /**
  * Registers a function in [FunctionServer] by its implementation and declaration. Warning, endpoint should be added to
@@ -99,13 +109,10 @@ fun <T, R> FunctionSet.declare(nameToSpec: Pair<String, FunctionSpec<T, R>>): Fu
  * @param function the function's implementation.
  * @receiver the function's implementation.
  */
-suspend fun <T, R> FunctionServer.impl(
+public fun <T, R> FunctionServer.impl(
     declaration: FunctionSet.Declaration<T, R>,
     function: suspend (T) -> R
-): suspend (T) -> R {
-    contract { callsInPlace(function) }
-    return register(declaration.name, declaration.spec, function)
-}
+): suspend (T) -> R = register(declaration.name, declaration.spec, function)
 
 /**
  * Calls function by its declaration in the given client.
@@ -117,7 +124,7 @@ suspend fun <T, R> FunctionServer.impl(
  * @param arg the argument of the function.
  * @return the result of the function.
  */
-suspend operator fun <T, R> FunctionSet.Declaration<T, R>.invoke(client: FunctionClient, arg: T): R =
+public suspend operator fun <T, R> FunctionSet.Declaration<T, R>.invoke(client: FunctionClient, arg: T): R =
     client.getFunction(owner.endpoint, name, spec).invoke(arg)
 
 /**
@@ -131,7 +138,7 @@ suspend operator fun <T, R> FunctionSet.Declaration<T, R>.invoke(client: Functio
  * @param action the lambda to apply.
  * @return this function server.
  */
-inline fun <F, S> F.configure(set: S, action: S.(_: F) -> Unit): F where F : FunctionServer, S : FunctionSet {
+public inline fun <F, S> F.configure(set: S, action: S.(F) -> Unit): F where F : FunctionServer, S : FunctionSet {
     contract { callsInPlace(action, InvocationKind.EXACTLY_ONCE) }
     action(set, this)
     return this

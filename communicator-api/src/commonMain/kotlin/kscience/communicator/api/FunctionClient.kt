@@ -2,12 +2,11 @@ package kscience.communicator.api
 
 import kotlinx.io.Closeable
 import kotlin.properties.ReadOnlyProperty
-import kotlin.reflect.KProperty
 
 /**
  * Represents function client that is able to provide named functions for given endpoint and specification.
  */
-interface FunctionClient : Closeable {
+public interface FunctionClient : Closeable {
     /**
      * Constructs a `suspend` function that calls the function server.
      *
@@ -15,10 +14,10 @@ interface FunctionClient : Closeable {
      * @param name the name of function.
      * @param spec the spec of function.
      */
-    fun <T, R> getFunction(endpoint: Endpoint, name: String, spec: FunctionSpec<T, R>): suspend (T) -> R
+    public fun <T, R> getFunction(endpoint: Endpoint, name: String, spec: FunctionSpec<T, R>): suspend (T) -> R
 
-    fun <T, R> getFunction(remoteFunction: RemoteFunction<T, R>): suspend (T) -> R =
-            getFunction(remoteFunction.endpoint, remoteFunction.name, remoteFunction.spec)
+    public fun <T, R> getFunction(remoteFunction: RemoteFunction<T, R>): suspend (T) -> R =
+        getFunction(remoteFunction.endpoint, remoteFunction.name, remoteFunction.spec)
 
     /**
      * Disposes this function client.
@@ -33,10 +32,8 @@ interface FunctionClient : Closeable {
  * @param endpoint the endpoint of server.
  * @param spec the spec of function.
  */
-fun <T, R> function(
+public fun <T, R> function(
     endpoint: Endpoint,
     spec: FunctionSpec<T, R>
-): ReadOnlyProperty<FunctionClient, suspend (T) -> R> = object : ReadOnlyProperty<FunctionClient, suspend (T) -> R> {
-    override fun getValue(thisRef: FunctionClient, property: KProperty<*>): suspend (T) -> R =
-        thisRef.getFunction(endpoint, property.name, spec)
-}
+): ReadOnlyProperty<FunctionClient, suspend (T) -> R> =
+    ReadOnlyProperty { thisRef, property -> thisRef.getFunction(endpoint, property.name, spec) }

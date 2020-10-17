@@ -9,7 +9,7 @@ import kotlin.jvm.Synchronized
 /**
  * Standard [TransportFactory] implementation. Currently, it only supports ZeroMQ protocol.
  */
-object DefaultTransportFactory : TransportFactory {
+public object DefaultTransportFactory : TransportFactory {
     private val transports: IsoMutableMap<String, Transport> = IsoMutableMap()
 
     @Synchronized

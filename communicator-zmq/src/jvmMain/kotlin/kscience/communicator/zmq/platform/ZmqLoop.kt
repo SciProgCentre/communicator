@@ -5,18 +5,18 @@ import org.zeromq.ZLoop
 import org.zeromq.ZMQ
 
 /** Constructor must create a loop with its "new" method */
-internal actual class ZmqLoop private constructor(val backendLoop: ZLoop) : Closeable {
-    actual constructor(ctx: ZmqContext) : this(ZLoop(ctx.backendContext))
+internal actual class ZmqLoop private constructor(internal val handle: ZLoop) {
+    actual constructor(ctx: ZmqContext) : this(ZLoop(ctx.handle))
 
     @Suppress("UNCHECKED_CAST")
     actual inline fun <reified T : Any> addReader(
         socket: ZmqSocket,
-        crossinline handler: ZmqLoop.(Any?, Argument<T>?) -> Int,
-        arg: Argument<T>?
+        arg: Argument<T>,
+        crossinline handler: ZmqLoop.(Argument<T>) -> Int,
     ) {
-        backendLoop.addPoller(
-            ZMQ.PollItem(socket.backendSocket, ZMQ.Poller.POLLIN),
-            { loop, item, argParam -> ZmqLoop(loop).handler(item, Argument(argParam as T)) },
+        handle.addPoller(
+            ZMQ.PollItem(socket.handle, ZMQ.Poller.POLLIN),
+            { loop, _, argParam -> ZmqLoop(loop).handler(argParam as Argument<T>) },
             arg
         )
     }
@@ -25,24 +25,22 @@ internal actual class ZmqLoop private constructor(val backendLoop: ZLoop) : Clos
     actual inline fun <reified T : Any> addTimer(
         delay: Int,
         times: Int,
-        noinline handler: ZmqLoop.(Any?, Argument<T>?) -> Int,
-        arg: Argument<T>?
+        arg: Argument<T>,
+        crossinline handler: ZmqLoop.(Argument<T>) -> Int,
     ) {
-        backendLoop.addTimer(
+        handle.addTimer(
             delay,
             times,
-            { loop, item, argParam -> ZmqLoop(loop).handler(item, Argument(argParam as T)) },
+            { loop, _, argParam -> ZmqLoop(loop).handler(argParam as Argument<T>) },
             arg
         )
     }
 
     actual fun start() {
-        backendLoop.start()
+        handle.start()
     }
 
-    override fun close(): Unit = Unit
-
     actual class Argument<T : Any> actual constructor(actual val value: T) : Closeable {
-        override fun close(): Unit = Unit
+        actual override fun close(): Unit = Unit
     }
 }

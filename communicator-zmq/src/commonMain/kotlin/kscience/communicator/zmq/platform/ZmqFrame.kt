@@ -6,6 +6,9 @@ import kotlinx.io.Closeable
 internal expect class ZmqFrame : Closeable {
     val data: ByteArray
 
+    fun copy(): ZmqFrame
+    override fun close()
+
     companion object {
         fun recvFrame(socket: ZmqSocket): ZmqFrame
     }

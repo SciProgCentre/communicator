@@ -1,5 +1,6 @@
 package kscience.communicator.zmq.proxy
 
+import co.touchlab.stately.collections.IsoMutableList
 import kscience.communicator.zmq.platform.UniqueID
 import kscience.communicator.zmq.platform.ZmqContext
 
@@ -7,13 +8,11 @@ import kscience.communicator.zmq.platform.ZmqContext
  * Starts a proxy that listens to the given port.
  * This method blocks the thread and is recommended to be called from a separate program.
  * */
-fun startProxy(port: Int) {
-    ZmqProxy(port).start()
-}
+public fun startProxy(port: Int): Unit = ZmqProxy(port).start()
 
 internal class Worker(
     val identity: ByteArray,
-    val functions: MutableList<String>,
+    val functions: IsoMutableList<String> = IsoMutableList(),
     var lastHeartbeatTime: Long
 )
 
@@ -32,9 +31,9 @@ internal class ZmqProxy(private val port: Int) {
         val backend = ctx.createRouterSocket()
         frontend.bind("tcp://*:$port")
         backend.bind("tcp://*:${port + 1}")
-        val poller = ctx.backendContext.createPoller(2)
-        poller.register(frontend.backendSocket)
-        poller.register(backend.backendSocket)
+        val poller = ctx.handle.createPoller(2)
+        poller.register(frontend.handle)
+        poller.register(backend.handle)
 
         while (true) {
             if (poller.poll() < 0) continue

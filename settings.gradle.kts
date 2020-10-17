@@ -3,10 +3,12 @@ rootProject.name = "communicator"
 pluginManagement {
     val kotlinVersion: String by settings
 
-    plugins {
-        kotlin("jvm") version kotlinVersion
-        kotlin("multiplatform") version kotlinVersion
+    repositories {
+        gradlePluginPortal()
+        maven("https://dl.bintray.com/kotlin/kotlin-eap")
     }
+
+    plugins { kotlin("multiplatform") version kotlinVersion }
 }
 
 include(

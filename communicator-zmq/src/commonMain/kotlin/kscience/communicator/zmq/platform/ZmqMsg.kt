@@ -7,6 +7,8 @@ internal expect class ZmqMsg() : Closeable, MutableCollection<ZmqFrame> {
     fun add(data: ByteArray): Boolean
     fun pop(): ZmqFrame
     fun send(socket: ZmqSocket)
+    fun copy(): ZmqMsg
+    override fun close()
 
     companion object {
         fun recvMsg(socket: ZmqSocket): ZmqMsg
