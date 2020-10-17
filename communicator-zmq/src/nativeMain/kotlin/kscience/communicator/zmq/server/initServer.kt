@@ -8,7 +8,6 @@ import kotlin.native.concurrent.Worker
 import kotlin.native.concurrent.freeze
 
 internal actual fun initServer(server: ZmqTransportServer.ServerState) {
-//    GlobalScope.launch { initServerBlocking(server) }
     Worker.start().execute(TransferMode.SAFE, server::freeze, ::initServerBlocking)
 }
 

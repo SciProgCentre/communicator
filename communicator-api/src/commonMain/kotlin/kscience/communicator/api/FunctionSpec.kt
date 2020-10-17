@@ -8,13 +8,13 @@ package kscience.communicator.api
  * @property argumentCoder the coder of [T].
  * @property resultCoder the coder of [R].
  */
-data class FunctionSpec<T, R>(val argumentCoder: Coder<T>, val resultCoder: Coder<R>)
+public data class FunctionSpec<T, R>(val argumentCoder: Coder<T>, val resultCoder: Coder<R>)
 
 /**
  * Returned function will wrap serialization exceptions into [CoderException],
  * and will throw receiver function's exceptions as-is.
  */
-fun <T, R> (suspend (T) -> R).toBinary(spec: FunctionSpec<T, R>): PayloadFunction = { bin ->
+public fun <T, R> (suspend (T) -> R).toBinary(spec: FunctionSpec<T, R>): PayloadFunction = { bin ->
     val arg = try {
         spec.argumentCoder.decode(bin)
     } catch (ex: Exception) {
@@ -34,7 +34,7 @@ fun <T, R> (suspend (T) -> R).toBinary(spec: FunctionSpec<T, R>): PayloadFunctio
  * Returned function will wrap serialization exceptions into [CoderException],
  * and will throw receiver function's exceptions as-is.
  */
-fun <T, R> PayloadFunction.toFunction(spec: FunctionSpec<T, R>): (suspend (T) -> R) = { arg ->
+public fun <T, R> PayloadFunction.toFunction(spec: FunctionSpec<T, R>): (suspend (T) -> R) = { arg ->
     val bin = try {
         spec.argumentCoder.encode(arg)
     } catch (ex: Exception) {

@@ -13,81 +13,103 @@ import kscience.communicator.api.PayloadFunction
 import kscience.communicator.zmq.platform.ZmqContext
 import kscience.communicator.zmq.platform.ZmqLoop
 import kscience.communicator.zmq.platform.ZmqSocket
-import kscience.communicator.zmq.platform.runInBackground
 import kscience.communicator.zmq.util.sendMsg
-import mu.KLogger
-import mu.KotlinLogging
 
-class ZmqWorker(
-    private val proxy: Endpoint,
-    private val serverFunctions: MutableMap<String, PayloadFunction>,
-    private val serverFunctionSpecs: MutableMap<String, FunctionSpec<*, *>>
+public class ZmqWorker(
+    internal val proxy: Endpoint,
+    internal val serverFunctions: MutableMap<String, PayloadFunction>,
+    internal val serverFunctionSpecs: MutableMap<String, FunctionSpec<*, *>>
 ) {
-    internal val log: KLogger = KotlinLogging.logger("ZmqTransportServer")
     private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default
     private val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob())
     private val ctx: ZmqContext = ZmqContext()
     private val repliesQueue: Channel<Response> = Channel(BUFFERED)
     private val editFunctionQueriesQueue: Channel<WorkerEditFunctionQuery> = Channel(BUFFERED)
-    private val frontend: ZmqSocket = ctx.createDealerSocket()
+    internal val frontend: ZmqSocket = ctx.createDealerSocket()
 
     init {
-        runInBackground({}) {
-            frontend.connect("tcp://${proxy.host}:${proxy.port + 1}")
-            sendMsg(frontend) {
-                +"WORKER_REGISTER"
-                +IntCoder.encode(serverFunctions.size)
-                serverFunctionSpecs.forEach {
-                    +it.key
-                    +it.value.argumentCoder.identity
-                    +it.value.resultCoder.identity
-                }
-            }
-            start()
-        }
+        initWorker(this)
     }
 
-    fun close() {
+    public fun close() {
         editFunctionQueriesQueue.close()
         repliesQueue.close()
         frontend.close()
         ctx.close()
     }
 
-    private fun start() {
+    internal fun start() {
         val reactor = ZmqLoop(ctx)
 
         reactor.addReader(
             frontend,
+
             { _, arg ->
-                handleWorkerFrontend(arg as WorkerFrontendHandlerArg)
+                handleWorkerFrontend(checkNotNull(arg).value)
                 0
             },
-            WorkerFrontendHandlerArg(workerScope, frontend, serverFunctions, serverFunctionSpecs, repliesQueue)
+
+            ZmqLoop.Argument(
+                WorkerFrontendHandlerArg(
+                    workerScope,
+                    frontend,
+                    serverFunctions,
+                    serverFunctionSpecs,
+                    repliesQueue
+                )
+            )
         )
 
         reactor.addTimer(
             1,
             0,
+
             { _, arg ->
-                handleReplyQueue(arg as WorkerReplyQueueHandlerArg)
+                handleReplyQueue(checkNotNull(arg).value)
                 0
             },
-            WorkerReplyQueueHandlerArg(frontend, repliesQueue)
+
+            ZmqLoop.Argument(WorkerReplyQueueHandlerArg(frontend, repliesQueue))
         )
 
         reactor.addTimer(
             1,
             0,
+
             { _, arg ->
-                handleEditFunctionQueue(arg as WorkerEditFunctionQueueHandlerArg)
+                handleEditFunctionQueue(checkNotNull(arg).value)
                 0
             },
-            WorkerEditFunctionQueueHandlerArg(serverFunctions, serverFunctionSpecs, editFunctionQueriesQueue)
+
+            ZmqLoop.Argument(
+                WorkerEditFunctionQueueHandlerArg(
+                    serverFunctions,
+                    serverFunctionSpecs,
+                    editFunctionQueriesQueue
+                )
+            )
         )
 
         reactor.start()
     }
+}
+
+internal expect fun initWorker(state: ZmqWorker)
+
+internal fun initWorkerBlocking(state: ZmqWorker) = with(state) {
+    frontend.connect("tcp://${proxy.host}:${proxy.port + 1}")
+
+    sendMsg(frontend) {
+        +"WORKER_REGISTER"
+        +IntCoder.encode(serverFunctions.size)
+        serverFunctionSpecs.forEach {
+            +it.key
+            +it.value.argumentCoder.identity
+            +it.value.resultCoder.identity
+        }
+    }
+
+    start()
 }
 
 private sealed class WorkerEditFunctionQuery

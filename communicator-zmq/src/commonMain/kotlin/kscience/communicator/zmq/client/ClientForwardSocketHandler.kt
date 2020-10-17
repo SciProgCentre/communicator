@@ -15,10 +15,11 @@ internal class ForwardSocketHandlerArg(
 )
 
 internal fun ClientState.handleForwardSocket(arg: ForwardSocketHandlerArg) {
-    log.debug { "Handling result" }
+    println("Handling result")
     val msg = ZmqMsg.recvMsg(arg.socket)
     val msgType = msg.pop().data
     val msgData = msg.map(ZmqFrame::data)
+
     when (msgType.decodeToString()) {
         "RESPONSE_RESULT" -> {
             val (queryID, resultBytes) = msgData
@@ -58,11 +59,11 @@ internal fun ClientState.handleForwardSocket(arg: ForwardSocketHandlerArg) {
             callback.onSpecNotFound()
         }
         "QUERY_RECEIVED" -> {
-            val (queryID) = msgData
+            val (_) = msgData
             //TODO
         }
         else -> {
-            log.debug { "Unknown message type: ${msgType.decodeToString()}" }
+            println("Unknown message type: ${msgType.decodeToString()}")
         }
     }
 }

@@ -6,11 +6,11 @@ import kotlinx.io.Closeable
  * Represents communicator function server that is able to register and unregister functions to serve them at several
  * endpoints.
  */
-interface FunctionServer : Closeable {
+public interface FunctionServer : Closeable {
     /**
      * The set of endpoints this object serves.
      */
-    val endpoints: Set<Endpoint>
+    public val endpoints: Set<Endpoint>
 
     /**
      * Registers a function in this server.
@@ -22,17 +22,21 @@ interface FunctionServer : Closeable {
      * @param function the function implementation.
      * @return the function implementation.
      */
-    suspend fun <T, R> register(name: String, spec: FunctionSpec<T, R>, function: suspend (T) -> R): suspend (T) -> R
+    public suspend fun <T, R> register(
+        name: String,
+        spec: FunctionSpec<T, R>,
+        function: suspend (T) -> R
+    ): suspend (T) -> R
 
     /**
      * Unregisters a function from this server.
      *
      * @param name the name of function.
      */
-    suspend fun unregister(name: String)
+    public suspend fun unregister(name: String)
 
     /**
      * Stops and disposes this function server.
      */
-    override fun close()
+    public override fun close()
 }

@@ -5,7 +5,7 @@ import kotlinx.io.*
 /**
  * Binds [Int] to 4-byte [Payload].
  */
-object IntCoder : Coder<Int> {
+public object IntCoder : Coder<Int> {
     override val identity: String
         get() = "Int"
 
@@ -17,7 +17,7 @@ object IntCoder : Coder<Int> {
 /**
  * Binds [Long] to 8-byte [Payload].
  */
-object LongCoder : Coder<Long> {
+public object LongCoder : Coder<Long> {
     override val identity: String
         get() = "Long"
 
@@ -32,7 +32,7 @@ object LongCoder : Coder<Long> {
 /**
  * Binds [ULong] to 8-byte [Payload].
  */
-object ULongCoder : Coder<ULong> {
+public object ULongCoder : Coder<ULong> {
     override val identity: String
         get() = "ULong"
 
@@ -47,7 +47,7 @@ object ULongCoder : Coder<ULong> {
 /**
  * Binds [Float] to 4-byte [Payload].
  */
-object FloatCoder : Coder<Float> {
+public object FloatCoder : Coder<Float> {
     override val identity: String
         get() = "Float"
 
@@ -62,7 +62,7 @@ object FloatCoder : Coder<Float> {
 /**
  * Binds [Double] to 8-byte [Payload].
  */
-object DoubleCoder : Coder<Double> {
+public object DoubleCoder : Coder<Double> {
     override val identity: String
         get() = "Double"
 
@@ -77,7 +77,7 @@ object DoubleCoder : Coder<Double> {
 /**
  * Binds [String] to payload of array of size N and int N before it.
  */
-object StringCoder : Coder<String> {
+public object StringCoder : Coder<String> {
     override val identity: String
         get() = "String"
 
@@ -98,12 +98,11 @@ object StringCoder : Coder<String> {
     override fun toString(): String = "stringCoder"
 }
 
-class RemoteFunctionCoder<T, R>(val functionSpec: FunctionSpec<T, R>) : Coder<RemoteFunction<T, R>> {
-
-    override val identity: String
+public class RemoteFunctionCoder<T, R>(public val functionSpec: FunctionSpec<T, R>) : Coder<RemoteFunction<T, R>> {
+    public override val identity: String
         get() = "RemoteFunction<${functionSpec.argumentCoder.identity}, ${functionSpec.resultCoder.identity}>"
 
-    override fun encode(value: RemoteFunction<T, R>): Payload {
+    public override fun encode(value: RemoteFunction<T, R>): Payload {
         val out = ByteArrayOutput()
         out.writeInt(value.name.length)
         out.writeByteArray(value.name.encodeToByteArray())
@@ -114,9 +113,8 @@ class RemoteFunctionCoder<T, R>(val functionSpec: FunctionSpec<T, R>) : Coder<Re
         return out.toByteArray()
     }
 
-    override fun decode(payload: Payload): RemoteFunction<T, R> {
+    public override fun decode(payload: Payload): RemoteFunction<T, R> {
         val inp = ByteArrayInput(payload)
-
         val nameLength = inp.readInt()
         val name = inp.readByteArray(nameLength).decodeToString()
         val protocolLength = inp.readInt()
@@ -127,8 +125,7 @@ class RemoteFunctionCoder<T, R>(val functionSpec: FunctionSpec<T, R>) : Coder<Re
         return RemoteFunction(name, Endpoint(protocol, address), functionSpec)
     }
 
-    override fun toString(): String = "functionCoder"
-
+    public override fun toString(): String = "functionCoder"
 }
 
 /**
@@ -137,7 +134,7 @@ class RemoteFunctionCoder<T, R>(val functionSpec: FunctionSpec<T, R>) : Coder<Re
  * @param T the type of items contained in list.
  * @property elementCoder The coder of [T].
  */
-class ListCoder<T>(val elementCoder: Coder<T>) : Coder<List<T>> {
+public class ListCoder<T>(public val elementCoder: Coder<T>) : Coder<List<T>> {
     override val identity: String
         get() = "List<${elementCoder.identity}>"
 
@@ -164,8 +161,7 @@ class ListCoder<T>(val elementCoder: Coder<T>) : Coder<List<T>> {
     override fun toString(): String = "arrayCoder"
 }
 
-class MapCoder<K, V>(val keyCoder: Coder<K>, val valueCoder: Coder<V>) : Coder<Map<K, V>> {
-
+public class MapCoder<K, V>(public val keyCoder: Coder<K>, public val valueCoder: Coder<V>) : Coder<Map<K, V>> {
     private val actualCoder = ListCoder(PairCoder(keyCoder, valueCoder))
 
     override val identity: String
@@ -178,9 +174,8 @@ class MapCoder<K, V>(val keyCoder: Coder<K>, val valueCoder: Coder<V>) : Coder<M
     override fun toString(): String = "arrayCoder"
 }
 
-abstract class CustomCoder<T> : Coder<T> {
-
-    override fun encode(value: T): Payload {
+public abstract class CustomCoder<T> : Coder<T> {
+    public override fun encode(value: T): Payload {
         val out = ByteArrayOutput()
         val encoded = customEncode(value)
         out.writeInt(encoded.size)
@@ -188,7 +183,7 @@ abstract class CustomCoder<T> : Coder<T> {
         return out.toByteArray()
     }
 
-    abstract fun customEncode(value: T): Payload
+    public abstract fun customEncode(value: T): Payload
 
     override fun decode(payload: Payload): T {
         val inp = ByteArrayInput(payload)
@@ -197,15 +192,13 @@ abstract class CustomCoder<T> : Coder<T> {
         return customDecode(encoded)
     }
 
-    abstract fun customDecode(payload: Payload): T
-
+    public abstract fun customDecode(payload: Payload): T
 }
 
-class CompositeObjectField<T, F>(val getter: (T) -> F, val coder: Coder<F>)
+public class CompositeObjectField<T, F>(public val getter: (T) -> F, public val coder: Coder<F>)
 
-class CompositeCoder<T>(val composer: (List<*>) -> T, val fields: List<CompositeObjectField<T, *>>) : Coder<T> {
-
-    override val identity: String
+public class CompositeCoder<T>(public val composer: (List<*>) -> T, public val fields: List<CompositeObjectField<T, *>>) : Coder<T> {
+    public override val identity: String
         get() = "Object<${fields.joinToString(prefix = "", postfix = "") { it.coder.identity }}>"
 
     override fun encode(value: T): Payload {
@@ -238,9 +231,9 @@ class CompositeCoder<T>(val composer: (List<*>) -> T, val fields: List<Composite
  * @property firstCoder The coder of [A].
  * @property secondCoder The coder of [B].
  */
-class PairCoder<A, B>(
-    val firstCoder: Coder<A>,
-    val secondCoder: Coder<B>
+public class PairCoder<A, B>(
+    public val firstCoder: Coder<A>,
+    public val secondCoder: Coder<B>
 ) : Coder<Pair<A, B>> {
     override val identity: String
         get() = "Pair<${firstCoder.identity}, ${secondCoder.identity}>"
@@ -267,10 +260,10 @@ class PairCoder<A, B>(
  * @property secondCoder The coder of [B].
  * @property thirdCoder The coder of [C].
  */
-class TripleCoder<A, B, C>(
-    val firstCoder: Coder<A>,
-    val secondCoder: Coder<B>,
-    val thirdCoder: Coder<C>
+public class TripleCoder<A, B, C>(
+    public val firstCoder: Coder<A>,
+    public val secondCoder: Coder<B>,
+    public val thirdCoder: Coder<C>
 ) : Coder<Triple<A, B, C>> {
     override val identity: String
         get() = "Triple<${firstCoder.identity}, ${secondCoder.identity}, ${thirdCoder.identity}>"

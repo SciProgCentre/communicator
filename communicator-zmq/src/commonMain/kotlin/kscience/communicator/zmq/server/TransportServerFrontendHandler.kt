@@ -1,7 +1,8 @@
 package kscience.communicator.zmq.server
 
+import co.touchlab.stately.collections.IsoArrayDeque
+import co.touchlab.stately.collections.IsoMutableMap
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kscience.communicator.api.FunctionSpec
 import kscience.communicator.api.PayloadFunction
@@ -9,16 +10,13 @@ import kscience.communicator.zmq.platform.ZmqFrame
 import kscience.communicator.zmq.platform.ZmqMsg
 import kscience.communicator.zmq.platform.ZmqSocket
 import kscience.communicator.zmq.util.sendMsg
-import mu.KotlinLogging
-
-private val log = KotlinLogging.logger { }
 
 internal class FrontendHandlerArg(
     val workerScope: CoroutineScope,
     val frontend: ZmqSocket,
-    val serverFunctions: MutableMap<String, PayloadFunction>,
-    val serverFunctionSpecs: MutableMap<String, FunctionSpec<*, *>>,
-    val repliesQueue: Channel<Response>
+    val serverFunctions: IsoMutableMap<String, PayloadFunction>,
+    val serverFunctionSpecs: IsoMutableMap<String, FunctionSpec<*, *>>,
+    val repliesQueue: IsoArrayDeque<Response>
 )
 
 internal fun handleFrontend(arg: FrontendHandlerArg) = with(arg) {
@@ -30,33 +28,36 @@ internal fun handleFrontend(arg: FrontendHandlerArg) = with(arg) {
     when (msgType.decodeToString()) {
         "QUERY" -> {
             val (queryID, argBytes, functionName) = msgData
+
             sendMsg(frontend) {
                 +clientIdentity
                 +"QUERY_RECEIVED"
                 +queryID
             }
+
             val serverFunction = serverFunctions[functionName.decodeToString()]
-            if (serverFunction == null) {
+
+            if (serverFunction == null)
                 sendMsg(frontend) {
                     +clientIdentity
                     +"RESPONSE_UNKNOWN_FUNCTION"
                     +queryID
                     +functionName
                 }
-            } else {
-                workerScope.launch {
-                    try {
-                        val result = serverFunction(argBytes)
-                        repliesQueue.send(ResponseResult(clientIdentity, queryID, result))
-                    } catch (ex: Exception) {
-                        repliesQueue.send(ResponseException(clientIdentity, queryID, ex.message.orEmpty()))
-                    }
+            else workerScope.launch {
+                try {
+                    val result = serverFunction(argBytes)
+                    repliesQueue.addFirst(ResponseResult(clientIdentity, queryID, result))
+                } catch (ex: Exception) {
+                    repliesQueue.addFirst(ResponseException(clientIdentity, queryID, ex.message.orEmpty()))
                 }
             }
         }
+
         "CODER_IDENTITY_QUERY" -> {
             val (functionName) = msgData
             val functionSpec = serverFunctionSpecs[functionName.decodeToString()]
+
             sendMsg(frontend) {
                 +clientIdentity
                 if (functionSpec == null) {
@@ -70,13 +71,13 @@ internal fun handleFrontend(arg: FrontendHandlerArg) = with(arg) {
                 }
             }
         }
+
         "RESPONSE_RECEIVED" -> {
-            val (queryID) = msgData
+            val (_) = msgData
             //TODO
         }
-        else -> {
-            log.debug { "Unknown message type: ${msgType.decodeToString()}" }
-        }
+
+        else -> println("Unknown message type: ${msgType.decodeToString()}")
     }
 
     Unit

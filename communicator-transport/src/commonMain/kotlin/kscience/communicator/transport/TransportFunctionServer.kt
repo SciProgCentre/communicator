@@ -9,8 +9,8 @@ import kscience.communicator.zmq.server.ZmqTransportServer
  * Multiple endpoints with the same protocol are ignored, only one port for each protocol is supported.
  * Multiple protocols on one port are not supported.
  */
-class TransportFunctionServer(override val endpoints: Set<Endpoint>) : FunctionServer {
-    constructor(vararg endpoints: Endpoint) : this(endpoints.toSet())
+public class TransportFunctionServer(override val endpoints: Set<Endpoint>) : FunctionServer {
+    public constructor(vararg endpoints: Endpoint) : this(endpoints.toSet())
 
     private val transportServers: List<TransportServer>
 

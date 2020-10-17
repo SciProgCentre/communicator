@@ -6,7 +6,7 @@ package kscience.communicator.api
  * @property protocol The transport protocol to find [Transport].
  * @property address Address string in the format "host:port". For example, "localhost:1234" or "127.0.0.1:4321"
  */
-data class Endpoint(val protocol: String, val address: String) {
+public data class Endpoint(val protocol: String, val address: String) {
     /**
      * The host part (before :) of [address].
      */

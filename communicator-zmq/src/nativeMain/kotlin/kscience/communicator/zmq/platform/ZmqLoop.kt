@@ -1,6 +1,6 @@
 package kscience.communicator.zmq.platform
 
-import czmq.*
+import org.zeromq.czmq.*
 import kotlinx.cinterop.*
 import kotlinx.io.Closeable
 import kotlin.native.concurrent.AtomicInt

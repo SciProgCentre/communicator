@@ -1,10 +1,9 @@
 package kscience.communicator.zmq.platform
 
-import czmq.*
 import kotlinx.cinterop.*
 import kotlinx.io.Closeable
+import org.zeromq.czmq.*
 
-/** zmsg_t object (CZMQ). Constructor must create it via its init method. */
 internal actual class ZmqMsg internal constructor(val backendMsg: CPointer<zmsg_t>) : Closeable,
     AbstractMutableCollection<ZmqFrame>(),
     MutableCollection<ZmqFrame> {

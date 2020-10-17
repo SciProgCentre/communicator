@@ -7,7 +7,7 @@ import kscience.communicator.zmq.platform.ZmqContext
  * Starts a proxy that listens to the given port.
  * This method blocks the thread and is recommended to be called from a separate program.
  * */
-fun startProxy(port: Int) {
+public fun startProxy(port: Int) {
     ZmqProxy(port).start()
 }
 

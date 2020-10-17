@@ -6,9 +6,9 @@ package kscience.communicator.api
  * Currently, it is [ByteArray], but it can be replaced by more efficient platform specific blob types (JVM ByteBuffer,
  * JavaScript ArrayBuffer...); or it can be bound to kotlinx.io binary types.
  */
-typealias Payload = ByteArray
+public typealias Payload = ByteArray
 
 /**
  * Represents `suspend` function that takes and returns [Payload].
  */
-typealias PayloadFunction = suspend (Payload) -> Payload
+public typealias PayloadFunction = suspend (Payload) -> Payload

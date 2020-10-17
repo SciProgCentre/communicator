@@ -3,9 +3,9 @@ package kscience.communicator.api
 /**
  * Represents abstract factory providing [Transport] objects by name of protocol.
  */
-interface TransportFactory {
+public fun interface TransportFactory {
     /**
      * Returns transport for according [protocol] or `null`.
      */
-    operator fun get(protocol: String): Transport?
+    public operator fun get(protocol: String): Transport?
 }

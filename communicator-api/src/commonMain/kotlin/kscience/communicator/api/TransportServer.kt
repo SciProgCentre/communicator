@@ -5,11 +5,11 @@ import kotlinx.io.Closeable
 /**
  * Represents low-level server serving [PayloadFunction] objects.
  */
-interface TransportServer : Closeable {
+public interface TransportServer : Closeable {
     /**
      * The port this transport server is bound.
      */
-    val port: Int
+    public val port: Int
 
     /**
      * Registers a named payload function.
@@ -17,14 +17,14 @@ interface TransportServer : Closeable {
      * @param name the name of function.
      * @param function the implementation of function.
      */
-    fun register(name: String, function: PayloadFunction)
+    public suspend fun register(name: String, function: PayloadFunction, spec: FunctionSpec<*, *>)
 
     /**
      * Unregisters function by its name.
      *
      * @param name the name of function.
      */
-    fun unregister(name: String)
+    public suspend fun unregister(name: String)
 
     /**
      * Stops and disposes this transport server.
