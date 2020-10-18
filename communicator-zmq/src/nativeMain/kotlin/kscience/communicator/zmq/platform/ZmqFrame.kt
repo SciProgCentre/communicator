@@ -13,7 +13,7 @@ internal actual class ZmqFrame internal constructor(val backendFrame: CPointer<z
         require(zframe_is(backendFrame)) { "Provided pointer $backendFrame doesn't point to zframe_t." }
     }
 
-    override fun close(): Unit = memScoped {
+    actual override fun close(): Unit = memScoped {
         if (!zframe_is(backendFrame)) return@memScoped
         val cpv: CPointerVar<zframe_t> = alloc()
         cpv.value = backendFrame

@@ -11,20 +11,13 @@ kotlin {
     val hostOs = System.getProperty("os.name")
 
     val nativeTarget = when {
-        hostOs == "Linux" -> linuxX64()
+        hostOs == "Linux" -> linuxX64("native")
         hostOs.startsWith("Windows") -> mingwX64()
         else -> throw GradleException("Host OS '$hostOs' is not supported in Kotlin/Native $project.")
     }
 
-    nativeTarget.apply {
-        val main by compilations.getting
-
-        main.cinterops {
-            val libczmq by creating {
-                includeDirs { allHeaders("./src/nativeMain/resources/") }
-            }
-        }
-    }
+    val main by nativeTarget.compilations.getting { cinterops { val libczmq by creating { includeDirs("./src/nativeMain/resources/") } } }
+    val test by nativeTarget.compilations.getting
 
     sourceSets {
         all {
@@ -44,12 +37,12 @@ kotlin {
         }
 
         val jvmMain by getting { dependencies { api("org.zeromq:jeromq:$jeromqVersion") } }
-        val nativeMain by creating { dependsOn(commonMain.get()) }
-        val nativeTest by creating { dependsOn(commonTest.get()) }
+//        val nativeMain by creating { dependsOn(commonMain.get()) }
+//        val nativeTest by creating { dependsOn(commonTest.get()) }
 
         nativeTarget.apply {
-            val main by compilations.getting { defaultSourceSet.dependsOn(nativeMain) }
-            val test by compilations.getting { defaultSourceSet.dependsOn(nativeTest) }
+//            main.defaultSourceSet.dependsOn(nativeMain)
+//            test.defaultSourceSet.dependsOn(nativeTest)
         }
     }
 }

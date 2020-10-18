@@ -2,13 +2,12 @@ package kscience.communicator.zmq.client
 
 import co.touchlab.stately.collections.IsoArrayDeque
 import co.touchlab.stately.collections.IsoMutableMap
-import co.touchlab.stately.isolate.IsolateState
 import kscience.communicator.api.Payload
 import kscience.communicator.api.Transport
 import kscience.communicator.zmq.platform.*
 import kscience.communicator.zmq.util.sendMsg
 
-internal const val NEW_QUERIES_QUEUE_UPDATE_INTERVAL = 1
+internal const val NEW_QUERIES_QUEUE_UPDATE_INTERVAL = 1000
 
 internal class ResultCallback(val onResult: (ByteArray) -> Unit, val onError: (Throwable) -> Unit)
 
@@ -28,20 +27,20 @@ internal class SpecQuery(
 )
 
 public class ZmqTransport private constructor(
-    internal val ctx: IsolateState<ZmqContext> = IsolateState(::ZmqContext),
-    internal val mainDealer: IsolateState<ZmqSocket> = IsolateState { ctx.access(ZmqContext::createDealerSocket) },
+    internal val ctx: ZmqContext = ZmqContext(),
+    internal val mainDealer: ZmqSocket = ctx.createDealerSocket(),
     internal val identity: UniqueID = UniqueID(),
     internal val newQueriesQueue: IsoArrayDeque<Query> = IsoArrayDeque(),
     internal val specQueriesQueue: IsoArrayDeque<SpecQuery> = IsoArrayDeque(),
     internal val queriesInWork: IsoMutableMap<UniqueID, ResultCallback> = IsoMutableMap(),
     internal val specQueriesInWork: IsoMutableMap<UniqueID, SpecCallback> = IsoMutableMap(),
     internal val forwardSockets: IsoMutableMap<String, ZmqSocket> = IsoMutableMap(),
-    internal val reactor: IsolateState<ZmqLoop> = IsolateState { ctx.access(::ZmqLoop) },
+    internal val reactor: ZmqLoop = ZmqLoop(ctx),
 ) : Transport {
     public override suspend fun respond(address: String, name: String, payload: Payload): Payload =
         respondImpl(address, name, payload)
 
-    public constructor() : this(ctx = IsolateState(::ZmqContext))
+    public constructor() : this(ctx = ZmqContext())
 
     init {
         initClient(this)
@@ -49,24 +48,16 @@ public class ZmqTransport private constructor(
 
     internal fun makeQuery(query: Query) {
         println("Adding query ${query.functionName} to the internal queue")
-        println(query)
-        println(newQueriesQueue.size)
         newQueriesQueue.addFirst(query)
-        println(newQueriesQueue.size)
-        println("the fuck")
-        println(newQueriesQueue.joinToString(","))
     }
 
     public override fun close() {
         queriesInWork.dispose()
         newQueriesQueue.dispose()
         specQueriesInWork.dispose()
-        reactor.access(ZmqLoop::close)
-        reactor.dispose()
-        mainDealer.access(ZmqSocket::close)
-        mainDealer.dispose()
-        ctx.access(ZmqContext::close)
-        ctx.dispose()
+        reactor.close()
+        mainDealer.close()
+        ctx.close()
     }
 }
 
@@ -77,35 +68,26 @@ internal expect suspend fun ZmqTransport.respondImpl(
 ): ByteArray
 
 internal fun initClientBlocking(client: ZmqTransport): Unit = with(client) {
-    reactor.access {
-        it.addTimer(
-            NEW_QUERIES_QUEUE_UPDATE_INTERVAL,
-            0,
-
-            { _, arg ->
-                arg.value.handleQueriesQueue()
-                arg.value.handleSpecQueue()
-                0
-            },
-
-            ZmqLoop.Argument(this)
-        )
+    reactor.addTimer(NEW_QUERIES_QUEUE_UPDATE_INTERVAL, 0, ZmqLoop.Argument(this)) {
+        it.value.handleQueriesQueue()
+        it.value.handleSpecQueue()
+        0
     }
 
-    mainDealer.access { dealer -> reactor.access { it.addReader(dealer, { _, _ -> 0 }, ZmqLoop.Argument(Unit)) } }
-    reactor.access(ZmqLoop::start)
+    reactor.addReader(mainDealer, ZmqLoop.Argument(Unit)) { _ -> 0 }
+    reactor.start()
 }
 
 internal expect fun initClient(client: ZmqTransport)
 
 private fun ZmqTransport.handleQueriesQueue() {
-    print(if (newQueriesQueue.isEmpty()) "" else (newQueriesQueue.joinToString(",") + "\n"))
     val query = newQueriesQueue.removeLastOrNull() ?: return
     println("Making query ${query.functionName}")
     val id = UniqueID()
     queriesInWork[id] = query.callback
 
     sendMsg(getForwardSocket(query.address)) {
+        +identity
         +"QUERY"
         +id
         +query.arg
@@ -116,21 +98,13 @@ private fun ZmqTransport.handleQueriesQueue() {
 private fun ZmqTransport.getForwardSocket(address: String): ZmqSocket {
     val existing = forwardSockets[address]
     if (existing != null) return existing
-    val forwardSocket = ctx.access(ZmqContext::createDealerSocket)
+    val forwardSocket = ctx.createDealerSocket()
     forwardSocket.setIdentity(identity.bytes)
     forwardSocket.connect("tcp://$address")
 
-    reactor.access {
-        it.addReader(
-            forwardSocket,
-
-            { _, arg ->
-                arg.value.client.handleResult(arg.value)
-                0
-            },
-
-            ZmqLoop.Argument(ResultHandlerArg(forwardSocket, this))
-        )
+    reactor.addReader(forwardSocket, ZmqLoop.Argument(ResultHandlerArg(forwardSocket, this))) {
+        it.value.client.handleResult(it.value)
+        0
     }
 
     forwardSockets[address] = forwardSocket
@@ -144,6 +118,7 @@ private fun ZmqTransport.handleSpecQueue() {
     specQueriesInWork[id] = specQuery.callback
 
     sendMsg(getForwardSocket(specQuery.address)) {
+        +identity
         +"CODER_IDENTITY_QUERY"
         +id
         +specQuery.functionName.encodeToByteArray()
@@ -163,7 +138,7 @@ private fun ZmqTransport.handleResult(arg: ResultHandlerArg) {
     println("Got result to the query [$queryID]: ${result.contentToString()}")
 
     val callback = queriesInWork[queryID] ?: run {
-        println("handler can't find callback in waitingQueries queue")
+        println("Handler can't find callback in queriesInWork queue")
         return
     }
 

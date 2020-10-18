@@ -1,12 +1,13 @@
 package kscience.communicator.zmq.platform
 
+import co.touchlab.stately.collections.IsoMutableList
 import kotlinx.io.Closeable
 import org.zeromq.czmq.zsock_new_dealer
 import org.zeromq.czmq.zsock_new_router
 import org.zeromq.czmq.zsys_init
 
 internal actual class ZmqContext actual constructor() : Closeable {
-    private val sockets: MutableList<ZmqSocket> = mutableListOf()
+    private val sockets: IsoMutableList<ZmqSocket> = IsoMutableList()
 
     init {
         zsys_init()

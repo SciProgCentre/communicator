@@ -20,12 +20,12 @@ import kscience.communicator.zmq.util.sendMsg
  */
 public class ZmqTransportServer private constructor(
     public override val port: Int,
-    private val serverFunctionSpecs: IsoMutableMap<String, FunctionSpec<*, *>> = IsoMutableMap(),
-    private val serverFunctions: IsoMutableMap<String, PayloadFunction> = IsoMutableMap(),
+    internal val serverFunctionSpecs: IsoMutableMap<String, FunctionSpec<*, *>> = IsoMutableMap(),
+    internal val serverFunctions: IsoMutableMap<String, PayloadFunction> = IsoMutableMap(),
     private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default,
-    private val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob()),
+    internal val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob()),
     private val ctx: ZmqContext = ZmqContext(),
-    private val repliesQueue: IsoArrayDeque<Response> = IsoArrayDeque(),
+    internal val repliesQueue: IsoArrayDeque<Response> = IsoArrayDeque(),
     internal val editFunctionQueriesQueue: IsoArrayDeque<EditFunctionQuery> = IsoArrayDeque(),
     internal val frontend: ZmqSocket = ctx.createDealerSocket()
 ) : TransportServer {
@@ -36,48 +36,37 @@ public class ZmqTransportServer private constructor(
 
         reactor.addReader(
             frontend,
+            ZmqLoop.Argument(this),
+        ) {
+            it.value.handleFrontend()
+            0
+        }
 
-            { _, arg ->
-                println("fr")
-                handleFrontend(checkNotNull(arg).value)
-                0
-            },
-
-            ZmqLoop.Argument(
-                FrontendHandlerArg(workerScope, frontend, serverFunctions, serverFunctionSpecs, repliesQueue)
-            )
-        )
+        reactor.addTimer(
+            1,
+            0,
+            ZmqLoop.Argument(this),
+        ) {
+            it.value.handleReplyQueue()
+            0
+        }
 
         reactor.addTimer(
             1,
             0,
 
-            { _, arg ->
-                handleReplyQueue(checkNotNull(arg).value)
-                0
-            },
-
-            ZmqLoop.Argument(ReplyQueueHandlerArg(frontend, repliesQueue))
-        )
-
-        reactor.addTimer(
-            1,
-            0,
-
-            { _, arg ->
-                handleEditFunctionQueue(checkNotNull(arg).value)
-                0
-            },
-
             ZmqLoop.Argument(
-                EditFunctionQueueHandlerArg(serverFunctions, serverFunctionSpecs, editFunctionQueriesQueue)
-            )
-        )
+                this
+            ),
+        ) {
+            it.value.handleEditFunctionQueue()
+            0
+        }
 
         reactor.start()
     }
 
-    override fun close() {
+    public override fun close() {
         editFunctionQueriesQueue.dispose()
         repliesQueue.dispose()
         serverFunctions.dispose()
@@ -89,11 +78,11 @@ public class ZmqTransportServer private constructor(
         initServer(this)
     }
 
-    override suspend fun register(name: String, function: PayloadFunction, spec: FunctionSpec<*, *>) {
+    public override suspend fun register(name: String, function: PayloadFunction, spec: FunctionSpec<*, *>) {
         editFunctionQueriesQueue.addFirst(RegisterFunctionQuery(name, function, spec))
     }
 
-    override suspend fun unregister(name: String) {
+    public override suspend fun unregister(name: String) {
         editFunctionQueriesQueue.addFirst(UnregisterFunctionQuery(name))
     }
 }
@@ -120,11 +109,6 @@ internal class ResponseResult(val clientIdentity: ByteArray, val queryID: ByteAr
 internal class ResponseException(val clientIdentity: ByteArray, val queryID: ByteArray, val exceptionMessage: String) :
     Response()
 
-private class ReplyQueueHandlerArg(
-    val frontend: ZmqSocket,
-    val repliesQueue: IsoArrayDeque<Response>
-)
-
 /**
  * Hack created because Kotlin/Native does not start event loop without runBlocking.
  *
@@ -132,7 +116,7 @@ private class ReplyQueueHandlerArg(
  */
 internal expect inline fun runBlockingIfKotlinNative(crossinline action: () -> Any)
 
-private fun handleReplyQueue(arg: ReplyQueueHandlerArg): Unit = with(arg) {
+private fun ZmqTransportServer.handleReplyQueue() {
     while (true) {
         val reply = repliesQueue.removeLastOrNull() ?: break
 
@@ -156,23 +140,17 @@ private fun handleReplyQueue(arg: ReplyQueueHandlerArg): Unit = with(arg) {
     }
 }
 
-private class EditFunctionQueueHandlerArg(
-    val serverFunctions: IsoMutableMap<String, PayloadFunction>,
-    val serverFunctionSpecs: IsoMutableMap<String, FunctionSpec<*, *>>,
-    val editFunctionQueue: IsoArrayDeque<EditFunctionQuery>
-)
-
-private fun handleEditFunctionQueue(arg: EditFunctionQueueHandlerArg): Unit = with(arg) {
+private fun ZmqTransportServer.handleEditFunctionQueue() {
     while (true) {
-        val editFunctionMessage = editFunctionQueue.removeLastOrNull() ?: break
+        val editFunctionMessage = editFunctionQueriesQueue.removeLastOrNull() ?: break
 
         when (editFunctionMessage) {
             is RegisterFunctionQuery -> {
-                arg.serverFunctions[editFunctionMessage.name] = editFunctionMessage.function
-                arg.serverFunctionSpecs[editFunctionMessage.name] = editFunctionMessage.spec
+                this@handleEditFunctionQueue.serverFunctions[editFunctionMessage.name] = editFunctionMessage.function
+                this@handleEditFunctionQueue.serverFunctionSpecs[editFunctionMessage.name] = editFunctionMessage.spec
             }
 
-            is UnregisterFunctionQuery -> arg.serverFunctions -= editFunctionMessage.name
+            is UnregisterFunctionQuery -> this@handleEditFunctionQueue.serverFunctions -= editFunctionMessage.name
         }
     }
 }

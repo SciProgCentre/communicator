@@ -1,25 +1,11 @@
 package kscience.communicator.zmq.server
 
-import co.touchlab.stately.collections.IsoArrayDeque
-import co.touchlab.stately.collections.IsoMutableMap
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kscience.communicator.api.FunctionSpec
-import kscience.communicator.api.PayloadFunction
 import kscience.communicator.zmq.platform.ZmqFrame
 import kscience.communicator.zmq.platform.ZmqMsg
-import kscience.communicator.zmq.platform.ZmqSocket
 import kscience.communicator.zmq.util.sendMsg
 
-internal class FrontendHandlerArg(
-    val workerScope: CoroutineScope,
-    val frontend: ZmqSocket,
-    val serverFunctions: IsoMutableMap<String, PayloadFunction>,
-    val serverFunctionSpecs: IsoMutableMap<String, FunctionSpec<*, *>>,
-    val repliesQueue: IsoArrayDeque<Response>
-)
-
-internal fun handleFrontend(arg: FrontendHandlerArg) = with(arg) {
+internal fun ZmqTransportServer.handleFrontend() {
     println("frontend caught something")
     val msg = ZmqMsg.recvMsg(frontend)
     val msgBlocks = msg.map(ZmqFrame::data)
@@ -45,14 +31,17 @@ internal fun handleFrontend(arg: FrontendHandlerArg) = with(arg) {
                     +queryID
                     +functionName
                 }
-            else workerScope.launch {
-                try {
-                    val result = serverFunction(argBytes)
-                    repliesQueue.addFirst(ResponseResult(clientIdentity, queryID, result))
-                } catch (ex: Exception) {
-                    repliesQueue.addFirst(ResponseException(clientIdentity, queryID, ex.message.orEmpty()))
+            else
+                runBlockingIfKotlinNative {
+                    workerScope.launch {
+                        try {
+                            val result = serverFunction(argBytes)
+                            repliesQueue.addFirst(ResponseResult(clientIdentity, queryID, result))
+                        } catch (ex: Exception) {
+                            repliesQueue.addFirst(ResponseException(clientIdentity, queryID, ex.message.orEmpty()))
+                        }
+                    }
                 }
-            }
         }
 
         "CODER_IDENTITY_QUERY" -> {

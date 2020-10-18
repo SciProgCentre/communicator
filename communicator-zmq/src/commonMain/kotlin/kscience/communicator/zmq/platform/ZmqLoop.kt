@@ -5,15 +5,15 @@ import kotlinx.io.Closeable
 internal expect class ZmqLoop(ctx: ZmqContext) : Closeable {
     inline fun <reified T : Any> addReader(
         socket: ZmqSocket,
-        crossinline handler: ZmqLoop.(Any?, Argument<T>) -> Int,
-        arg: Argument<T>
+        arg: Argument<T>,
+        crossinline handler: ZmqLoop.(Argument<T>) -> Int,
     )
 
     inline fun <reified T : Any> addTimer(
         delay: Int,
         times: Int,
-        noinline handler: ZmqLoop.(Any?, Argument<T>) -> Int,
-        arg: Argument<T>
+        arg: Argument<T>,
+        crossinline handler: ZmqLoop.(Argument<T>) -> Int,
     )
 
     fun start()

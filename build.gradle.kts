@@ -6,6 +6,7 @@ allprojects {
 subprojects {
     repositories {
         jcenter()
+        maven("https://dl.bintray.com/kotlin/kotlin-eap")
         maven("https://dl.bintray.com/commandertvis/kotlinx-io")
     }
 }

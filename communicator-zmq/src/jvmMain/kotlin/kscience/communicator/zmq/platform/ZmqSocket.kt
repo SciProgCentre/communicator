@@ -16,6 +16,6 @@ internal actual class ZmqSocket(internal val backendSocket: ZMQ.Socket) : Closea
         backendSocket.identity = identity
     }
 
-    override fun close(): Unit = backendSocket.close()
+    actual override fun close(): Unit = backendSocket.close()
     actual fun recv(): ByteArray = backendSocket.recv()
 }

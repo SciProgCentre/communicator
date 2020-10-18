@@ -1,24 +1,11 @@
 package kscience.communicator.zmq.server
 
-import co.touchlab.stately.collections.IsoArrayDeque
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kscience.communicator.api.FunctionSpec
-import kscience.communicator.api.PayloadFunction
 import kscience.communicator.zmq.platform.ZmqFrame
 import kscience.communicator.zmq.platform.ZmqMsg
-import kscience.communicator.zmq.platform.ZmqSocket
 import kscience.communicator.zmq.util.sendMsg
 
-internal class WorkerFrontendHandlerArg(
-    val workerScope: CoroutineScope,
-    val frontend: ZmqSocket,
-    val serverFunctions: MutableMap<String, PayloadFunction>,
-    val serverFunctionSpecs: MutableMap<String, FunctionSpec<*, *>>,
-    val repliesQueue: IsoArrayDeque<Response>
-)
-
-internal fun handleWorkerFrontend(arg: WorkerFrontendHandlerArg) = with(arg) {
+internal fun handleWorkerFrontend(arg: ZmqWorker) = with(arg) {
     val msg = ZmqMsg.recvMsg(frontend)
     val msgBlocks = msg.map(ZmqFrame::data)
     val (msgType) = msgBlocks

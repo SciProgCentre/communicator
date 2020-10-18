@@ -17,7 +17,7 @@ internal actual class ZmqSocket internal constructor(val backendSocket: CPointer
 
     actual fun setIdentity(identity: ByteArray): Unit = zsock_set_identity(backendSocket, identity.decodeToString())
 
-    override fun close(): Unit = memScoped {
+    actual override fun close(): Unit = memScoped {
         if (!zsock_is(backendSocket)) return@memScoped
         val cpv: CPointerVar<zsock_t> = alloc()
         cpv.value = backendSocket

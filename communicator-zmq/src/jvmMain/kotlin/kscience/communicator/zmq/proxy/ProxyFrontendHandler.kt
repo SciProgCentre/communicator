@@ -3,6 +3,7 @@ package kscience.communicator.zmq.proxy
 import kscience.communicator.zmq.platform.UniqueID
 import kscience.communicator.zmq.platform.ZmqMsg
 import kscience.communicator.zmq.platform.ZmqSocket
+import kscience.communicator.zmq.util.sendMsg
 
 internal fun ZmqProxy.handleFrontend(frontend: ZmqSocket, backend: ZmqSocket) {
     val receivedMsg = ZmqMsg.recvMsg(frontend)
@@ -53,6 +54,7 @@ internal fun ZmqProxy.handleFrontend(frontend: ZmqSocket, backend: ZmqSocket) {
                 +schemesPair.first
                 +schemesPair.second
             }
+
             // Если функция не зарегистрирована
             else sendMsg(frontend) {
                 +clientIdentity

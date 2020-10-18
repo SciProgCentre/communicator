@@ -21,10 +21,10 @@ public class ZmqWorker private constructor(
     internal val serverFunctions: IsoMutableMap<String, PayloadFunction>,
     internal val serverFunctionSpecs: IsoMutableMap<String, FunctionSpec<*, *>>,
     private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default,
-    private val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob()),
+    internal val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob()),
     private val ctx: ZmqContext = ZmqContext(),
-    private val repliesQueue: IsoArrayDeque<Response> = IsoArrayDeque(),
-    private val editFunctionQueriesQueue: IsoArrayDeque<WorkerEditFunctionQuery> = IsoArrayDeque(),
+    internal val repliesQueue: IsoArrayDeque<Response> = IsoArrayDeque(),
+    internal val editFunctionQueriesQueue: IsoArrayDeque<WorkerEditFunctionQuery> = IsoArrayDeque(),
     internal val frontend: ZmqSocket = ctx.createDealerSocket()
 ) : Closeable {
     public constructor(
@@ -59,52 +59,29 @@ public class ZmqWorker private constructor(
 
         reactor.addReader(
             frontend,
-
-            { _, arg ->
-                handleWorkerFrontend(checkNotNull(arg).value)
-                0
-            },
-
-            ZmqLoop.Argument(
-                WorkerFrontendHandlerArg(
-                    workerScope,
-                    frontend,
-                    serverFunctions,
-                    serverFunctionSpecs,
-                    repliesQueue
-                )
-            )
-        )
+            ZmqLoop.Argument(this),
+        ) {
+            handleWorkerFrontend(it.value)
+            0
+        }
 
         reactor.addTimer(
             1,
             0,
-
-            { _, arg ->
-                handleReplyQueue(checkNotNull(arg).value)
-                0
-            },
-
-            ZmqLoop.Argument(WorkerReplyQueueHandlerArg(frontend, repliesQueue))
-        )
+            ZmqLoop.Argument(this),
+        ) {
+            handleReplyQueue(it.value)
+            0
+        }
 
         reactor.addTimer(
             1,
             0,
-
-            { _, arg ->
-                handleEditFunctionQueue(checkNotNull(arg).value)
-                0
-            },
-
-            ZmqLoop.Argument(
-                WorkerEditFunctionQueueHandlerArg(
-                    serverFunctions,
-                    serverFunctionSpecs,
-                    editFunctionQueriesQueue
-                )
-            )
-        )
+            ZmqLoop.Argument(this),
+        ) {
+            handleEditFunctionQueue(it.value)
+            0
+        }
 
         reactor.start()
     }
@@ -118,6 +95,7 @@ internal fun initWorkerBlocking(state: ZmqWorker) = with(state) {
     sendMsg(frontend) {
         +"WORKER_REGISTER"
         +IntCoder.encode(serverFunctions.size)
+
         serverFunctionSpecs.forEach {
             +it.key
             +it.value.argumentCoder.identity
@@ -128,7 +106,7 @@ internal fun initWorkerBlocking(state: ZmqWorker) = with(state) {
     start()
 }
 
-private sealed class WorkerEditFunctionQuery
+internal sealed class WorkerEditFunctionQuery
 
 private class WorkerRegisterFunctionQuery(
     val name: String,
@@ -149,13 +127,7 @@ internal class WorkerResponseException(
     val exceptionMessage: String
 ) : WorkerResponse()
 
-
-private class WorkerReplyQueueHandlerArg(
-    val frontend: ZmqSocket,
-    val repliesQueue: IsoArrayDeque<Response>
-)
-
-private fun handleReplyQueue(arg: WorkerReplyQueueHandlerArg): Unit = with(arg) {
+private fun handleReplyQueue(arg: ZmqWorker): Unit = with(arg) {
     while (true) {
         val reply = repliesQueue.removeLastOrNull() ?: break
 
@@ -177,21 +149,16 @@ private fun handleReplyQueue(arg: WorkerReplyQueueHandlerArg): Unit = with(arg) 
     }
 }
 
-private class WorkerEditFunctionQueueHandlerArg(
-    val serverFunctions: IsoMutableMap<String, PayloadFunction>,
-    val serverFunctionSpecs: IsoMutableMap<String, FunctionSpec<*, *>>,
-    val editFunctionQueue: IsoArrayDeque<WorkerEditFunctionQuery>
-)
-
-private fun handleEditFunctionQueue(arg: WorkerEditFunctionQueueHandlerArg): Unit = with(arg) {
+private fun handleEditFunctionQueue(arg: ZmqWorker): Unit = with(arg) {
     while (true) {
-        val editFunctionMessage = editFunctionQueue.removeLastOrNull() ?: break
+        val editFunctionMessage = editFunctionQueriesQueue.removeLastOrNull() ?: break
 
         when (editFunctionMessage) {
             is WorkerRegisterFunctionQuery -> {
                 arg.serverFunctions[editFunctionMessage.name] = editFunctionMessage.function
                 arg.serverFunctionSpecs[editFunctionMessage.name] = editFunctionMessage.spec
             }
+
             is WorkerUnregisterFunctionQuery -> arg.serverFunctions.remove(editFunctionMessage.name)
         }
     }
