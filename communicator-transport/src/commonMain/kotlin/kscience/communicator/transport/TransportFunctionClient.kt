@@ -5,7 +5,7 @@ import kscience.communicator.api.*
 /**
  * Function client implementation based on [Transport] object provided by [TransportFactory].
  */
-public class TransportFunctionClient(private val factory: TransportFactory) : FunctionClient {
+public class TransportFunctionClient(private val factory: TransportFactory = DefaultTransportFactory) : FunctionClient {
     private val transportCache: MutableMap<String, Transport> = hashMapOf()
 
     override fun <T, R> getFunction(endpoint: Endpoint, name: String, spec: FunctionSpec<T, R>): suspend (T) -> R =

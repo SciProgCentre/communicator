@@ -38,6 +38,7 @@ public class ZmqTransportServer private constructor(
             frontend,
 
             { _, arg ->
+                println("fr")
                 handleFrontend(checkNotNull(arg).value)
                 0
             },
@@ -133,7 +134,7 @@ internal expect inline fun runBlockingIfKotlinNative(crossinline action: () -> A
 
 private fun handleReplyQueue(arg: ReplyQueueHandlerArg): Unit = with(arg) {
     while (true) {
-        val reply = repliesQueue.removeFirstOrNull() ?: break
+        val reply = repliesQueue.removeLastOrNull() ?: break
 
         sendMsg(frontend) {
             when (reply) {
@@ -163,7 +164,7 @@ private class EditFunctionQueueHandlerArg(
 
 private fun handleEditFunctionQueue(arg: EditFunctionQueueHandlerArg): Unit = with(arg) {
     while (true) {
-        val editFunctionMessage = editFunctionQueue.removeFirstOrNull() ?: break
+        val editFunctionMessage = editFunctionQueue.removeLastOrNull() ?: break
 
         when (editFunctionMessage) {
             is RegisterFunctionQuery -> {

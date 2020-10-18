@@ -157,7 +157,7 @@ private class WorkerReplyQueueHandlerArg(
 
 private fun handleReplyQueue(arg: WorkerReplyQueueHandlerArg): Unit = with(arg) {
     while (true) {
-        val reply = repliesQueue.removeFirstOrNull() ?: break
+        val reply = repliesQueue.removeLastOrNull() ?: break
 
         sendMsg(frontend) {
             when (reply) {
@@ -185,7 +185,7 @@ private class WorkerEditFunctionQueueHandlerArg(
 
 private fun handleEditFunctionQueue(arg: WorkerEditFunctionQueueHandlerArg): Unit = with(arg) {
     while (true) {
-        val editFunctionMessage = editFunctionQueue.removeFirstOrNull() ?: break
+        val editFunctionMessage = editFunctionQueue.removeLastOrNull() ?: break
 
         when (editFunctionMessage) {
             is WorkerRegisterFunctionQuery -> {

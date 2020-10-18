@@ -1,3 +1,5 @@
+@file:Suppress("UNUSED_VARIABLE")
+
 plugins { kotlin("multiplatform") }
 
 internal val statelyIsoVersion: String by project

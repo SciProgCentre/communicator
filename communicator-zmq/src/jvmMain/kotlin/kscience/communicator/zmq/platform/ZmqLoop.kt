@@ -11,12 +11,12 @@ internal actual class ZmqLoop private constructor(val backendLoop: ZLoop) : Clos
     @Suppress("UNCHECKED_CAST")
     actual inline fun <reified T : Any> addReader(
         socket: ZmqSocket,
-        crossinline handler: ZmqLoop.(Any?, Argument<T>?) -> Int,
-        arg: Argument<T>?
+        crossinline handler: ZmqLoop.(Any?, Argument<T>) -> Int,
+        arg: Argument<T>
     ) {
         backendLoop.addPoller(
             ZMQ.PollItem(socket.backendSocket, ZMQ.Poller.POLLIN),
-            { loop, item, argParam -> ZmqLoop(loop).handler(item, Argument(argParam as T)) },
+            { loop, item, argParam -> ZmqLoop(loop).handler(item, argParam as Argument<T>) },
             arg
         )
     }
@@ -25,13 +25,13 @@ internal actual class ZmqLoop private constructor(val backendLoop: ZLoop) : Clos
     actual inline fun <reified T : Any> addTimer(
         delay: Int,
         times: Int,
-        noinline handler: ZmqLoop.(Any?, Argument<T>?) -> Int,
-        arg: Argument<T>?
+        noinline handler: ZmqLoop.(Any?, Argument<T>) -> Int,
+        arg: Argument<T>
     ) {
         backendLoop.addTimer(
             delay,
             times,
-            { loop, item, argParam -> ZmqLoop(loop).handler(item, Argument(argParam as T)) },
+            { loop, item, argParam -> ZmqLoop(loop).handler(item, argParam as Argument<T>) },
             arg
         )
     }
@@ -40,9 +40,9 @@ internal actual class ZmqLoop private constructor(val backendLoop: ZLoop) : Clos
         backendLoop.start()
     }
 
-    override fun close(): Unit = Unit
+    actual override fun close(): Unit = Unit
 
     actual class Argument<T : Any> actual constructor(actual val value: T) : Closeable {
-        override fun close(): Unit = Unit
+        actual override fun close(): Unit = Unit
     }
 }

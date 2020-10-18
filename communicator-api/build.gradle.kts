@@ -1,5 +1,6 @@
 @file:Suppress("UNUSED_VARIABLE")
 
+internal val coroutinesVersion: String by project
 internal val ioVersion: String by project
 plugins { kotlin(module = "multiplatform") }
 
@@ -28,7 +29,11 @@ kotlin {
             }
         }
 
-        commonMain.get().dependencies { api("org.jetbrains.kotlinx:kotlinx-io:$ioVersion") }
+        commonMain.get().dependencies {
+            api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
+            api("org.jetbrains.kotlinx:kotlinx-io:$ioVersion")
+        }
+
         val nativeMain by creating { dependsOn(commonMain.get()) }
         val nativeTest by creating { dependsOn(commonTest.get()) }
 

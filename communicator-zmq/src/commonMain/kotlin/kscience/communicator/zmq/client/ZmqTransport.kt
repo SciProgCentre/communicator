@@ -3,7 +3,6 @@ package kscience.communicator.zmq.client
 import co.touchlab.stately.collections.IsoArrayDeque
 import co.touchlab.stately.collections.IsoMutableMap
 import co.touchlab.stately.isolate.IsolateState
-import kotlinx.io.use
 import kscience.communicator.api.Payload
 import kscience.communicator.api.Transport
 import kscience.communicator.zmq.platform.*
@@ -50,7 +49,12 @@ public class ZmqTransport private constructor(
 
     internal fun makeQuery(query: Query) {
         println("Adding query ${query.functionName} to the internal queue")
+        println(query)
+        println(newQueriesQueue.size)
         newQueriesQueue.addFirst(query)
+        println(newQueriesQueue.size)
+        println("the fuck")
+        println(newQueriesQueue.joinToString(","))
     }
 
     public override fun close() {
@@ -78,8 +82,8 @@ internal fun initClientBlocking(client: ZmqTransport): Unit = with(client) {
             NEW_QUERIES_QUEUE_UPDATE_INTERVAL,
             0,
 
-            { _: Any?, arg ->
-                checkNotNull(arg).value.handleQueriesQueue()
+            { _, arg ->
+                arg.value.handleQueriesQueue()
                 arg.value.handleSpecQueue()
                 0
             },
@@ -95,16 +99,17 @@ internal fun initClientBlocking(client: ZmqTransport): Unit = with(client) {
 internal expect fun initClient(client: ZmqTransport)
 
 private fun ZmqTransport.handleQueriesQueue() {
-    val query = newQueriesQueue.removeFirstOrNull() ?: return
+    print(if (newQueriesQueue.isEmpty()) "" else (newQueriesQueue.joinToString(",") + "\n"))
+    val query = newQueriesQueue.removeLastOrNull() ?: return
     println("Making query ${query.functionName}")
     val id = UniqueID()
     queriesInWork[id] = query.callback
 
-    ZmqMsg().use {
-        it.add(id.bytes)
-        it.add(query.functionName.encodeToByteArray())
-        it.add(query.arg)
-        it.send(getForwardSocket(query.address))
+    sendMsg(getForwardSocket(query.address)) {
+        +"QUERY"
+        +id
+        +query.arg
+        +query.functionName.encodeToByteArray()
     }
 }
 
@@ -119,8 +124,8 @@ private fun ZmqTransport.getForwardSocket(address: String): ZmqSocket {
         it.addReader(
             forwardSocket,
 
-            { _, argParam ->
-                checkNotNull(argParam).value.client.handleResult(argParam.value)
+            { _, arg ->
+                arg.value.client.handleResult(arg.value)
                 0
             },
 
@@ -133,7 +138,7 @@ private fun ZmqTransport.getForwardSocket(address: String): ZmqSocket {
 }
 
 private fun ZmqTransport.handleSpecQueue() {
-    val specQuery = specQueriesQueue.removeFirstOrNull() ?: return
+    val specQuery = specQueriesQueue.removeLastOrNull() ?: return
     println("Making spec query ${specQuery.functionName}")
     val id = UniqueID()
     specQueriesInWork[id] = specQuery.callback

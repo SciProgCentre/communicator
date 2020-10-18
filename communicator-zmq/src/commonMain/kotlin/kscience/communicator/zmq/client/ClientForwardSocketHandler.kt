@@ -22,10 +22,12 @@ internal fun ZmqTransport.handleForwardSocket(arg: ForwardSocketHandlerArg) {
     when (msgType.decodeToString()) {
         "RESPONSE_RESULT" -> {
             val (queryID, resultBytes) = msgData
+
             sendMsg(arg.socket) {
                 +"RESPONSE_RECEIVED"
                 +queryID
             }
+
             val callback = queriesInWork[UniqueID(queryID)] ?: return
             callback.onResult(resultBytes)
         }

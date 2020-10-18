@@ -40,7 +40,6 @@ kotlin {
                 api(project(":communicator-api"))
                 implementation("co.touchlab:stately-isolate:$statelyIsoVersion")
                 implementation("co.touchlab:stately-iso-collections:$statelyIsoVersion")
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
             }
         }
 

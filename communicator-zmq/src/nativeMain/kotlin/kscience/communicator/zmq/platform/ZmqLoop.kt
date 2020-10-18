@@ -13,7 +13,7 @@ internal actual class ZmqLoop(val backendLoop: CPointer<zloop_t> = checkNotNull(
         zloop_start(backendLoop).checkZeroMQCode("zloop_start")
     }
 
-    override fun close(): Unit = memScoped {
+    actual override fun close(): Unit = memScoped {
         val cpv: CPointerVar<zloop_t> = alloc()
         cpv.value = backendLoop
         val a = allocPointerTo<CPointerVar<zloop_t>>()
@@ -24,8 +24,8 @@ internal actual class ZmqLoop(val backendLoop: CPointer<zloop_t> = checkNotNull(
     @Suppress("UNCHECKED_CAST")
     actual inline fun <reified T : Any> addReader(
         socket: ZmqSocket,
-        crossinline handler: ZmqLoop.(Any?, Argument<T>?) -> Int,
-        arg: Argument<T>?
+        crossinline handler: ZmqLoop.(Any?, Argument<T>) -> Int,
+        arg: Argument<T>
     ) {
         zloop_reader(
             backendLoop,
@@ -33,7 +33,7 @@ internal actual class ZmqLoop(val backendLoop: CPointer<zloop_t> = checkNotNull(
 
             staticCFunction { r, a, b ->
                 val (argParam, handlerParam) = checkNotNull(
-                    b?.asStableRef<Pair<T, ZmqLoop.(Any?, Argument<T>?) -> Int>>()?.get()
+                    b?.asStableRef<Pair<T, ZmqLoop.(Any?, Argument<T>) -> Int>>()?.get()
                 )
 
                 ZmqLoop(checkNotNull(r)).handlerParam(
@@ -42,12 +42,12 @@ internal actual class ZmqLoop(val backendLoop: CPointer<zloop_t> = checkNotNull(
                 )
             },
 
-            (arg ?: Argument(Unit)).also {
+            arg.also {
                 it.handler = { any, arg ->
                     if (T::class.isInstance(arg?.value))
-                        handler(any, arg as Argument<T>?)
+                        handler(any, arg as Argument<T>)
                     else
-                        handler(any, null)
+                        error("Invalid argument received ${arg}.")
                 }
             }.ref.asCPointer()
         )
@@ -57,8 +57,8 @@ internal actual class ZmqLoop(val backendLoop: CPointer<zloop_t> = checkNotNull(
     actual inline fun <reified T : Any> addTimer(
         delay: Int,
         times: Int,
-        noinline handler: ZmqLoop.(Any?, Argument<T>?) -> Int,
-        arg: Argument<T>?
+        noinline handler: ZmqLoop.(Any?, Argument<T>) -> Int,
+        arg: Argument<T>
     ) {
         zloop_timer(
             backendLoop,
@@ -67,7 +67,7 @@ internal actual class ZmqLoop(val backendLoop: CPointer<zloop_t> = checkNotNull(
 
             staticCFunction { r, a, b ->
                 val (argParam, handlerParam) = checkNotNull(
-                    b?.asStableRef<Pair<T, ZmqLoop.(Any?, Argument<T>?) -> Int>>()?.get()
+                    b?.asStableRef<Pair<T, ZmqLoop.(Any?, Argument<T>) -> Int>>()?.get()
                 )
 
                 ZmqLoop(checkNotNull(r)).handlerParam(
@@ -76,12 +76,12 @@ internal actual class ZmqLoop(val backendLoop: CPointer<zloop_t> = checkNotNull(
                 )
             },
 
-            (arg ?: Argument(Unit)).also {
+            arg.also {
                 it.handler = { any, arg ->
                     if (T::class.isInstance(arg?.value))
-                        handler(any, arg as Argument<T>?)
+                        handler(any, arg as Argument<T>)
                     else
-                        handler(any, null)
+                        error("Invalid argument received ${arg}.")
                 }
             }.ref.asCPointer()
         )
@@ -94,7 +94,7 @@ internal actual class ZmqLoop(val backendLoop: CPointer<zloop_t> = checkNotNull(
         internal val ref: StableRef<Pair<T, ZmqLoop.(Any?, Argument<T>?) -> Int>>
             get() = StableRef.create(value to handler)
 
-        override fun close() {
+        actual override fun close() {
             if (disposed.value == 0) {
                 ref.dispose()
                 disposed.value = 1
