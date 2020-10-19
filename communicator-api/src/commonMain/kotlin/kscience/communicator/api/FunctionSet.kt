@@ -19,11 +19,14 @@ public abstract class FunctionSet(public val endpoint: Endpoint) {
      * @property name Tha name of function.
      * @property spec The spec of the function.
      */
+    @Suppress("UNCHECKED_CAST")
     public data class Declaration<T, R> internal constructor(
         val owner: FunctionSet,
-        val name: String,
+        val name: String
+    ) {
         val spec: FunctionSpec<T, R>
-    )
+            get() = owner.functions[name] as FunctionSpec<T, R>
+    }
 
     /**
      * Creates a function, stores it and return declaration object pointing to this set.
@@ -36,7 +39,7 @@ public abstract class FunctionSet(public val endpoint: Endpoint) {
      */
     public fun <T, R> declare(name: String, spec: FunctionSpec<T, R>): Declaration<T, R> {
         functions[name] = spec
-        return Declaration(this, name, spec)
+        return Declaration(this, name)
     }
 
     public override fun toString(): String = "FunctionSet(endpoint='$endpoint', functions=$functions)"

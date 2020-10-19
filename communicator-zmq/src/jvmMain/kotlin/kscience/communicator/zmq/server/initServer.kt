@@ -5,7 +5,7 @@ import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
 internal actual fun initServer(server: ZmqTransportServer) {
-    thread(isDaemon = true) { initServerBlocking(server) }
+    thread(isDaemon = true, name = server.toString()) { initServerBlocking(server) }
 }
 
 internal actual inline fun runBlockingIfKotlinNative(crossinline action: () -> Any) {

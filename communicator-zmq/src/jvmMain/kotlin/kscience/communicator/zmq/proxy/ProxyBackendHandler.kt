@@ -1,8 +1,10 @@
 package kscience.communicator.zmq.proxy
 
+import kscience.communicator.zmq.Protocol
 import kscience.communicator.zmq.platform.UniqueID
 import kscience.communicator.zmq.platform.ZmqMsg
 import kscience.communicator.zmq.platform.ZmqSocket
+import kscience.communicator.zmq.util.sendMsg
 import java.lang.System.currentTimeMillis
 import java.nio.ByteBuffer
 
@@ -12,7 +14,7 @@ internal fun ZmqProxy.handleBackend(frontend: ZmqSocket, backend: ZmqSocket) {
 
     when (msg.pop().data.decodeToString()) {
         // Ответ на запрос - завершен успешно
-        "RESPONSE_RESULT" -> {
+        Protocol.Response.Result -> {
             val queryID = msg.pop().data
             val queryResult = msg.pop().data
             val clientIdentity = receivedQueries[UniqueID(queryID)]
@@ -20,59 +22,61 @@ internal fun ZmqProxy.handleBackend(frontend: ZmqSocket, backend: ZmqSocket) {
 
             sendMsg(frontend) {
                 +clientIdentity
-                +"RESPONSE_RESULT"
+                +Protocol.Response.Result
                 +queryID
                 +queryResult
             }
             sendMsg(backend) {
                 +workerIdentity
-                +"RESPONSE_RECEIVED"
+                +Protocol.Response.Received
                 +queryID
             }
         }
 
         // Ответ на запрос - ошибка RemoteFunctionException
-        "RESPONSE_EXCEPTION" -> {
+        Protocol.Response.Exception -> {
             val queryID = msg.pop().data
             val remoteException = msg.pop().data
             val clientIdentity = receivedQueries[UniqueID(queryID)]
             clientIdentity ?: return
+
             sendMsg(frontend) {
                 +clientIdentity
-                +"RESPONSE_EXCEPTION"
+                +Protocol.Response.Exception
                 +queryID
                 +remoteException
             }
+
             sendMsg(backend) {
                 +workerIdentity
-                +"RESPONSE_RECEIVED"
+                +Protocol.Response.Received
                 +queryID
             }
         }
 
         // Сообщение о том, что запрос получен
-        "QUERY_RECEIVED" -> {
+        Protocol.QueryReceived -> {
             val queryID = msg.pop().data
             sentQueries.remove(UniqueID(queryID))
         }
 
         // Heart beat
-        "HEART_BEAT" -> {
+        Protocol.HeartBeat -> {
             workers.asSequence()
                 .filter { it.identity.contentEquals(workerIdentity) }
                 .forEach { it.lastHeartbeatTime = currentTimeMillis() }
         }
 
         // Запрос воркера на подключение к прокси и передача всех схем
-        "WORKER_REGISTER" -> {
-            val worker = Worker(workerIdentity, arrayListOf(), currentTimeMillis())
+        Protocol.Worker.Register -> {
+            val worker = Worker(identity = workerIdentity, lastHeartbeatTime = currentTimeMillis())
             val functionsCount = ByteBuffer.wrap(msg.pop().data).int
 
             repeat(functionsCount) {
                 val functionName = msg.pop().data.decodeToString()
                 val functionArgScheme = msg.pop().data.decodeToString()
                 val functionResultScheme = msg.pop().data.decodeToString()
-                worker.functions.add(functionName)
+                worker.functions += functionName
                 val existingSchemes = functionSchemes[functionName]
 
                 if (existingSchemes == null) {
@@ -83,7 +87,7 @@ internal fun ZmqProxy.handleBackend(frontend: ZmqSocket, backend: ZmqSocket) {
                 } else if (existingSchemes.first != functionArgScheme || existingSchemes.second != functionResultScheme) {
                     sendMsg(backend) {
                         +workerIdentity
-                        +"INCOMPATIBLE_SPECS_FAILURE"
+                        +Protocol.IncompatibleSpecsFailure
                         +functionName
                         +existingSchemes.first
                         +existingSchemes.second
@@ -93,8 +97,8 @@ internal fun ZmqProxy.handleBackend(frontend: ZmqSocket, backend: ZmqSocket) {
                 }
             }
 
-            workers.add(worker)
-            worker.functions.forEach { workersByFunction.computeIfAbsent(it) { mutableListOf() }.add(worker) }
+            workers += worker
+            worker.functions.forEach { workersByFunction.getOrPut(it) { mutableListOf() } += worker }
         }
     }
 }

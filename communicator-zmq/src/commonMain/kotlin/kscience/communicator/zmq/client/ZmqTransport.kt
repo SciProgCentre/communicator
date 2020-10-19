@@ -4,10 +4,11 @@ import co.touchlab.stately.collections.IsoArrayDeque
 import co.touchlab.stately.collections.IsoMutableMap
 import kscience.communicator.api.Payload
 import kscience.communicator.api.Transport
+import kscience.communicator.zmq.Protocol
 import kscience.communicator.zmq.platform.*
 import kscience.communicator.zmq.util.sendMsg
 
-internal const val NEW_QUERIES_QUEUE_UPDATE_INTERVAL = 1000
+internal const val NEW_QUERIES_QUEUE_UPDATE_INTERVAL = 1
 
 internal class ResultCallback(val onResult: (ByteArray) -> Unit, val onError: (Throwable) -> Unit)
 
@@ -56,7 +57,6 @@ public class ZmqTransport private constructor(
         newQueriesQueue.dispose()
         specQueriesInWork.dispose()
         reactor.close()
-        mainDealer.close()
         ctx.close()
     }
 }
@@ -74,7 +74,7 @@ internal fun initClientBlocking(client: ZmqTransport): Unit = with(client) {
         0
     }
 
-    reactor.addReader(mainDealer, ZmqLoop.Argument(Unit)) { _ -> 0 }
+    reactor.addReader(mainDealer, ZmqLoop.Argument(Unit)) { 0 }
     reactor.start()
 }
 
@@ -88,7 +88,7 @@ private fun ZmqTransport.handleQueriesQueue() {
 
     sendMsg(getForwardSocket(query.address)) {
         +identity
-        +"QUERY"
+        +Protocol.Query
         +id
         +query.arg
         +query.functionName.encodeToByteArray()
@@ -102,8 +102,8 @@ private fun ZmqTransport.getForwardSocket(address: String): ZmqSocket {
     forwardSocket.setIdentity(identity.bytes)
     forwardSocket.connect("tcp://$address")
 
-    reactor.addReader(forwardSocket, ZmqLoop.Argument(ResultHandlerArg(forwardSocket, this))) {
-        it.value.client.handleResult(it.value)
+    reactor.addReader(forwardSocket, ZmqLoop.Argument(ForwardSocketHandlerArg(forwardSocket, this))) {
+        handleForwardSocket(it.value)
         0
     }
 
@@ -119,28 +119,8 @@ private fun ZmqTransport.handleSpecQueue() {
 
     sendMsg(getForwardSocket(specQuery.address)) {
         +identity
-        +"CODER_IDENTITY_QUERY"
+        +Protocol.Coder.IdentityQuery
         +id
         +specQuery.functionName.encodeToByteArray()
     }
-}
-
-private class ResultHandlerArg(
-    val socket: ZmqSocket,
-    val client: ZmqTransport
-)
-
-private fun ZmqTransport.handleResult(arg: ResultHandlerArg) {
-    println("Handling result")
-    val msg = ZmqMsg.recvMsg(arg.socket)
-    val queryID = UniqueID(msg.pop().data)
-    val result = msg.pop().data
-    println("Got result to the query [$queryID]: ${result.contentToString()}")
-
-    val callback = queriesInWork[queryID] ?: run {
-        println("Handler can't find callback in queriesInWork queue")
-        return
-    }
-
-    callback.onResult(result)
 }

@@ -1,24 +1,25 @@
 package kscience.communicator.zmq.server
 
 import kotlinx.coroutines.launch
+import kscience.communicator.zmq.Protocol
+import kscience.communicator.zmq.platform.UniqueID
 import kscience.communicator.zmq.platform.ZmqFrame
 import kscience.communicator.zmq.platform.ZmqMsg
 import kscience.communicator.zmq.util.sendMsg
 
 internal fun ZmqTransportServer.handleFrontend() {
-    println("frontend caught something")
     val msg = ZmqMsg.recvMsg(frontend)
     val msgBlocks = msg.map(ZmqFrame::data)
     val (clientIdentity, msgType) = msgBlocks
     val msgData = msgBlocks.drop(2)
 
     when (msgType.decodeToString()) {
-        "QUERY" -> {
+        Protocol.Query -> {
             val (queryID, argBytes, functionName) = msgData
 
             sendMsg(frontend) {
                 +clientIdentity
-                +"QUERY_RECEIVED"
+                +Protocol.QueryReceived
                 +queryID
             }
 
@@ -27,7 +28,7 @@ internal fun ZmqTransportServer.handleFrontend() {
             if (serverFunction == null)
                 sendMsg(frontend) {
                     +clientIdentity
-                    +"RESPONSE_UNKNOWN_FUNCTION"
+                    +Protocol.Response.UnknownFunction
                     +queryID
                     +functionName
                 }
@@ -44,7 +45,7 @@ internal fun ZmqTransportServer.handleFrontend() {
                 }
         }
 
-        "CODER_IDENTITY_QUERY" -> {
+        Protocol.Coder.IdentityQuery -> {
             val (functionName) = msgData
             val functionSpec = serverFunctionSpecs[functionName.decodeToString()]
 
@@ -52,10 +53,10 @@ internal fun ZmqTransportServer.handleFrontend() {
                 +clientIdentity
 
                 if (functionSpec == null) {
-                    +"CODER_IDENTITY_NOT_FOUND"
+                    +Protocol.Coder.IdentityNotFound
                     +functionName
                 } else {
-                    +"CODER_IDENTITY_FOUND"
+                    +Protocol.Coder.IdentityFound
                     +functionName
                     +functionSpec.argumentCoder.identity.encodeToByteArray()
                     +functionSpec.resultCoder.identity.encodeToByteArray()
@@ -63,13 +64,11 @@ internal fun ZmqTransportServer.handleFrontend() {
             }
         }
 
-        "RESPONSE_RECEIVED" -> {
+        Protocol.Response.Received -> {
             val (_) = msgData
             //TODO
         }
 
         else -> println("Unknown message type: ${msgType.decodeToString()}")
     }
-
-    Unit
 }

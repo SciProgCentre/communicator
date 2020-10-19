@@ -9,6 +9,7 @@ import kotlinx.coroutines.SupervisorJob
 import kscience.communicator.api.FunctionSpec
 import kscience.communicator.api.PayloadFunction
 import kscience.communicator.api.TransportServer
+import kscience.communicator.zmq.Protocol
 import kscience.communicator.zmq.platform.ZmqContext
 import kscience.communicator.zmq.platform.ZmqLoop
 import kscience.communicator.zmq.platform.ZmqSocket
@@ -27,13 +28,12 @@ public class ZmqTransportServer private constructor(
     private val ctx: ZmqContext = ZmqContext(),
     internal val repliesQueue: IsoArrayDeque<Response> = IsoArrayDeque(),
     internal val editFunctionQueriesQueue: IsoArrayDeque<EditFunctionQuery> = IsoArrayDeque(),
-    internal val frontend: ZmqSocket = ctx.createDealerSocket()
+    internal val frontend: ZmqSocket = ctx.createDealerSocket(),
+    private val reactor: ZmqLoop = ZmqLoop(ctx)
 ) : TransportServer {
     public constructor (port: Int) : this(port, serverFunctionSpecs = IsoMutableMap())
 
     internal fun start() {
-        val reactor = ZmqLoop(ctx)
-
         reactor.addReader(
             frontend,
             ZmqLoop.Argument(this),
@@ -70,7 +70,7 @@ public class ZmqTransportServer private constructor(
         editFunctionQueriesQueue.dispose()
         repliesQueue.dispose()
         serverFunctions.dispose()
-        frontend.close()
+        reactor.close()
         ctx.close()
     }
 
@@ -124,14 +124,14 @@ private fun ZmqTransportServer.handleReplyQueue() {
             when (reply) {
                 is ResponseResult -> {
                     +reply.clientIdentity
-                    +"RESPONSE_RESULT"
+                    +Protocol.Response.Result
                     +reply.queryID
                     +reply.resultBytes
                 }
 
                 is ResponseException -> {
                     +reply.clientIdentity
-                    +"RESPONSE_EXCEPTION"
+                    +Protocol.Response.Exception
                     +reply.queryID
                     +reply.exceptionMessage
                 }

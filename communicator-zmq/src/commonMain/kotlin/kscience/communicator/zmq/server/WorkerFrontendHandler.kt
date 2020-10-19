@@ -1,6 +1,7 @@
 package kscience.communicator.zmq.server
 
 import kotlinx.coroutines.launch
+import kscience.communicator.zmq.Protocol
 import kscience.communicator.zmq.platform.ZmqFrame
 import kscience.communicator.zmq.platform.ZmqMsg
 import kscience.communicator.zmq.util.sendMsg
@@ -12,11 +13,11 @@ internal fun handleWorkerFrontend(arg: ZmqWorker) = with(arg) {
     val msgData = msgBlocks.drop(1)
 
     when (msgType.decodeToString()) {
-        "QUERY" -> {
+        Protocol.Query -> {
             val (queryID, argBytes, functionName) = msgData
 
             sendMsg(frontend) {
-                +"QUERY_RECEIVED"
+                +Protocol.QueryReceived
                 +queryID
             }
 
@@ -24,7 +25,7 @@ internal fun handleWorkerFrontend(arg: ZmqWorker) = with(arg) {
 
             if (serverFunction == null) {
                 sendMsg(frontend) {
-                    +"RESPONSE_UNKNOWN_FUNCTION"
+                    +Protocol.Response.UnknownFunction
                     +queryID
                     +functionName
                 }
@@ -40,12 +41,12 @@ internal fun handleWorkerFrontend(arg: ZmqWorker) = with(arg) {
             }
         }
 
-        "RESPONSE_RECEIVED" -> {
+        Protocol.Response.Received -> {
             val (_) = msgData
             //TODO
         }
 
-        "INCOMPATIBLE_SPECS_FAILURE" -> {
+        Protocol.IncompatibleSpecsFailure -> {
             val (functionName, argCoder, resultCoder) = msgData
             println("INCOMPATIBLE_SPECS_FAILURE functionName=$functionName argCoder=$argCoder resultCoder=$resultCoder")
         }

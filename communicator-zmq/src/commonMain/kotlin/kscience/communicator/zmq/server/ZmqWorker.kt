@@ -11,6 +11,7 @@ import kscience.communicator.api.Endpoint
 import kscience.communicator.api.FunctionSpec
 import kscience.communicator.api.IntCoder
 import kscience.communicator.api.PayloadFunction
+import kscience.communicator.zmq.Protocol
 import kscience.communicator.zmq.platform.ZmqContext
 import kscience.communicator.zmq.platform.ZmqLoop
 import kscience.communicator.zmq.platform.ZmqSocket
@@ -93,7 +94,7 @@ internal fun initWorkerBlocking(state: ZmqWorker) = with(state) {
     frontend.connect("tcp://${proxy.host}:${proxy.port + 1}")
 
     sendMsg(frontend) {
-        +"WORKER_REGISTER"
+        +Protocol.Worker.Register
         +IntCoder.encode(serverFunctions.size)
 
         serverFunctionSpecs.forEach {
@@ -134,13 +135,13 @@ private fun handleReplyQueue(arg: ZmqWorker): Unit = with(arg) {
         sendMsg(frontend) {
             when (reply) {
                 is ResponseResult -> {
-                    +"RESPONSE_RESULT"
+                    +Protocol.Response.Result
                     +reply.queryID
                     +reply.resultBytes
                 }
 
                 is ResponseException -> {
-                    +"RESPONSE_EXCEPTION"
+                    +Protocol.Response.Exception
                     +reply.queryID
                     +reply.exceptionMessage
                 }

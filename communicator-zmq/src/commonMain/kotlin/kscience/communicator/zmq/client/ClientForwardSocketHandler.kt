@@ -2,6 +2,7 @@ package kscience.communicator.zmq.client
 
 import kscience.communicator.api.RemoteFunctionException
 import kscience.communicator.api.UnsupportedFunctionNameException
+import kscience.communicator.zmq.Protocol
 import kscience.communicator.zmq.platform.UniqueID
 import kscience.communicator.zmq.platform.ZmqFrame
 import kscience.communicator.zmq.platform.ZmqMsg
@@ -13,58 +14,70 @@ internal class ForwardSocketHandlerArg(
     val clientContext: ZmqTransport
 )
 
-internal fun ZmqTransport.handleForwardSocket(arg: ForwardSocketHandlerArg) {
+internal fun handleForwardSocket(arg: ForwardSocketHandlerArg) = with(arg.clientContext) {
     println("Handling result")
     val msg = ZmqMsg.recvMsg(arg.socket)
+    msg.pop()
     val msgType = msg.pop().data
     val msgData = msg.map(ZmqFrame::data)
 
     when (msgType.decodeToString()) {
-        "RESPONSE_RESULT" -> {
+        Protocol.Response.Result -> {
             val (queryID, resultBytes) = msgData
 
             sendMsg(arg.socket) {
-                +"RESPONSE_RECEIVED"
+                +identity
+                +Protocol.Response.Received
                 +queryID
             }
 
             val callback = queriesInWork[UniqueID(queryID)] ?: return
             callback.onResult(resultBytes)
         }
-        "RESPONSE_EXCEPTION" -> {
+
+        Protocol.Response.Exception -> {
             val (queryID, exceptionMessage) = msgData
+
             sendMsg(arg.socket) {
-                +"RESPONSE_RECEIVED"
+                +identity
+                +Protocol.Response.Received
                 +queryID
             }
+
             val callback = queriesInWork[UniqueID(queryID)] ?: return
             callback.onError(RemoteFunctionException(exceptionMessage.decodeToString()))
         }
-        "RESPONSE_UNKNOWN_FUNCTION" -> {
+
+        Protocol.Response.UnknownFunction -> {
             val (queryID, functionName) = msgData
+
             sendMsg(arg.socket) {
-                +"RESPONSE_RECEIVED"
+                +identity
+                +Protocol.Response.Received
                 +queryID
             }
+
             val callback = queriesInWork[UniqueID(queryID)] ?: return
             callback.onError(UnsupportedFunctionNameException(functionName.decodeToString()))
         }
-        "CODER_IDENTITY_FOUND" -> {
+
+        Protocol.Coder.IdentityFound -> {
             val (queryID, argCoderIdentity, resultCoderIdentity) = msgData
             val callback = specQueriesInWork[UniqueID(queryID)] ?: return
             callback.onSpecFound(argCoderIdentity.decodeToString(), resultCoderIdentity.decodeToString())
         }
-        "CODER_IDENTITY_NOT_FOUND" -> {
+
+        Protocol.Coder.IdentityNotFound -> {
             val (queryID) = msgData
             val callback = specQueriesInWork[UniqueID(queryID)] ?: return
             callback.onSpecNotFound()
         }
-        "QUERY_RECEIVED" -> {
+
+        Protocol.QueryReceived -> {
             val (_) = msgData
             //TODO
         }
-        else -> {
-            println("Unknown message type: ${msgType.decodeToString()}")
-        }
+
+        else -> println("Unknown message type: ${msgType.decodeToString()}")
     }
 }
