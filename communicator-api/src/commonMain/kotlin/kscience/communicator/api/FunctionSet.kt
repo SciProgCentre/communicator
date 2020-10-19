@@ -2,6 +2,8 @@ package kscience.communicator.api
 
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
+import kotlin.properties.PropertyDelegateProvider
+import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
 /**
@@ -91,6 +93,12 @@ public operator fun <T, R> FunctionSet.Declaration<T, R>.getValue(
  */
 public fun <T, R> FunctionSet.declare(nameToSpec: Pair<String, FunctionSpec<T, R>>): FunctionSet.Declaration<T, R> =
     declare(nameToSpec.first, nameToSpec.second)
+
+public fun <T, R> declare(spec: FunctionSpec<T, R>): PropertyDelegateProvider<FunctionSet, ReadOnlyProperty<FunctionSet, FunctionSet.Declaration<T, R>>> =
+    PropertyDelegateProvider { thisRef, property ->
+        val d = thisRef.declare(property.name to spec)
+        ReadOnlyProperty { _, _ -> d }
+    }
 
 /**
  * Registers a function in [FunctionServer] by its implementation and declaration. Warning, endpoint should be added to

@@ -54,10 +54,7 @@ public class ZmqTransportServer private constructor(
         reactor.addTimer(
             1,
             0,
-
-            ZmqLoop.Argument(
-                this
-            ),
+            ZmqLoop.Argument(this),
         ) {
             it.value.handleEditFunctionQueue()
             0
@@ -78,11 +75,11 @@ public class ZmqTransportServer private constructor(
         initServer(this)
     }
 
-    public override suspend fun register(name: String, function: PayloadFunction, spec: FunctionSpec<*, *>) {
+    public override fun register(name: String, function: PayloadFunction, spec: FunctionSpec<*, *>) {
         editFunctionQueriesQueue.addFirst(RegisterFunctionQuery(name, function, spec))
     }
 
-    public override suspend fun unregister(name: String) {
+    public override fun unregister(name: String) {
         editFunctionQueriesQueue.addFirst(UnregisterFunctionQuery(name))
     }
 }

@@ -7,7 +7,7 @@ import kscience.communicator.transport.TransportFunctionServer
 private val endpoint = Endpoint("ZMQ", ":8888")
 
 private object Functions : FunctionSet(endpoint) {
-    val f = declare("f" to FunctionSpec(IntCoder, IntCoder))
+    val f by declare(FunctionSpec(IntCoder, IntCoder))
 }
 
 /**

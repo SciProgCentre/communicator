@@ -22,7 +22,7 @@ public interface FunctionServer : Closeable {
      * @param function the function implementation.
      * @return the function implementation.
      */
-    public suspend fun <T, R> register(
+    public fun <T, R> register(
         name: String,
         spec: FunctionSpec<T, R>,
         function: suspend (T) -> R
@@ -33,7 +33,7 @@ public interface FunctionServer : Closeable {
      *
      * @param name the name of function.
      */
-    public suspend fun unregister(name: String)
+    public fun unregister(name: String)
 
     /**
      * Stops and disposes this function server.

@@ -30,7 +30,7 @@ public class TransportFunctionServer(override val endpoints: Set<Endpoint>) : Fu
         }
     }
 
-    override suspend fun <T, R> register(
+    override fun <T, R> register(
         name: String,
         spec: FunctionSpec<T, R>,
         function: suspend (T) -> R
@@ -40,6 +40,6 @@ public class TransportFunctionServer(override val endpoints: Set<Endpoint>) : Fu
         return function
     }
 
-    override suspend fun unregister(name: String): Unit = transportServers.forEach { it.unregister(name) }
+    override fun unregister(name: String): Unit = transportServers.forEach { it.unregister(name) }
     override fun close(): Unit = transportServers.forEach(TransportServer::close)
 }
