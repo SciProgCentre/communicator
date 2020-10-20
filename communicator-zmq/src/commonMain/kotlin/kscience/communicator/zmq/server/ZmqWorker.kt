@@ -18,7 +18,7 @@ import kscience.communicator.zmq.platform.ZmqSocket
 import kscience.communicator.zmq.util.sendMsg
 
 public class ZmqWorker private constructor(
-    internal val proxy: Endpoint,
+    private val proxy: Endpoint,
     internal val serverFunctions: IsoMutableMap<String, PayloadFunction>,
     internal val serverFunctionSpecs: IsoMutableMap<String, FunctionSpec<*, *>>,
     private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default,
@@ -26,7 +26,8 @@ public class ZmqWorker private constructor(
     private val ctx: ZmqContext = ZmqContext(),
     internal val repliesQueue: IsoArrayDeque<Response> = IsoArrayDeque(),
     internal val editFunctionQueriesQueue: IsoArrayDeque<WorkerEditFunctionQuery> = IsoArrayDeque(),
-    internal val frontend: ZmqSocket = ctx.createDealerSocket()
+    internal val frontend: ZmqSocket = ctx.createDealerSocket(),
+    private val reactor: ZmqLoop = ZmqLoop(ctx)
 ) : Closeable {
     public constructor(
         proxy: Endpoint,
@@ -56,7 +57,18 @@ public class ZmqWorker private constructor(
     }
 
     internal fun start() {
-        val reactor = ZmqLoop(ctx)
+        frontend.connect("tcp://${proxy.host}:${proxy.port + 1}")
+
+        sendMsg(frontend) {
+            +Protocol.Worker.Register
+            +IntCoder.encode(serverFunctions.size)
+
+            serverFunctionSpecs.forEach {
+                +it.key
+                +it.value.argumentCoder.identity
+                +it.value.resultCoder.identity
+            }
+        }
 
         reactor.addReader(
             frontend,
@@ -89,23 +101,6 @@ public class ZmqWorker private constructor(
 }
 
 internal expect fun initWorker(worker: ZmqWorker)
-
-internal fun initWorkerBlocking(state: ZmqWorker) = with(state) {
-    frontend.connect("tcp://${proxy.host}:${proxy.port + 1}")
-
-    sendMsg(frontend) {
-        +Protocol.Worker.Register
-        +IntCoder.encode(serverFunctions.size)
-
-        serverFunctionSpecs.forEach {
-            +it.key
-            +it.value.argumentCoder.identity
-            +it.value.resultCoder.identity
-        }
-    }
-
-    start()
-}
 
 internal sealed class WorkerEditFunctionQuery
 

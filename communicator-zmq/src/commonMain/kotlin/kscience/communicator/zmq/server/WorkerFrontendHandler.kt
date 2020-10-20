@@ -6,7 +6,7 @@ import kscience.communicator.zmq.platform.ZmqFrame
 import kscience.communicator.zmq.platform.ZmqMsg
 import kscience.communicator.zmq.util.sendMsg
 
-internal fun handleWorkerFrontend(arg: ZmqWorker) = with(arg) {
+internal fun handleWorkerFrontend(arg: ZmqWorker): Unit = with(arg) {
     val msg = ZmqMsg.recvMsg(frontend)
     val msgBlocks = msg.map(ZmqFrame::data)
     val (msgType) = msgBlocks
@@ -23,13 +23,13 @@ internal fun handleWorkerFrontend(arg: ZmqWorker) = with(arg) {
 
             val serverFunction = serverFunctions[functionName.decodeToString()]
 
-            if (serverFunction == null) {
+            if (serverFunction == null)
                 sendMsg(frontend) {
                     +Protocol.Response.UnknownFunction
                     +queryID
                     +functionName
                 }
-            } else {
+            else
                 workerScope.launch {
                     try {
                         val result = serverFunction(argBytes)
@@ -38,7 +38,6 @@ internal fun handleWorkerFrontend(arg: ZmqWorker) = with(arg) {
                         repliesQueue.addFirst(ResponseException(byteArrayOf(), queryID, ex.message.orEmpty()))
                     }
                 }
-            }
         }
 
         Protocol.Response.Received -> {
@@ -53,6 +52,4 @@ internal fun handleWorkerFrontend(arg: ZmqWorker) = with(arg) {
 
         else -> println("Unknown message type: ${msgType.decodeToString()}")
     }
-
-    Unit
 }

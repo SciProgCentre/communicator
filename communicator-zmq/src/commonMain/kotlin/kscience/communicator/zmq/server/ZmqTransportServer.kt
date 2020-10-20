@@ -34,6 +34,8 @@ public class ZmqTransportServer private constructor(
     public constructor (port: Int) : this(port, serverFunctionSpecs = IsoMutableMap())
 
     internal fun start() {
+        frontend.bind("tcp://127.0.0.1:${port}")
+
         reactor.addReader(
             frontend,
             ZmqLoop.Argument(this),
@@ -75,21 +77,13 @@ public class ZmqTransportServer private constructor(
         initServer(this)
     }
 
-    public override fun register(name: String, function: PayloadFunction, spec: FunctionSpec<*, *>) {
+    public override fun register(name: String, function: PayloadFunction, spec: FunctionSpec<*, *>): Unit =
         editFunctionQueriesQueue.addFirst(RegisterFunctionQuery(name, function, spec))
-    }
 
-    public override fun unregister(name: String) {
-        editFunctionQueriesQueue.addFirst(UnregisterFunctionQuery(name))
-    }
+    public override fun unregister(name: String): Unit = editFunctionQueriesQueue.addFirst(UnregisterFunctionQuery(name))
 }
 
 internal expect fun initServer(server: ZmqTransportServer)
-
-internal fun initServerBlocking(server: ZmqTransportServer) {
-    server.frontend.bind("tcp://127.0.0.1:${server.port}")
-    server.start()
-}
 
 internal sealed class EditFunctionQuery
 

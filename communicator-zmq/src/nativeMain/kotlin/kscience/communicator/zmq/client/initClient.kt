@@ -5,5 +5,5 @@ import kotlin.native.concurrent.Worker
 import kotlin.native.concurrent.freeze
 
 internal actual fun initClient(client: ZmqTransport) {
-    Worker.start().execute(TransferMode.SAFE, client::freeze, ::initClientBlocking)
+    Worker.start().execute(TransferMode.SAFE, client::freeze) { it.start() }
 }

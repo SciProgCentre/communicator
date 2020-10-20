@@ -2,7 +2,6 @@ package kscience.communicator.zmq.server
 
 import kotlinx.coroutines.launch
 import kscience.communicator.zmq.Protocol
-import kscience.communicator.zmq.platform.UniqueID
 import kscience.communicator.zmq.platform.ZmqFrame
 import kscience.communicator.zmq.platform.ZmqMsg
 import kscience.communicator.zmq.util.sendMsg

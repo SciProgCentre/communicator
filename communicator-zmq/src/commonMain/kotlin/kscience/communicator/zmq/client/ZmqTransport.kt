@@ -29,7 +29,7 @@ internal class SpecQuery(
 
 public class ZmqTransport private constructor(
     internal val ctx: ZmqContext = ZmqContext(),
-    internal val mainDealer: ZmqSocket = ctx.createDealerSocket(),
+    private val mainDealer: ZmqSocket = ctx.createDealerSocket(),
     internal val identity: UniqueID = UniqueID(),
     internal val newQueriesQueue: IsoArrayDeque<Query> = IsoArrayDeque(),
     internal val specQueriesQueue: IsoArrayDeque<SpecQuery> = IsoArrayDeque(),
@@ -45,6 +45,17 @@ public class ZmqTransport private constructor(
 
     init {
         initClient(this)
+    }
+
+    internal fun start() {
+        reactor.addTimer(NEW_QUERIES_QUEUE_UPDATE_INTERVAL, 0, ZmqLoop.Argument(this)) {
+            it.value.handleQueriesQueue()
+            it.value.handleSpecQueue()
+            0
+        }
+
+        reactor.addReader(mainDealer, ZmqLoop.Argument(Unit)) { 0 }
+        reactor.start()
     }
 
     internal fun makeQuery(query: Query) {
@@ -66,17 +77,6 @@ internal expect suspend fun ZmqTransport.respondImpl(
     name: String,
     payload: ByteArray
 ): ByteArray
-
-internal fun initClientBlocking(client: ZmqTransport): Unit = with(client) {
-    reactor.addTimer(NEW_QUERIES_QUEUE_UPDATE_INTERVAL, 0, ZmqLoop.Argument(this)) {
-        it.value.handleQueriesQueue()
-        it.value.handleSpecQueue()
-        0
-    }
-
-    reactor.addReader(mainDealer, ZmqLoop.Argument(Unit)) { 0 }
-    reactor.start()
-}
 
 internal expect fun initClient(client: ZmqTransport)
 
