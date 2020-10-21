@@ -16,7 +16,6 @@ kotlin {
     sourceSets {
         commonMain.get().dependencies { implementation(project(":communicator-transport")) }
         val jvmMain by getting { dependencies { implementation("org.slf4j:slf4j-simple:$slf4jVersion") } }
-
         val nativeMain by creating { dependsOn(commonMain.get()) }
         val nativeTest by creating { dependsOn(commonTest.get()) }
 
