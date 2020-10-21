@@ -1,8 +1,8 @@
 @file:Suppress("UNUSED_VARIABLE")
 
-plugins { kotlin("multiplatform") }
-
+internal val slf4jVersion: String by project
 internal val statelyIsoVersion: String by project
+plugins { kotlin(module = "multiplatform") }
 
 kotlin {
     explicitApi()
@@ -23,7 +23,11 @@ kotlin {
             implementation("co.touchlab:stately-iso-collections:$statelyIsoVersion")
         }
 
-        commonTest.get().dependencies { implementation(kotlin("test")) }
+        commonTest.get().dependencies {
+            implementation("org.slf4j:slf4j-simple:$slf4jVersion")
+            implementation(kotlin("test"))
+        }
+
         val nativeMain by creating { dependsOn(commonMain.get()) }
         val nativeTest by creating { dependsOn(commonTest.get()) }
 

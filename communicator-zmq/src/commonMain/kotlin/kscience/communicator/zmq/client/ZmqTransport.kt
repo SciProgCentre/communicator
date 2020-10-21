@@ -70,6 +70,9 @@ public class ZmqTransport private constructor(
             active[0]
         }
 
+        // Adding reader to ensure reactor will be rebuilt.
+        reactor.addReader(ctx.createDealerSocket(), ZmqLoop.Argument(Unit)) { active[0] }
+
         logger.info { "Starting event loop." }
         reactor.start()
     }
