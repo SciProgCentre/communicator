@@ -20,14 +20,14 @@ internal fun ZmqProxy.handleBackend(frontend: ZmqSocket, backend: ZmqSocket) {
             val clientIdentity = receivedQueries[UniqueID(queryID)]
             clientIdentity ?: return
 
-            sendMsg(frontend) {
+            frontend.sendMsg() {
                 +clientIdentity
                 +Protocol.Response.Result
                 +queryID
                 +queryResult
             }
 
-            sendMsg(backend) {
+            backend.sendMsg() {
                 +workerIdentity
                 +Protocol.Response.Received
                 +queryID
@@ -41,14 +41,14 @@ internal fun ZmqProxy.handleBackend(frontend: ZmqSocket, backend: ZmqSocket) {
             val clientIdentity = receivedQueries[UniqueID(queryID)]
             clientIdentity ?: return
 
-            sendMsg(frontend) {
+            frontend.sendMsg() {
                 +clientIdentity
                 +Protocol.Response.Exception
                 +queryID
                 +remoteException
             }
 
-            sendMsg(backend) {
+            backend.sendMsg() {
                 +workerIdentity
                 +Protocol.Response.Received
                 +queryID
@@ -86,7 +86,7 @@ internal fun ZmqProxy.handleBackend(frontend: ZmqSocket, backend: ZmqSocket) {
                         functionResultScheme
                     )
                 } else if (existingSchemes.first != functionArgScheme || existingSchemes.second != functionResultScheme) {
-                    sendMsg(backend) {
+                    backend.sendMsg() {
                         +workerIdentity
                         +Protocol.IncompatibleSpecsFailure
                         +functionName

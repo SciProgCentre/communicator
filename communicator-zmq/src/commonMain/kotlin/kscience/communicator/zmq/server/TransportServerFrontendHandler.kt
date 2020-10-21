@@ -16,7 +16,7 @@ internal fun ZmqTransportServer.handleFrontend() {
         Protocol.Query -> {
             val (queryID, argBytes, functionName) = msgData
 
-            sendMsg(frontend) {
+            frontend.sendMsg() {
                 +clientIdentity
                 +Protocol.QueryReceived
                 +queryID
@@ -25,7 +25,7 @@ internal fun ZmqTransportServer.handleFrontend() {
             val serverFunction = serverFunctions[functionName.decodeToString()]
 
             if (serverFunction == null)
-                sendMsg(frontend) {
+                frontend.sendMsg() {
                     +clientIdentity
                     +Protocol.Response.UnknownFunction
                     +queryID
@@ -48,7 +48,7 @@ internal fun ZmqTransportServer.handleFrontend() {
             val (functionName) = msgData
             val functionSpec = serverFunctionSpecs[functionName.decodeToString()]
 
-            sendMsg(frontend) {
+            frontend.sendMsg() {
                 +clientIdentity
 
                 if (functionSpec == null) {
@@ -68,6 +68,6 @@ internal fun ZmqTransportServer.handleFrontend() {
             //TODO
         }
 
-        else -> println("Unknown message type: ${msgType.decodeToString()}")
+        else -> logger.warn { "Unknown message type: ${msgType.decodeToString()}" }
     }
 }

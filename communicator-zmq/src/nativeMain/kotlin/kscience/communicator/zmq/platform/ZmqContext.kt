@@ -9,6 +9,7 @@ internal actual class ZmqContext actual constructor() : Closeable {
 
     init {
         zsys_init()
+        zsys_set_logstream(null)
     }
 
     actual fun createRouterSocket(): ZmqSocket =

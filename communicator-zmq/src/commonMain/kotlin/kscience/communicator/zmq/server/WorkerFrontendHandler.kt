@@ -6,7 +6,7 @@ import kscience.communicator.zmq.platform.ZmqFrame
 import kscience.communicator.zmq.platform.ZmqMsg
 import kscience.communicator.zmq.util.sendMsg
 
-internal fun handleWorkerFrontend(arg: ZmqWorker): Unit = with(arg) {
+internal fun ZmqWorker.handleWorkerFrontend() {
     val msg = ZmqMsg.recvMsg(frontend)
     val msgBlocks = msg.map(ZmqFrame::data)
     val (msgType) = msgBlocks
@@ -16,7 +16,7 @@ internal fun handleWorkerFrontend(arg: ZmqWorker): Unit = with(arg) {
         Protocol.Query -> {
             val (queryID, argBytes, functionName) = msgData
 
-            sendMsg(frontend) {
+            frontend.sendMsg {
                 +Protocol.QueryReceived
                 +queryID
             }
@@ -24,7 +24,7 @@ internal fun handleWorkerFrontend(arg: ZmqWorker): Unit = with(arg) {
             val serverFunction = serverFunctions[functionName.decodeToString()]
 
             if (serverFunction == null)
-                sendMsg(frontend) {
+                frontend.sendMsg {
                     +Protocol.Response.UnknownFunction
                     +queryID
                     +functionName
@@ -47,9 +47,9 @@ internal fun handleWorkerFrontend(arg: ZmqWorker): Unit = with(arg) {
 
         Protocol.IncompatibleSpecsFailure -> {
             val (functionName, argCoder, resultCoder) = msgData
-            println("INCOMPATIBLE_SPECS_FAILURE functionName=$functionName argCoder=$argCoder resultCoder=$resultCoder")
+            logger.warn { "INCOMPATIBLE_SPECS_FAILURE functionName=$functionName argCoder=$argCoder resultCoder=$resultCoder" }
         }
 
-        else -> println("Unknown message type: ${msgType.decodeToString()}")
+        else -> logger.warn { "Unknown message type: ${msgType.decodeToString()}" }
     }
 }

@@ -30,11 +30,11 @@ internal class MsgBuilder(private val msg: ZmqMsg) {
     }
 }
 
-internal inline fun sendMsg(socket: ZmqSocket, block: MsgBuilder.() -> Unit) {
+internal inline fun ZmqSocket.sendMsg(block: MsgBuilder.() -> Unit) {
     contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
 
     ZmqMsg().use { msg ->
         MsgBuilder(msg).block()
-        msg.send(socket)
+        msg.send(this)
     }
 }

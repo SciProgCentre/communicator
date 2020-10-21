@@ -15,7 +15,7 @@ internal class ForwardSocketHandlerArg(
 )
 
 internal fun handleForwardSocket(arg: ForwardSocketHandlerArg) = with(arg.clientContext) {
-    println("Handling result")
+    logger.info { "Handling result ($identity)." }
     val msg = ZmqMsg.recvMsg(arg.socket)
     msg.pop()
     val msgType = msg.pop().data
@@ -25,7 +25,7 @@ internal fun handleForwardSocket(arg: ForwardSocketHandlerArg) = with(arg.client
         Protocol.Response.Result -> {
             val (queryID, resultBytes) = msgData
 
-            sendMsg(arg.socket) {
+            arg.socket.sendMsg() {
                 +identity
                 +Protocol.Response.Received
                 +queryID
@@ -38,7 +38,7 @@ internal fun handleForwardSocket(arg: ForwardSocketHandlerArg) = with(arg.client
         Protocol.Response.Exception -> {
             val (queryID, exceptionMessage) = msgData
 
-            sendMsg(arg.socket) {
+            arg.socket.sendMsg() {
                 +identity
                 +Protocol.Response.Received
                 +queryID
@@ -51,7 +51,7 @@ internal fun handleForwardSocket(arg: ForwardSocketHandlerArg) = with(arg.client
         Protocol.Response.UnknownFunction -> {
             val (queryID, functionName) = msgData
 
-            sendMsg(arg.socket) {
+            arg.socket.sendMsg() {
                 +identity
                 +Protocol.Response.Received
                 +queryID
@@ -78,6 +78,6 @@ internal fun handleForwardSocket(arg: ForwardSocketHandlerArg) = with(arg.client
             //TODO
         }
 
-        else -> println("Unknown message type: ${msgType.decodeToString()}")
+        else -> logger.warn { "Unknown message type: ${msgType.decodeToString()}" }
     }
 }

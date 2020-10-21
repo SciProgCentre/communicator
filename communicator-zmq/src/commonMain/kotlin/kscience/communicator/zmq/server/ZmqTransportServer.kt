@@ -12,6 +12,8 @@ import kscience.communicator.zmq.platform.ZmqContext
 import kscience.communicator.zmq.platform.ZmqLoop
 import kscience.communicator.zmq.platform.ZmqSocket
 import kscience.communicator.zmq.util.sendMsg
+import mu.KLogger
+import mu.KotlinLogging
 
 /**
  * Implements transport server with ZeroMQ-based machinery. Associated client transport is
@@ -31,10 +33,12 @@ public class ZmqTransportServer private constructor(
     internal val frontend: ZmqSocket = ctx.createDealerSocket(),
     private val reactor: ZmqLoop = ZmqLoop(ctx),
     private val active: IsoMutableList<Int> = IsoMutableList { mutableListOf(0) },
+    internal val logger: KLogger = KotlinLogging.logger("ZmqTransportServer-$port")
 ) : TransportServer {
     public constructor (port: Int) : this(port, serverFunctionSpecs = IsoMutableMap())
 
     internal fun start() {
+        logger.info { "Starting ZmqTransportServer bound to $port." }
         frontend.bind("tcp://127.0.0.1:${port}")
 
         reactor.addReader(frontend, ZmqLoop.Argument(this)) {
@@ -52,11 +56,12 @@ public class ZmqTransportServer private constructor(
             active[0]
         }
 
+        logger.info { "Starting event loop." }
         reactor.start()
     }
 
     public override fun close() {
-        println("cleaning up")
+        logger.info { "Stopping and cleaning up." }
         active[0] = -1
         workerScope.cancel("Transport server is being stopped.")
         repliesQueue.dispose()
@@ -104,7 +109,7 @@ private fun ZmqTransportServer.handleReplyQueue() {
     while (true) {
         val reply = repliesQueue.removeLastOrNull() ?: break
 
-        sendMsg(frontend) {
+        frontend.sendMsg() {
             when (reply) {
                 is ResponseResult -> {
                     +reply.clientIdentity

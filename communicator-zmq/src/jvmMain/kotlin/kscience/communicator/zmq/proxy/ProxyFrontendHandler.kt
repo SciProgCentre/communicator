@@ -19,7 +19,7 @@ internal fun ZmqProxy.handleFrontend(frontend: ZmqSocket, backend: ZmqSocket) {
             val worker = workersByFunction[functionName]?.randomOrNull()
 
             // Если воркера нет, возвращаем ошибку
-            if (worker == null) sendMsg(frontend) {
+            if (worker == null) frontend.sendMsg() {
                 +clientIdentity
                 +Protocol.Response.UnknownFunction
                 +queryID
@@ -28,7 +28,7 @@ internal fun ZmqProxy.handleFrontend(frontend: ZmqSocket, backend: ZmqSocket) {
 
             // Если воркер есть, передаем ему запрос
             else {
-                sendMsg(backend) {
+                backend.sendMsg() {
                     +worker.identity
                     +Protocol.Query
                     +queryID
@@ -47,7 +47,7 @@ internal fun ZmqProxy.handleFrontend(frontend: ZmqSocket, backend: ZmqSocket) {
             val schemesPair = functionSchemes[functionName]
 
             // Если функция зарегистрирована
-            if (schemesPair != null) sendMsg(frontend) {
+            if (schemesPair != null) frontend.sendMsg() {
                 +clientIdentity
                 +Protocol.Coder.IdentityFound
                 +queryID
@@ -56,7 +56,7 @@ internal fun ZmqProxy.handleFrontend(frontend: ZmqSocket, backend: ZmqSocket) {
             }
 
             // Если функция не зарегистрирована
-            else sendMsg(frontend) {
+            else frontend.sendMsg() {
                 +clientIdentity
                 +Protocol.Coder.IdentityNotFound
                 +queryID

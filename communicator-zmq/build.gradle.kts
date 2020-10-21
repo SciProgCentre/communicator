@@ -2,6 +2,7 @@
 
 internal val coroutinesVersion: String by project
 internal val jeromqVersion: String by project
+internal val kotlinLoggingVersion: String by project
 internal val statelyIsoVersion: String by project
 plugins { kotlin(module = "multiplatform") }
 
@@ -28,6 +29,7 @@ kotlin {
 
         commonMain.get().dependencies {
             api(project(":communicator-api"))
+            api("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
             implementation("co.touchlab:stately-isolate:$statelyIsoVersion")
             implementation("co.touchlab:stately-iso-collections:$statelyIsoVersion")
         }

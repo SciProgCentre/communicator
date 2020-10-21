@@ -1,11 +1,9 @@
 package kscience.communicator.zmq.server
 
 import co.touchlab.stately.collections.IsoArrayDeque
+import co.touchlab.stately.collections.IsoMutableList
 import co.touchlab.stately.collections.IsoMutableMap
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.*
 import kotlinx.io.Closeable
 import kscience.communicator.api.Endpoint
 import kscience.communicator.api.FunctionSpec
@@ -16,6 +14,8 @@ import kscience.communicator.zmq.platform.ZmqContext
 import kscience.communicator.zmq.platform.ZmqLoop
 import kscience.communicator.zmq.platform.ZmqSocket
 import kscience.communicator.zmq.util.sendMsg
+import mu.KLogger
+import mu.KotlinLogging
 
 public class ZmqWorker private constructor(
     private val proxy: Endpoint,
@@ -27,7 +27,9 @@ public class ZmqWorker private constructor(
     internal val repliesQueue: IsoArrayDeque<Response> = IsoArrayDeque(),
     internal val editFunctionQueriesQueue: IsoArrayDeque<WorkerEditFunctionQuery> = IsoArrayDeque(),
     internal val frontend: ZmqSocket = ctx.createDealerSocket(),
-    private val reactor: ZmqLoop = ZmqLoop(ctx)
+    private val reactor: ZmqLoop = ZmqLoop(ctx),
+    private val active: IsoMutableList<Int> = IsoMutableList { mutableListOf(0) },
+    internal val logger: KLogger = KotlinLogging.logger("ZmqWorker-${proxy.host}-${proxy.port}"),
 ) : Closeable {
     public constructor(
         proxy: Endpoint,
@@ -47,15 +49,20 @@ public class ZmqWorker private constructor(
         initWorker(this)
     }
 
+    /**
+     * Stops and disposes this worker.
+     */
     public override fun close() {
-        frontend.close()
+        workerScope.cancel("Proxy is being stopped.")
+        serverFunctions.dispose()
+        serverFunctionSpecs.dispose()
         ctx.close()
     }
 
     internal fun start() {
         frontend.connect("tcp://${proxy.host}:${proxy.port + 1}")
 
-        sendMsg(frontend) {
+        frontend.sendMsg {
             +Protocol.Worker.Register
             +IntCoder.encode(serverFunctions.size)
 
@@ -70,8 +77,8 @@ public class ZmqWorker private constructor(
             frontend,
             ZmqLoop.Argument(this),
         ) {
-            handleWorkerFrontend(it.value)
-            0
+            it.value.handleWorkerFrontend()
+            active[0]
         }
 
         reactor.addTimer(
@@ -79,8 +86,8 @@ public class ZmqWorker private constructor(
             0,
             ZmqLoop.Argument(this),
         ) {
-            handleReplyQueue(it.value)
-            0
+            it.value.handleReplyQueue()
+            active[0]
         }
 
         reactor.addTimer(
@@ -88,8 +95,8 @@ public class ZmqWorker private constructor(
             0,
             ZmqLoop.Argument(this),
         ) {
-            handleEditFunctionQueue(it.value)
-            0
+            it.value.handleEditFunctionQueue()
+            active[0]
         }
 
         reactor.start()
@@ -119,11 +126,11 @@ internal class WorkerResponseException(
     val exceptionMessage: String
 ) : WorkerResponse()
 
-private fun handleReplyQueue(arg: ZmqWorker): Unit = with(arg) {
+private fun ZmqWorker.handleReplyQueue() {
     while (true) {
         val reply = repliesQueue.removeLastOrNull() ?: break
 
-        sendMsg(frontend) {
+        frontend.sendMsg {
             when (reply) {
                 is ResponseResult -> {
                     +Protocol.Response.Result
@@ -141,17 +148,17 @@ private fun handleReplyQueue(arg: ZmqWorker): Unit = with(arg) {
     }
 }
 
-private fun handleEditFunctionQueue(arg: ZmqWorker): Unit = with(arg) {
+private fun ZmqWorker.handleEditFunctionQueue() {
     while (true) {
         val editFunctionMessage = editFunctionQueriesQueue.removeLastOrNull() ?: break
 
         when (editFunctionMessage) {
             is WorkerRegisterFunctionQuery -> {
-                arg.serverFunctions[editFunctionMessage.name] = editFunctionMessage.function
-                arg.serverFunctionSpecs[editFunctionMessage.name] = editFunctionMessage.spec
+                serverFunctions[editFunctionMessage.name] = editFunctionMessage.function
+                serverFunctionSpecs[editFunctionMessage.name] = editFunctionMessage.spec
             }
 
-            is WorkerUnregisterFunctionQuery -> arg.serverFunctions.remove(editFunctionMessage.name)
+            is WorkerUnregisterFunctionQuery -> serverFunctions -= editFunctionMessage.name
         }
     }
 }
