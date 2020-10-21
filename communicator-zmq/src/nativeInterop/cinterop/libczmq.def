@@ -1,9 +1,7 @@
 package=org.zeromq.czmq
 headers=czmq.h
 compilerOpts.linux=-I/usr/include
-compilerOpts.osx=-I/usr/local -I/usr/local/include
 linkerOpts.linux=-L/usr/lib/x86_64-linux-gnu -L/usr/lib64 -lczmq -lzmq -lsystemd -luuid
-linkerOpts.osx=-L/opt/local/lib -L/usr/local/lib -lczmq -lzmq
 ---
 static inline int zloop_timer1(zloop_t *self, size_t delay, size_t times, int (*handler)(zloop_t *loop, int timer_id, void *arg), void *arg) {
   return zloop_timer(self, delay, times, handler, arg);
