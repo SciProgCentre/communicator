@@ -1,7 +1,6 @@
 @file:Suppress("UNUSED_VARIABLE")
 
-internal val coroutinesVersion: String by project
-internal val ioVersion: String by project
+internal val ktorVersion: String by project
 plugins { kotlin(module = "multiplatform") }
 
 kotlin {
@@ -13,30 +12,38 @@ kotlin {
     }
 
     jvm()
+    val hostOs = System.getProperty("os.name")
 
-    val nativeTarget = when (val hostOs = System.getProperty("os.name")) {
-        "Linux" -> linuxX64()
-        "Mac OS X" -> macosX64()
-        else -> throw GradleException("Host OS '$hostOs' is not supported in Kotlin/Native $project.")
-    }
+    val nativeTargets = (when {
+        hostOs == "Mac OS X" -> listOf(iosX64(),
+            iosArm32(),
+            iosArm64(),
+            macosX64(),
+            watchosX86(),
+            watchosArm64(),
+            watchosArm32(),
+            tvosX64(),
+            tvosArm64())
+
+        hostOs.startsWith("Windows") -> listOf(mingwX64())
+        else -> emptyList()
+    }) + listOf(linuxX64())
 
     sourceSets {
         all {
             with(languageSettings) {
                 useExperimentalAnnotation("kotlin.ExperimentalUnsignedTypes")
                 useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts")
+                useExperimentalAnnotation("kotlinx.coroutines.InternalCoroutinesApi")
             }
         }
 
-        commonMain.get().dependencies {
-            api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
-            api("org.jetbrains.kotlinx:kotlinx-io:$ioVersion")
-        }
+        commonMain { dependencies { api("io.ktor:ktor-io:$ktorVersion") } }
 
         val nativeMain by creating { dependsOn(commonMain.get()) }
         val nativeTest by creating { dependsOn(commonTest.get()) }
 
-        nativeTarget.apply {
+        configure(nativeTargets) {
             val main by compilations.getting { defaultSourceSet.dependsOn(nativeMain) }
             val test by compilations.getting { defaultSourceSet.dependsOn(nativeTest) }
         }

@@ -1,0 +1,53 @@
+# Based on https://github.com/touchlab/Stately/blob/main/.github/workflows/build.yml
+
+name: build
+on: [ push ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ macos-10.15, windows-2019, ubuntu-20.04 ]
+    runs-on: ${{matrix.os}}
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+      - name: Install dependencies - Mac OS X
+        if: matrix.os == 'macos-10.15'
+        run: |
+          env HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles brew install czmq
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+      - name: Cache gradle
+        uses: actions/cache@v2
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('*.gradle.kts') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      - name: Cache konan
+        uses: actions/cache@v2
+        with:
+          path: ~/.konan
+          key: ${{ runner.os }}-gradle-${{ hashFiles('*.gradle.kts') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      - name: Run bootstrap - Mac OS X
+        if: matrix.os == 'macos-10.15'
+        run: chmod +x ./bootstrap && ./bootstrap
+      - name: Install dependencies - Ubuntu
+        if: matrix.os == 'ubuntu-20.04'
+        run: sudo apt install -y libczmq-dev gcc-multilib
+      - name: Install Chrome - Ubuntu
+        if: matrix.os == 'ubuntu-20.04'
+        run: |
+          sudo apt install -y libappindicator1 fonts-liberation
+          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo dpkg -i google-chrome*.deb
+      - name: Add msys to path - Windows
+        if: matrix.os == 'windows-2019'
+        run: SETX PATH "%PATH%;C:\msys64\mingw64\bin"
+      - name: Build
+        run: chmod +x ./gradlew && ./gradlew build --no-daemon --stacktrace
