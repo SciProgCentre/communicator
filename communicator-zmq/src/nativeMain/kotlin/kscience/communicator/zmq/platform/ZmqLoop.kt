@@ -5,19 +5,26 @@ import kotlinx.io.Closeable
 import org.zeromq.czmq.*
 import kotlin.native.concurrent.AtomicInt
 
-internal actual class ZmqLoop(val backendLoop: CPointer<zloop_t> = checkNotNull(zloop_new())) : Closeable {
+private typealias ArgumentData<T> = Pair<T, ZmqLoop.(ZmqLoop.Argument<T>) -> Int>
+
+private inline fun <reified T : Any> loopCallbackHandler(
+    arg: COpaquePointer?,
+    loop: CPointer<zloop_t>?
+): Int {
+    val (value, handler) = checkNotNull(arg?.asStableRef<ArgumentData<T>>()?.get()) {
+        "zloop callback argument is null or cannot be read."
+    }
+
+    return ZmqLoop(checkNotNull(loop) { "zloop callback zloop_t pointer is null." }).handler(ZmqLoop.Argument(value))
+}
+
+internal actual class ZmqLoop(
+    internal val handle: CPointer<zloop_t> = checkNotNull(zloop_new()) { "zloop_new returned null." }
+) {
     actual constructor(ctx: ZmqContext) : this()
 
     actual fun start() {
-        zloop_start(backendLoop).checkZeroMQCode("zloop_start")
-    }
-
-    actual override fun close(): Unit = memScoped {
-        val cpv: CPointerVar<zloop_t> = alloc()
-        cpv.value = backendLoop
-        val a = allocPointerTo<CPointerVar<zloop_t>>()
-        a.pointed = cpv
-        zloop_destroy(a.value)
+        zloop_start(handle)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -25,32 +32,20 @@ internal actual class ZmqLoop(val backendLoop: CPointer<zloop_t> = checkNotNull(
         socket: ZmqSocket,
         arg: Argument<T>,
         crossinline handler: ZmqLoop.(Argument<T>) -> Int,
-    ) {
-        zloop_reader(
-            backendLoop,
-            socket.backendSocket,
+    ): Unit = zloop_reader(
+        handle,
+        socket.handle,
+        staticCFunction { loop, _, argPtr -> loopCallbackHandler<T>(argPtr, loop) },
 
-            staticCFunction { r, a, b ->
-                val (argParam, handlerParam) = checkNotNull(
-                    b?.asStableRef<Pair<T, ZmqLoop.(Any?, Argument<T>) -> Int>>()?.get()
-                )
-
-                ZmqLoop(checkNotNull(r)).handlerParam(
-                    a?.let(::ZmqSocket),
-                    Argument(argParam)
-                )
-            },
-
-            arg.also {
-                it.handler = { arg ->
-                    if (T::class.isInstance(arg.value))
-                        handler(arg)
-                    else
-                        error("Invalid argument received ${arg}.")
-                }
-            }.ref.asCPointer()
-        )
-    }
+        arg.also {
+            it.handler = { arg ->
+                if (T::class.isInstance(arg.value))
+                    handler(arg)
+                else
+                    error("Invalid callback argument is received from zloop: ${arg}.")
+            }
+        }.ref.asCPointer()
+    ).checkReturnState("zloop_timer")
 
     @Suppress("UNCHECKED_CAST")
     actual inline fun <reified T : Any> addTimer(
@@ -58,43 +53,33 @@ internal actual class ZmqLoop(val backendLoop: CPointer<zloop_t> = checkNotNull(
         times: Int,
         arg: Argument<T>,
         crossinline handler: ZmqLoop.(Argument<T>) -> Int,
-    ) {
-        zloop_timer(
-            backendLoop,
-            delay.toULong(),
-            times.toULong(),
+    ): Unit = zloop_timer(
+        handle,
+        delay.toULong(),
+        times.toULong(),
+        staticCFunction { loop, _, argPtr -> loopCallbackHandler<T>(argPtr, loop) },
 
-            staticCFunction { r, a, b ->
-                val (argParam, handlerParam) = checkNotNull(
-                    b?.asStableRef<Pair<T, ZmqLoop.(Any?, Argument<T>) -> Int>>()?.get()
-                )
-
-                ZmqLoop(checkNotNull(r)).handlerParam(a, Argument(argParam))
-            },
-
-            arg.also {
-                it.handler = { arg ->
-                    if (T::class.isInstance(arg.value))
-                        handler(arg)
-                    else
-                        error("Invalid argument received ${arg}.")
-                }
-            }.ref.asCPointer()
-        )
-    }
+        arg.also {
+            it.handler = { arg ->
+                if (T::class.isInstance(arg.value))
+                    handler(arg)
+                else
+                    error("Invalid callback argument is received from zloop: ${arg}.")
+            }
+        }.ref.asCPointer()
+    ).checkReturnState("zloop_timer")
 
     actual class Argument<T : Any> actual constructor(actual val value: T) : Closeable {
         internal lateinit var handler: ZmqLoop.(Argument<T>) -> Int
-        private val disposed: AtomicInt = AtomicInt(0)
+        private val isDisposed: AtomicInt = AtomicInt(0)
 
-        internal val ref: StableRef<Pair<T, ZmqLoop.(Argument<T>) -> Int>>
+        internal val ref: StableRef<ArgumentData<T>>
             get() = StableRef.create(value to handler)
 
         actual override fun close() {
-            if (disposed.value == 0) {
-                ref.dispose()
-                disposed.value = 1
-            }
+            if (isDisposed.value != 0) return
+            ref.dispose()
+            isDisposed.value = 1
         }
     }
 }

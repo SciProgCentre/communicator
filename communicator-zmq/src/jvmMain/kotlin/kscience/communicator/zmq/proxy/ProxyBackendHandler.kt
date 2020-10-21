@@ -26,6 +26,7 @@ internal fun ZmqProxy.handleBackend(frontend: ZmqSocket, backend: ZmqSocket) {
                 +queryID
                 +queryResult
             }
+
             sendMsg(backend) {
                 +workerIdentity
                 +Protocol.Response.Received

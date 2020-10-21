@@ -109,13 +109,10 @@ public fun <T, R> declare(spec: FunctionSpec<T, R>): PropertyDelegateProvider<Fu
  * @param function the function's implementation.
  * @receiver the function's implementation.
  */
-public suspend fun <T, R> FunctionServer.impl(
+public fun <T, R> FunctionServer.impl(
     declaration: FunctionSet.Declaration<T, R>,
     function: suspend (T) -> R
-): suspend (T) -> R {
-    contract { callsInPlace(function) }
-    return register(declaration.name, declaration.spec, function)
-}
+): suspend (T) -> R = register(declaration.name, declaration.spec, function)
 
 /**
  * Calls function by its declaration in the given client.

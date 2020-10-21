@@ -2,7 +2,7 @@ package kscience.communicator.zmq.platform
 
 import kotlinx.io.Closeable
 
-internal expect class ZmqLoop(ctx: ZmqContext) : Closeable {
+internal expect class ZmqLoop(ctx: ZmqContext) {
     inline fun <reified T : Any> addReader(
         socket: ZmqSocket,
         arg: Argument<T>,
@@ -17,7 +17,6 @@ internal expect class ZmqLoop(ctx: ZmqContext) : Closeable {
     )
 
     fun start()
-    override fun close()
 
     class Argument<T : Any>(value: T) : Closeable {
         val value: T

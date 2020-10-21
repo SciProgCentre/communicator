@@ -1,11 +1,15 @@
 package kscience.communicator.zmq.client
 
 import co.touchlab.stately.collections.IsoArrayDeque
+import co.touchlab.stately.collections.IsoMutableList
 import co.touchlab.stately.collections.IsoMutableMap
 import kscience.communicator.api.Payload
 import kscience.communicator.api.Transport
 import kscience.communicator.zmq.Protocol
-import kscience.communicator.zmq.platform.*
+import kscience.communicator.zmq.platform.UniqueID
+import kscience.communicator.zmq.platform.ZmqContext
+import kscience.communicator.zmq.platform.ZmqLoop
+import kscience.communicator.zmq.platform.ZmqSocket
 import kscience.communicator.zmq.util.sendMsg
 
 internal const val NEW_QUERIES_QUEUE_UPDATE_INTERVAL = 1
@@ -27,9 +31,14 @@ internal class SpecQuery(
     val callback: SpecCallback
 )
 
+/**
+ * Implements transport with ZeroMQ-based machinery. Associated server transport is
+ * [kscience.communicator.zmq.server.ZmqTransportServer].
+ *
+ * The recommended protocol identifier is `ZMQ`.
+ */
 public class ZmqTransport private constructor(
     internal val ctx: ZmqContext = ZmqContext(),
-    private val mainDealer: ZmqSocket = ctx.createDealerSocket(),
     internal val identity: UniqueID = UniqueID(),
     internal val newQueriesQueue: IsoArrayDeque<Query> = IsoArrayDeque(),
     internal val specQueriesQueue: IsoArrayDeque<SpecQuery> = IsoArrayDeque(),
@@ -37,6 +46,7 @@ public class ZmqTransport private constructor(
     internal val specQueriesInWork: IsoMutableMap<UniqueID, SpecCallback> = IsoMutableMap(),
     internal val forwardSockets: IsoMutableMap<String, ZmqSocket> = IsoMutableMap(),
     internal val reactor: ZmqLoop = ZmqLoop(ctx),
+    internal val active: IsoMutableList<Int> = IsoMutableList { mutableListOf(0) },
 ) : Transport {
     public override suspend fun respond(address: String, name: String, payload: Payload): Payload =
         respondImpl(address, name, payload)
@@ -51,10 +61,9 @@ public class ZmqTransport private constructor(
         reactor.addTimer(NEW_QUERIES_QUEUE_UPDATE_INTERVAL, 0, ZmqLoop.Argument(this)) {
             it.value.handleQueriesQueue()
             it.value.handleSpecQueue()
-            0
+            active[0]
         }
 
-        reactor.addReader(mainDealer, ZmqLoop.Argument(Unit)) { 0 }
         reactor.start()
     }
 
@@ -64,10 +73,12 @@ public class ZmqTransport private constructor(
     }
 
     public override fun close() {
-        queriesInWork.dispose()
+        active[0] = -1
         newQueriesQueue.dispose()
+        specQueriesQueue.dispose()
+        queriesInWork.dispose()
         specQueriesInWork.dispose()
-        reactor.close()
+        active.dispose()
         ctx.close()
     }
 }
@@ -104,7 +115,7 @@ private fun ZmqTransport.getForwardSocket(address: String): ZmqSocket {
 
     reactor.addReader(forwardSocket, ZmqLoop.Argument(ForwardSocketHandlerArg(forwardSocket, this))) {
         handleForwardSocket(it.value)
-        0
+        active[0]
     }
 
     forwardSockets[address] = forwardSocket

@@ -4,7 +4,7 @@ import kscience.communicator.transport.DefaultTransportFactory
 import kscience.communicator.transport.TransportFunctionClient
 import kscience.communicator.transport.TransportFunctionServer
 
-private val endpoint = Endpoint("ZMQ", ":8888")
+private val endpoint = Endpoint("ZMQ", "127.0.0.1:8888")
 
 private object Functions : FunctionSet(endpoint) {
     val f by declare(FunctionSpec(IntCoder, IntCoder))

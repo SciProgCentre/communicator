@@ -31,9 +31,9 @@ internal class ZmqProxy(private val port: Int) {
         val backend = ctx.createRouterSocket()
         frontend.bind("tcp://*:$port")
         backend.bind("tcp://*:${port + 1}")
-        val poller = ctx.backendContext.createPoller(2)
-        poller.register(frontend.backendSocket)
-        poller.register(backend.backendSocket)
+        val poller = ctx.handle.createPoller(2)
+        poller.register(frontend.handle)
+        poller.register(backend.handle)
 
         while (true) {
             if (poller.poll() < 0) continue

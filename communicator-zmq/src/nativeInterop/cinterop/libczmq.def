@@ -2,4 +2,4 @@ package=org.zeromq.czmq
 headers=libczmq/czmq.h
 headerFilter=libczmq/*
 compilerOpts.linux=-I/usr/include
-linkerOpts.linux=-L/usr/lib/x86_64-linux-gnu -lczmq
+linkerOpts.linux=-L/usr/lib/x86_64-linux-gnu -L/usr/lib64 -lczmq -lzmq -lsystemd -luuid

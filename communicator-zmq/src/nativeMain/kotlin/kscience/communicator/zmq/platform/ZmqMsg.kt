@@ -4,67 +4,71 @@ import kotlinx.cinterop.*
 import kotlinx.io.Closeable
 import org.zeromq.czmq.*
 
-internal actual class ZmqMsg internal constructor(val backendMsg: CPointer<zmsg_t>) : Closeable,
+internal actual class ZmqMsg internal constructor(val handle: CPointer<zmsg_t>) : Closeable,
     AbstractMutableCollection<ZmqFrame>(),
     MutableCollection<ZmqFrame> {
-    actual constructor() : this(checkNotNull(zmsg_new()))
+    actual constructor() : this(checkNotNull(zmsg_new()) { "zmsg_new returned null." })
 
     init {
-        require(zmsg_is(backendMsg)) { "Provided pointer $backendMsg doesn't point to zmsg_t." }
+        require(zmsg_is(handle)) { "Provided pointer $handle doesn't point to zmsg_t." }
     }
 
     override val size: Int
-        get() = zmsg_size(backendMsg).toInt()
+        get() = zmsg_size(handle).toInt()
 
-    actual fun pop(): ZmqFrame = ZmqFrame(checkNotNull(zmsg_pop(backendMsg)))
+    actual fun pop(): ZmqFrame =
+        ZmqFrame(checkNotNull(zmsg_pop(handle)) { "The zmsg is empty, or zmsg_pop returned null." })
 
     actual fun send(socket: ZmqSocket): Unit = memScoped {
         val cpv: CPointerVar<zmsg_t> = alloc()
-        cpv.value = backendMsg
+        cpv.value = handle
         val a = allocPointerTo<CPointerVar<zmsg_t>>()
         a.pointed = cpv
-        zmsg_send(a.value, socket.backendSocket).checkZeroMQCode("zmsg_send")
+        zmsg_send(a.value, socket.handle).checkReturnState("zmsg_send")
     }
 
-    override fun close(): Unit = memScoped {
-        if (!zmsg_is(backendMsg)) return@memScoped
-        val cpv: CPointerVar<zmsg_t> = alloc()
-        cpv.value = backendMsg
+    actual override fun close(): Unit = memScoped {
+        if (!zmsg_is(handle)) return@memScoped
+        val cpv = alloc<CPointerVar<zmsg_t>>()
+        cpv.value = handle
         val a = allocPointerTo<CPointerVar<zmsg_t>>()
         a.pointed = cpv
         zmsg_destroy(a.value)
     }
 
     actual fun add(data: ByteArray): Boolean {
-        zmsg_addmem(backendMsg, data.toCValues(), data.size.toULong()).checkZeroMQCode("zmsg_addmem")
+        zmsg_addmem(handle, data.toCValues(), data.size.toULong()).checkReturnState("zmsg_addmem")
         return true
     }
 
     actual companion object {
-        actual fun recvMsg(socket: ZmqSocket): ZmqMsg = ZmqMsg(checkNotNull(zmsg_recv(socket.backendSocket)))
+        actual fun recvMsg(socket: ZmqSocket): ZmqMsg =
+            ZmqMsg(checkNotNull(zmsg_recv(socket.handle)) { "zmsg_recv returned null." })
     }
 
     override fun add(element: ZmqFrame): Boolean {
-        zmsg_add(backendMsg, element.backendFrame).checkZeroMQCode("zmsg_add")
+        zmsg_add(handle, element.handle).checkReturnState("zmsg_add")
         return true
     }
 
+
+    actual fun copy(): ZmqMsg = ZmqMsg(checkNotNull(zmsg_dup(handle)) { "zmsg_dup returned null." })
+
     override fun iterator(): MutableIterator<ZmqFrame> {
-        check(zmsg_is(backendMsg)) { "Not a message!" }
-        val copy = checkNotNull(zmsg_dup(backendMsg))
+        val copy = copy()
 
         return object : MutableIterator<ZmqFrame> {
             var current: CPointer<zframe_t>? = null
 
-            override fun hasNext(): Boolean = zmsg_size(copy) != 0uL
+            override fun hasNext(): Boolean = zmsg_size(copy.handle) != 0uL
 
             override fun next(): ZmqFrame {
                 if (!hasNext()) throw NoSuchElementException()
-                current = zmsg_pop(copy)
-                return ZmqFrame(checkNotNull(current))
+                current = zmsg_pop(copy.handle)
+                return ZmqFrame(checkNotNull(current) { "Current frame is null, but the size of zmsg is more than 0." })
             }
 
-            override fun remove(): Unit = zmsg_remove(backendMsg, current)
+            override fun remove(): Unit = zmsg_remove(handle, current)
         }
     }
 }

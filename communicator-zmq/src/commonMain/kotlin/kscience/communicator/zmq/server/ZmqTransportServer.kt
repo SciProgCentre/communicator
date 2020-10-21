@@ -1,11 +1,9 @@
 package kscience.communicator.zmq.server
 
 import co.touchlab.stately.collections.IsoArrayDeque
+import co.touchlab.stately.collections.IsoMutableList
 import co.touchlab.stately.collections.IsoMutableMap
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.*
 import kscience.communicator.api.FunctionSpec
 import kscience.communicator.api.PayloadFunction
 import kscience.communicator.api.TransportServer
@@ -18,6 +16,8 @@ import kscience.communicator.zmq.util.sendMsg
 /**
  * Implements transport server with ZeroMQ-based machinery. Associated client transport is
  * [kscience.communicator.zmq.client.ZmqTransport].
+ *
+ * The recommended protocol identifier is `ZMQ`.
  */
 public class ZmqTransportServer private constructor(
     public override val port: Int,
@@ -29,47 +29,39 @@ public class ZmqTransportServer private constructor(
     internal val repliesQueue: IsoArrayDeque<Response> = IsoArrayDeque(),
     internal val editFunctionQueriesQueue: IsoArrayDeque<EditFunctionQuery> = IsoArrayDeque(),
     internal val frontend: ZmqSocket = ctx.createDealerSocket(),
-    private val reactor: ZmqLoop = ZmqLoop(ctx)
+    private val reactor: ZmqLoop = ZmqLoop(ctx),
+    private val active: IsoMutableList<Int> = IsoMutableList { mutableListOf(0) },
 ) : TransportServer {
     public constructor (port: Int) : this(port, serverFunctionSpecs = IsoMutableMap())
 
     internal fun start() {
         frontend.bind("tcp://127.0.0.1:${port}")
 
-        reactor.addReader(
-            frontend,
-            ZmqLoop.Argument(this),
-        ) {
+        reactor.addReader(frontend, ZmqLoop.Argument(this)) {
             it.value.handleFrontend()
-            0
+            active[0]
         }
 
-        reactor.addTimer(
-            1,
-            0,
-            ZmqLoop.Argument(this),
-        ) {
+        reactor.addTimer(1, 0, ZmqLoop.Argument(this)) {
             it.value.handleReplyQueue()
-            0
+            active[0]
         }
 
-        reactor.addTimer(
-            1,
-            0,
-            ZmqLoop.Argument(this),
-        ) {
+        reactor.addTimer(1, 0, ZmqLoop.Argument(this)) {
             it.value.handleEditFunctionQueue()
-            0
+            active[0]
         }
 
         reactor.start()
     }
 
     public override fun close() {
-        editFunctionQueriesQueue.dispose()
+        println("cleaning up")
+        active[0] = -1
+        workerScope.cancel("Transport server is being stopped.")
         repliesQueue.dispose()
-        serverFunctions.dispose()
-        reactor.close()
+        editFunctionQueriesQueue.dispose()
+        active.dispose()
         ctx.close()
     }
 
@@ -80,7 +72,8 @@ public class ZmqTransportServer private constructor(
     public override fun register(name: String, function: PayloadFunction, spec: FunctionSpec<*, *>): Unit =
         editFunctionQueriesQueue.addFirst(RegisterFunctionQuery(name, function, spec))
 
-    public override fun unregister(name: String): Unit = editFunctionQueriesQueue.addFirst(UnregisterFunctionQuery(name))
+    public override fun unregister(name: String): Unit =
+        editFunctionQueriesQueue.addFirst(UnregisterFunctionQuery(name))
 }
 
 internal expect fun initServer(server: ZmqTransportServer)

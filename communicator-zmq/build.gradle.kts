@@ -11,7 +11,7 @@ kotlin {
     val hostOs = System.getProperty("os.name")
 
     val nativeTarget = when {
-        hostOs == "Linux" -> linuxX64("native")
+        hostOs == "Linux" -> linuxX64()
         hostOs.startsWith("Windows") -> mingwX64()
         else -> throw GradleException("Host OS '$hostOs' is not supported in Kotlin/Native $project.")
     }
@@ -37,12 +37,9 @@ kotlin {
         }
 
         val jvmMain by getting { dependencies { api("org.zeromq:jeromq:$jeromqVersion") } }
-//        val nativeMain by creating { dependsOn(commonMain.get()) }
-//        val nativeTest by creating { dependsOn(commonTest.get()) }
-
-        nativeTarget.apply {
-//            main.defaultSourceSet.dependsOn(nativeMain)
-//            test.defaultSourceSet.dependsOn(nativeTest)
-        }
+        val nativeMain by creating { dependsOn(commonMain.get()) }
+        val nativeTest by creating { dependsOn(commonTest.get()) }
+        main.defaultSourceSet.dependsOn(nativeMain)
+        test.defaultSourceSet.dependsOn(nativeTest)
     }
 }

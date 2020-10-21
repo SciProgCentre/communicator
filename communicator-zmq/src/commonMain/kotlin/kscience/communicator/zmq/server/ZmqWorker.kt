@@ -48,10 +48,6 @@ public class ZmqWorker private constructor(
     }
 
     public override fun close() {
-        serverFunctions.dispose()
-        serverFunctionSpecs.dispose()
-        editFunctionQueriesQueue.dispose()
-        repliesQueue.dispose()
         frontend.close()
         ctx.close()
     }

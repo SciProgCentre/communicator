@@ -3,19 +3,19 @@ package kscience.communicator.zmq.platform
 import kotlinx.io.Closeable
 import org.zeromq.ZMQ
 
-internal actual class ZmqSocket(internal val backendSocket: ZMQ.Socket) : Closeable {
+internal actual class ZmqSocket(internal val handle: ZMQ.Socket) : Closeable {
     actual fun connect(zmqAddress: String) {
-        backendSocket.connect(zmqAddress)
+        handle.connect(zmqAddress)
     }
 
     actual fun bind(zmqAddress: String) {
-        backendSocket.bind(zmqAddress)
+        handle.bind(zmqAddress)
     }
 
     actual fun setIdentity(identity: ByteArray) {
-        backendSocket.identity = identity
+        handle.identity = identity
     }
 
-    actual override fun close(): Unit = backendSocket.close()
-    actual fun recv(): ByteArray = backendSocket.recv()
+    actual override fun close(): Unit = handle.close()
+    actual fun recv(): ByteArray = handle.recv()
 }
