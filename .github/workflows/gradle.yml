@@ -13,7 +13,7 @@ jobs:
         with:
           java-version: 11
       - name: Install dependencies
-        run: sudo apt install -y libczmq-dev
+        run: sudo apt install -y libczmq-dev gcc-multilib
       - name: Install Chrome
         run: |
           sudo apt install -y libappindicator1 fonts-liberation
