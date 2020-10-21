@@ -20,7 +20,6 @@ internal actual class ZmqMsg(internal val handle: ZMsg) : Closeable, MutableColl
     }
 
     actual override fun close(): Unit = handle.destroy()
-
     fun add(s: String): Boolean = handle.add(s)
 
     override operator fun iterator(): MutableIterator<ZmqFrame> {

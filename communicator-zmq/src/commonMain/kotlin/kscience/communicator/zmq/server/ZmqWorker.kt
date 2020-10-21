@@ -29,7 +29,7 @@ public class ZmqWorker private constructor(
     internal val frontend: ZmqSocket = ctx.createDealerSocket(),
     private val reactor: ZmqLoop = ZmqLoop(ctx),
     private val active: IsoMutableList<Int> = IsoMutableList { mutableListOf(0) },
-    internal val logger: KLogger = KotlinLogging.logger("ZmqWorker-${proxy.host}-${proxy.port}"),
+    internal val logger: KLogger = KotlinLogging.logger("ZmqWorker(${proxy.address})"),
 ) : Closeable {
     public constructor(
         proxy: Endpoint,

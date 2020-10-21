@@ -33,7 +33,7 @@ public class ZmqTransportServer private constructor(
     internal val frontend: ZmqSocket = ctx.createDealerSocket(),
     private val reactor: ZmqLoop = ZmqLoop(ctx),
     private val active: IsoMutableList<Int> = IsoMutableList { mutableListOf(0) },
-    internal val logger: KLogger = KotlinLogging.logger("ZmqTransportServer-$port")
+    internal val logger: KLogger = KotlinLogging.logger("ZmqTransportServer($port)")
 ) : TransportServer {
     public constructor (port: Int) : this(port, serverFunctionSpecs = IsoMutableMap())
 

@@ -16,7 +16,7 @@ kotlin {
 
     val nativeTarget = when (val hostOs = System.getProperty("os.name")) {
         "Linux" -> linuxX64()
-        else -> throw GradleException("Host OS '$hostOs' is not supported in Kotlin/Native $project.")
+        else -> null
     }
 
     sourceSets {
@@ -35,7 +35,7 @@ kotlin {
         val nativeMain by creating { dependsOn(commonMain.get()) }
         val nativeTest by creating { dependsOn(commonTest.get()) }
 
-        nativeTarget.apply {
+        nativeTarget?.apply {
             val main by compilations.getting { defaultSourceSet.dependsOn(nativeMain) }
             val test by compilations.getting { defaultSourceSet.dependsOn(nativeTest) }
         }

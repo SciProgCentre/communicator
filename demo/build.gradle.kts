@@ -6,14 +6,23 @@ plugins { kotlin(module = "multiplatform") }
 kotlin {
     jvm()
 
+    val nativeTarget = when (val hostOs = System.getProperty("os.name")) {
+        "Linux" -> linuxX64()
+        else -> null
+    }
+
+    nativeTarget?.binaries?.executable()
+
     sourceSets {
-        val jvmMain by getting {
-            dependencies {
-                implementation(project(":communicator-transport"))
-                implementation(project(":communicator-zmq"))
-                implementation(project(":communicator-api"))
-                implementation("org.slf4j:slf4j-simple:$slf4jVersion")
-            }
+        commonMain.get().dependencies { implementation(project(":communicator-transport")) }
+        val jvmMain by getting { dependencies { implementation("org.slf4j:slf4j-simple:$slf4jVersion") } }
+
+        val nativeMain by creating { dependsOn(commonMain.get()) }
+        val nativeTest by creating { dependsOn(commonTest.get()) }
+
+        nativeTarget?.apply {
+            val main by compilations.getting { defaultSourceSet.dependsOn(nativeMain) }
+            val test by compilations.getting { defaultSourceSet.dependsOn(nativeTest) }
         }
     }
 }

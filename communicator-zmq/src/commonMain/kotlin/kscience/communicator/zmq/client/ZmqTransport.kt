@@ -50,7 +50,7 @@ public class ZmqTransport private constructor(
     internal val forwardSockets: IsoMutableMap<String, ZmqSocket> = IsoMutableMap(),
     internal val reactor: ZmqLoop = ZmqLoop(ctx),
     internal val active: IsoMutableList<Int> = IsoMutableList { mutableListOf(0) },
-    internal val logger: KLogger = KotlinLogging.logger("ZmqTransport-$identityHash"),
+    internal val logger: KLogger = KotlinLogging.logger("ZmqTransport($identityHash)"),
 ) : Transport {
     public override suspend fun respond(address: String, name: String, payload: Payload): Payload =
         respondImpl(address, name, payload)
