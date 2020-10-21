@@ -7,11 +7,10 @@ internal val statelyIsoVersion: String by project
 kotlin {
     explicitApi()
     jvm()
-    val hostOs = System.getProperty("os.name")
 
-    val nativeTarget = when {
-        hostOs == "Linux" -> linuxX64()
-        hostOs.startsWith("Windows") -> mingwX64()
+    val nativeTarget = when (val hostOs = System.getProperty("os.name")) {
+        "Linux" -> linuxX64()
+        "Mac OS X" -> macosX64()
         else -> throw GradleException("Host OS '$hostOs' is not supported in Kotlin/Native $project.")
     }
 
