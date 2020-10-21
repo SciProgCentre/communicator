@@ -32,7 +32,7 @@ internal actual class ZmqLoop(
         socket: ZmqSocket,
         arg: Argument<T>,
         crossinline handler: ZmqLoop.(Argument<T>) -> Int,
-    ): Unit = zloop_reader(
+    ): Unit = zloop_reader1(
         handle,
         socket.handle,
         staticCFunction { loop, _, argPtr -> loopCallbackHandler<T>(argPtr, loop) },
@@ -53,7 +53,7 @@ internal actual class ZmqLoop(
         times: Int,
         arg: Argument<T>,
         crossinline handler: ZmqLoop.(Argument<T>) -> Int,
-    ): Unit = zloop_timer(
+    ): Unit = zloop_timer1(
         handle,
         delay.toULong(),
         times.toULong(),
