@@ -17,7 +17,6 @@ internal class ForwardSocketHandlerArg(
 internal fun handleForwardSocket(arg: ForwardSocketHandlerArg) = with(arg.clientContext) {
     logger.info { "Handling result ($identity)." }
     val msg = ZmqMsg.recvMsg(arg.socket)
-    msg.pop()
     val msgType = msg.pop().data
     val msgData = msg.map(ZmqFrame::data)
 
@@ -25,8 +24,7 @@ internal fun handleForwardSocket(arg: ForwardSocketHandlerArg) = with(arg.client
         Protocol.Response.Result -> {
             val (queryID, resultBytes) = msgData
 
-            arg.socket.sendMsg() {
-                +identity
+            arg.socket.sendMsg {
                 +Protocol.Response.Received
                 +queryID
             }
@@ -39,7 +37,6 @@ internal fun handleForwardSocket(arg: ForwardSocketHandlerArg) = with(arg.client
             val (queryID, exceptionMessage) = msgData
 
             arg.socket.sendMsg() {
-                +identity
                 +Protocol.Response.Received
                 +queryID
             }
@@ -52,7 +49,6 @@ internal fun handleForwardSocket(arg: ForwardSocketHandlerArg) = with(arg.client
             val (queryID, functionName) = msgData
 
             arg.socket.sendMsg() {
-                +identity
                 +Protocol.Response.Received
                 +queryID
             }

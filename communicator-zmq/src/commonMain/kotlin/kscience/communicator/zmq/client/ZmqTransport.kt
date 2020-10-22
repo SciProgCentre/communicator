@@ -104,7 +104,6 @@ private fun ZmqTransport.handleQueriesQueue() {
     queriesInWork[id] = query.callback
 
     getForwardSocket(query.address).sendMsg {
-        +identity
         +Protocol.Query
         +id
         +query.arg
@@ -136,7 +135,6 @@ private fun ZmqTransport.handleSpecQueue() {
     specQueriesInWork[id] = specQuery.callback
 
     getForwardSocket(specQuery.address).sendMsg {
-        +identity
         +Protocol.Coder.IdentityQuery
         +id
         +specQuery.functionName.encodeToByteArray()

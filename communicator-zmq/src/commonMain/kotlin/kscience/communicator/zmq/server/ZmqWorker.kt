@@ -18,7 +18,7 @@ import mu.KLogger
 import mu.KotlinLogging
 
 public class ZmqWorker private constructor(
-    private val proxy: Endpoint,
+    internal val proxy: Endpoint,
     internal val serverFunctions: IsoMutableMap<String, PayloadFunction>,
     internal val serverFunctionSpecs: IsoMutableMap<String, FunctionSpec<*, *>>,
     private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default,

@@ -1,6 +1,5 @@
 import kotlinx.coroutines.runBlocking
 import kscience.communicator.api.*
-import kscience.communicator.transport.DefaultTransportFactory
 import kscience.communicator.transport.TransportFunctionClient
 import kscience.communicator.transport.TransportFunctionServer
 
@@ -19,10 +18,11 @@ fun main(): Unit = runBlocking {
         it.impl(f) { x -> x * x + 1 }
     }
 
-    val client = TransportFunctionClient(DefaultTransportFactory)
+    val client = TransportFunctionClient()
     println("Calling ${Functions.f}")
     val result = Functions.f(client, 123)
     println("Result is $result")
     server.close()
     client.close()
 }
+

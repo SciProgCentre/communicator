@@ -30,7 +30,7 @@ public class ZmqTransportServer private constructor(
     private val ctx: ZmqContext = ZmqContext(),
     internal val repliesQueue: IsoArrayDeque<Response> = IsoArrayDeque(),
     internal val editFunctionQueriesQueue: IsoArrayDeque<EditFunctionQuery> = IsoArrayDeque(),
-    internal val frontend: ZmqSocket = ctx.createDealerSocket(),
+    internal val frontend: ZmqSocket = ctx.createRouterSocket(),
     private val reactor: ZmqLoop = ZmqLoop(ctx),
     private val active: IsoMutableList<Int> = IsoMutableList { mutableListOf(0) },
     internal val logger: KLogger = KotlinLogging.logger("ZmqTransportServer($port)")

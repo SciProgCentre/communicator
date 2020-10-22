@@ -10,13 +10,13 @@ internal fun ZmqTransportServer.handleFrontend() {
     val msg = ZmqMsg.recvMsg(frontend)
     val msgBlocks = msg.map(ZmqFrame::data)
     val (clientIdentity, msgType) = msgBlocks
-    val msgData = msgBlocks.drop(2)
+    val msgData = msgBlocks.drop(1)
 
     when (msgType.decodeToString()) {
         Protocol.Query -> {
             val (queryID, argBytes, functionName) = msgData
 
-            frontend.sendMsg() {
+            frontend.sendMsg {
                 +clientIdentity
                 +Protocol.QueryReceived
                 +queryID
@@ -25,7 +25,7 @@ internal fun ZmqTransportServer.handleFrontend() {
             val serverFunction = serverFunctions[functionName.decodeToString()]
 
             if (serverFunction == null)
-                frontend.sendMsg() {
+                frontend.sendMsg {
                     +clientIdentity
                     +Protocol.Response.UnknownFunction
                     +queryID
@@ -48,7 +48,7 @@ internal fun ZmqTransportServer.handleFrontend() {
             val (functionName) = msgData
             val functionSpec = serverFunctionSpecs[functionName.decodeToString()]
 
-            frontend.sendMsg() {
+            frontend.sendMsg {
                 +clientIdentity
 
                 if (functionSpec == null) {
