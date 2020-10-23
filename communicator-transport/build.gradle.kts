@@ -14,7 +14,12 @@ kotlin {
     }
 
     sourceSets {
-        all { languageSettings.useExperimentalAnnotation("kotlin.ExperimentalUnsignedTypes") }
+        all {
+            with(languageSettings) {
+                useExperimentalAnnotation("kotlin.ExperimentalUnsignedTypes")
+                useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts")
+            }
+        }
 
         commonMain.get().dependencies {
             api(project(":communicator-api"))

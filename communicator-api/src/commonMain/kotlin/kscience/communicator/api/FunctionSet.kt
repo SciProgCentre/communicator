@@ -140,6 +140,11 @@ public suspend operator fun <T, R> FunctionSet.Declaration<T, R>.invoke(client: 
  */
 public inline fun <F, S> F.configure(set: S, action: S.(F) -> Unit): F where F : FunctionServer, S : FunctionSet {
     contract { callsInPlace(action, InvocationKind.EXACTLY_ONCE) }
+
+    require(set.endpoint in endpoints) {
+        "The endpoint ${set.endpoint} of configured set isn't present in function server."
+    }
+
     action(set, this)
     return this
 }

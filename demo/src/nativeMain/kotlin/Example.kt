@@ -15,7 +15,7 @@ private object Functions : FunctionSet(endpoint) {
  * function, calls f from 123, and prints the result.
  */
 fun main(): Unit = runBlocking {
-    val server = TransportFunctionServer(endpoint).configure(Functions) {
+    val server = TransportFunctionServer(Functions) {
         it.impl(f) { x -> x * x + 1 }
     }
 
