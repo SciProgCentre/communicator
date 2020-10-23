@@ -63,7 +63,7 @@ internal actual class ZmqMsg internal constructor(val handle: CPointer<zmsg_t>) 
             override fun hasNext(): Boolean {
                 if (finished) return false
 
-                return if (zmsg_size(copy.handle) == 0) {
+                return if (zmsg_size(copy.handle) == 0uL) {
                     finished = true
                     copy.close()
                     false
