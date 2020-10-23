@@ -109,7 +109,7 @@ private fun ZmqTransportServer.handleReplyQueue() {
     while (true) {
         val reply = repliesQueue.removeLastOrNull() ?: break
 
-        frontend.sendMsg() {
+        frontend.sendMsg {
             when (reply) {
                 is ResponseResult -> {
                     +reply.clientIdentity

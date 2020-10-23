@@ -2,33 +2,33 @@ package kscience.communicator.zmq.proxy
 
 import kscience.communicator.zmq.Protocol
 import kscience.communicator.zmq.platform.UniqueID
+import kscience.communicator.zmq.platform.ZmqFrame
 import kscience.communicator.zmq.platform.ZmqMsg
 import kscience.communicator.zmq.platform.ZmqSocket
 import kscience.communicator.zmq.util.sendMsg
 
 internal fun ZmqProxy.handleFrontend(frontend: ZmqSocket, backend: ZmqSocket) {
-    val receivedMsg = ZmqMsg.recvMsg(frontend)
-    val clientIdentity = receivedMsg.pop().data
+    var receivedMsg = ZmqMsg.recvMsg(frontend).use { it.map(ZmqFrame::data) }
+    val (clientIdentity, type) = receivedMsg
+    receivedMsg = receivedMsg.drop(2)
 
-    when (receivedMsg.pop().data.decodeToString()) {
+    when (type.decodeToString()) {
         // Запрос на вычисление функции
         Protocol.Query -> {
-            val queryID = receivedMsg.pop().data
-            val queryArg = receivedMsg.pop().data
-            val functionName = receivedMsg.pop().data.decodeToString()
-            val worker = workersByFunction[functionName]?.randomOrNull()
+            val (queryID, queryArg, functionName) = receivedMsg
+            val worker = workersByFunction[functionName.decodeToString()]?.randomOrNull()
 
             // Если воркера нет, возвращаем ошибку
-            if (worker == null) frontend.sendMsg() {
+            if (worker == null) frontend.sendMsg {
                 +clientIdentity
                 +Protocol.Response.UnknownFunction
                 +queryID
-                +functionName
+                +functionName.decodeToString()
             }
 
             // Если воркер есть, передаем ему запрос
             else {
-                backend.sendMsg() {
+                backend.sendMsg {
                     +worker.identity
                     +Protocol.Query
                     +queryID
@@ -42,12 +42,11 @@ internal fun ZmqProxy.handleFrontend(frontend: ZmqSocket, backend: ZmqSocket) {
 
         // Запрос на получение структуры схемы для функции
         Protocol.Coder.IdentityQuery -> {
-            val queryID = receivedMsg.pop().data
-            val functionName = receivedMsg.pop().data.decodeToString()
-            val schemesPair = functionSchemes[functionName]
+            val (queryID, functionName) = receivedMsg
+            val schemesPair = functionSchemes[functionName.decodeToString()]
 
             // Если функция зарегистрирована
-            if (schemesPair != null) frontend.sendMsg() {
+            if (schemesPair != null) frontend.sendMsg {
                 +clientIdentity
                 +Protocol.Coder.IdentityFound
                 +queryID
@@ -56,7 +55,7 @@ internal fun ZmqProxy.handleFrontend(frontend: ZmqSocket, backend: ZmqSocket) {
             }
 
             // Если функция не зарегистрирована
-            else frontend.sendMsg() {
+            else frontend.sendMsg {
                 +clientIdentity
                 +Protocol.Coder.IdentityNotFound
                 +queryID
@@ -65,7 +64,7 @@ internal fun ZmqProxy.handleFrontend(frontend: ZmqSocket, backend: ZmqSocket) {
 
         // Сообщение о том, что ответ на запрос получен
         Protocol.Response.Received -> {
-            val queryID = receivedMsg.pop().data
+            val (queryID) = receivedMsg
             sentResults.remove(UniqueID(queryID))
         }
     }

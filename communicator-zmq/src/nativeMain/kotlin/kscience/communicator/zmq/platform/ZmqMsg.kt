@@ -51,16 +51,25 @@ internal actual class ZmqMsg internal constructor(val handle: CPointer<zmsg_t>) 
         return true
     }
 
-
     actual fun copy(): ZmqMsg = ZmqMsg(checkNotNull(zmsg_dup(handle)) { "zmsg_dup returned null." })
 
     override fun iterator(): MutableIterator<ZmqFrame> {
         val copy = copy()
 
         return object : MutableIterator<ZmqFrame> {
-            var current: CPointer<zframe_t>? = null
+            private var current: CPointer<zframe_t>? = null
+            private var finished = false
 
-            override fun hasNext(): Boolean = zmsg_size(copy.handle) != 0uL
+            override fun hasNext(): Boolean {
+                if (finished) return false
+
+                return if (zmsg_size(copy.handle) == 0) {
+                    finished = true
+                    copy.close()
+                    false
+                } else
+                    true
+            }
 
             override fun next(): ZmqFrame {
                 if (!hasNext()) throw NoSuchElementException()

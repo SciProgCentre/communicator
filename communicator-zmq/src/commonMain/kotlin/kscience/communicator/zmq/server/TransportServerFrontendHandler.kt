@@ -1,20 +1,20 @@
 package kscience.communicator.zmq.server
 
 import kotlinx.coroutines.launch
+import kotlinx.io.use
 import kscience.communicator.zmq.Protocol
 import kscience.communicator.zmq.platform.ZmqFrame
 import kscience.communicator.zmq.platform.ZmqMsg
 import kscience.communicator.zmq.util.sendMsg
 
 internal fun ZmqTransportServer.handleFrontend() {
-    val msg = ZmqMsg.recvMsg(frontend)
-    val msgBlocks = msg.map(ZmqFrame::data)
-    val (clientIdentity, msgType) = msgBlocks
-    val msgData = msgBlocks.drop(1)
+    var msg = ZmqMsg.recvMsg(frontend).use { it.map(ZmqFrame::data) }
+    val (clientIdentity, type) = msg
+    msg = msg.drop(1)
 
-    when (msgType.decodeToString()) {
+    when (type.decodeToString()) {
         Protocol.Query -> {
-            val (queryID, argBytes, functionName) = msgData
+            val (queryID, argBytes, functionName) = msg
 
             frontend.sendMsg {
                 +clientIdentity
@@ -45,7 +45,7 @@ internal fun ZmqTransportServer.handleFrontend() {
         }
 
         Protocol.Coder.IdentityQuery -> {
-            val (functionName) = msgData
+            val (functionName) = msg
             val functionSpec = serverFunctionSpecs[functionName.decodeToString()]
 
             frontend.sendMsg {
@@ -64,10 +64,10 @@ internal fun ZmqTransportServer.handleFrontend() {
         }
 
         Protocol.Response.Received -> {
-            val (_) = msgData
+            val (_) = msg
             //TODO
         }
 
-        else -> logger.warn { "Unknown message type: ${msgType.decodeToString()}" }
+        else -> logger.warn { "Unknown message type: ${type.decodeToString()}" }
     }
 }
