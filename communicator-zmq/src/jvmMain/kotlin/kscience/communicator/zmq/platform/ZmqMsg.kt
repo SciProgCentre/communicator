@@ -84,4 +84,14 @@ internal actual class ZmqMsg(internal val handle: ZMsg) : Closeable, MutableColl
     }
 
     actual fun copy(): ZmqMsg = ZmqMsg(handle.duplicate())
+
+    actual override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ZmqMsg) return false
+        if (handle != other.handle) return false
+        return true
+    }
+
+    actual override fun hashCode(): Int = handle.hashCode()
+    actual override fun toString(): String = joinToString(", ", "[", "]", transform = ZmqFrame::toString)
 }

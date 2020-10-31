@@ -11,7 +11,7 @@ kotlin {
     jvm()
 
     val nativeTarget = when (val hostOs = System.getProperty("os.name")) {
-        "Linux" -> linuxX64()
+        "Linux" -> linuxX64("native")
         else -> null
     }
 
@@ -34,12 +34,12 @@ kotlin {
         }
 
         val jvmMain by getting { dependencies { api("org.zeromq:jeromq:$jeromqVersion") } }
-        val nativeMain by creating { dependsOn(commonMain.get()) }
-        val nativeTest by creating { dependsOn(commonTest.get()) }
-
-        nativeTarget?.apply {
-            val main by compilations.getting { defaultSourceSet.dependsOn(nativeMain) }
-            val test by compilations.getting { defaultSourceSet.dependsOn(nativeTest) }
-        }
+//        val nativeMain by creating { dependsOn(commonMain.get()) }
+//        val nativeTest by creating { dependsOn(commonTest.get()) }
+//
+//        nativeTarget?.apply {
+//            val main by compilations.getting { defaultSourceSet.dependsOn(nativeMain) }
+//            val test by compilations.getting { defaultSourceSet.dependsOn(nativeTest) }
+//        }
     }
 }

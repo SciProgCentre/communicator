@@ -20,7 +20,7 @@ internal actual class ZmqMsg internal constructor(val handle: CPointer<zmsg_t>) 
         ZmqFrame(checkNotNull(zmsg_pop(handle)) { "The zmsg is empty, or zmsg_pop returned null." })
 
     actual fun send(socket: ZmqSocket): Unit = memScoped {
-        val cpv: CPointerVar<zmsg_t> = alloc()
+        val cpv = alloc<CPointerVar<zmsg_t>>()
         cpv.value = handle
         val a = allocPointerTo<CPointerVar<zmsg_t>>()
         a.pointed = cpv
@@ -80,4 +80,13 @@ internal actual class ZmqMsg internal constructor(val handle: CPointer<zmsg_t>) 
             override fun remove(): Unit = zmsg_remove(handle, current)
         }
     }
+
+    actual override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ZmqMsg) return false
+        return zmsg_eq(handle, other.handle)
+    }
+
+    actual override fun hashCode(): Int = fold(1) { acc, element -> 31 * acc * element.hashCode() }
+    actual override fun toString(): String = joinToString(", ", "[", "]", transform = ZmqFrame::toString)
 }

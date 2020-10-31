@@ -9,6 +9,9 @@ internal expect class ZmqMsg() : Closeable, MutableCollection<ZmqFrame> {
     fun send(socket: ZmqSocket)
     fun copy(): ZmqMsg
     override fun close()
+    override fun equals(other: Any?): Boolean
+    override fun hashCode(): Int
+    override fun toString(): String
 
     companion object {
         fun recvMsg(socket: ZmqSocket): ZmqMsg
