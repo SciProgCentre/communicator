@@ -11,7 +11,7 @@ kotlin {
     jvm()
 
     val nativeTarget = when (val hostOs = System.getProperty("os.name")) {
-        "Linux" -> linuxX64("native")
+        "Linux" -> linuxX64()
         else -> null
     }
 
@@ -26,20 +26,22 @@ kotlin {
             }
         }
 
-        commonMain.get().dependencies {
-            api(project(":communicator-api"))
-            api("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
-            implementation("co.touchlab:stately-isolate:$statelyIsoVersion")
-            implementation("co.touchlab:stately-iso-collections:$statelyIsoVersion")
+        commonMain {
+            dependencies {
+                api(project(":communicator-api"))
+                api("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
+                implementation("co.touchlab:stately-isolate:$statelyIsoVersion")
+                implementation("co.touchlab:stately-iso-collections:$statelyIsoVersion")
+            }
         }
 
         val jvmMain by getting { dependencies { api("org.zeromq:jeromq:$jeromqVersion") } }
-//        val nativeMain by creating { dependsOn(commonMain.get()) }
-//        val nativeTest by creating { dependsOn(commonTest.get()) }
-//
-//        nativeTarget?.apply {
-//            val main by compilations.getting { defaultSourceSet.dependsOn(nativeMain) }
-//            val test by compilations.getting { defaultSourceSet.dependsOn(nativeTest) }
-//        }
+        val nativeMain by creating { dependsOn(commonMain.get()) }
+        val nativeTest by creating { dependsOn(commonTest.get()) }
+
+        nativeTarget?.apply {
+            val main by compilations.getting { defaultSourceSet.dependsOn(nativeMain) }
+            val test by compilations.getting { defaultSourceSet.dependsOn(nativeTest) }
+        }
     }
 }

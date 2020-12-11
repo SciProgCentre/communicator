@@ -21,16 +21,20 @@ kotlin {
             }
         }
 
-        commonMain.get().dependencies {
-            api(project(":communicator-api"))
-            api(project(":communicator-zmq"))
-            implementation("co.touchlab:stately-isolate:$statelyIsoVersion")
-            implementation("co.touchlab:stately-iso-collections:$statelyIsoVersion")
+        commonMain {
+            dependencies {
+                api(project(":communicator-api"))
+                api(project(":communicator-zmq"))
+                implementation("co.touchlab:stately-isolate:$statelyIsoVersion")
+                implementation("co.touchlab:stately-iso-collections:$statelyIsoVersion")
+            }
         }
 
-        commonTest.get().dependencies {
-            implementation("org.slf4j:slf4j-simple:$slf4jVersion")
-            implementation(kotlin("test"))
+        commonTest {
+            dependencies {
+                implementation("org.slf4j:slf4j-simple:$slf4jVersion")
+                implementation(kotlin("test"))
+            }
         }
 
         val nativeMain by creating { dependsOn(commonMain.get()) }

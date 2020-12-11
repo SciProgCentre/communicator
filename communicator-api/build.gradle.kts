@@ -27,9 +27,11 @@ kotlin {
             }
         }
 
-        commonMain.get().dependencies {
-            api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
-            api("org.jetbrains.kotlinx:kotlinx-io:$ioVersion")
+        commonMain {
+            dependencies {
+                api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
+                api("org.jetbrains.kotlinx:kotlinx-io:$ioVersion")
+            }
         }
 
         val nativeMain by creating { dependsOn(commonMain.get()) }
