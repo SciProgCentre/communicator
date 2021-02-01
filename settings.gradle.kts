@@ -37,5 +37,7 @@ include(
     ":communicator-api",
     ":communicator-zmq",
     ":communicator-transport",
-    ":demo"
+    ":demo",
+    ":communicator-api-refactor",
+    ":communicator-zmq-refactor"
 )

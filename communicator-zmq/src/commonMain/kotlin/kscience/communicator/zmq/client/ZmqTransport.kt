@@ -12,7 +12,7 @@ class ZmqTransport : Transport {
     private val client = Client()
 
     override suspend fun respond(address: String, name: String, payload: Payload): Payload {
-        val deferred = CompletableDeferred<ByteArray>()
+        val deferred = CompletableDeferred<Payload>()
 
         client.makeQuery(Query(
             functionName = name,
