@@ -21,6 +21,7 @@ internal fun makeZmqAddress(protocol: String, address: String): String {
 /** Constructor must create a context with its init method */
 internal expect class ZmqContext() : Closeable {
     fun createSocket(type: ZmqSocketType): ZmqSocket
+    fun createLoop(): ZmqLoop
 
     override fun close()
 }
