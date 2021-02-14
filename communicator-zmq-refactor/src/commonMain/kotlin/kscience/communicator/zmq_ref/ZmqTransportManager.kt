@@ -1,15 +1,21 @@
 package kscience.communicator.zmq_ref
 
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import kotlinx.io.Closeable
 import kscience.communicator.api_ref.Payload
 import kscience.communicator.zmq_ref.zmq.*
 import kscience.communicator.zmq_ref.zmq.ZmqContext
+import kscience.communicator.zmq_ref.zmq.ZmqMessage
 import kscience.communicator.zmq_ref.zmq.ZmqProtocol
-import kscience.communicator.zmq_ref.zmq.ZmqLoop
 import kscience.communicator.zmq_ref.zmq.ZmqSocket
 import kscience.communicator.zmq_ref.zmq.makeZmqAddress
+
+
+/**
+ * Should generate different ids each time and be thread-safe
+ */
+expect class idGenerator() {
+    fun getNext(): String
+}
 
 /**
  * Object because only one ZMQ context is needed
@@ -18,7 +24,7 @@ object ZmqTransportManager: Closeable {
     private val context = ZmqContext()
     private val loop = context.createLoop()
 
-    // should be constexpr, but kotlin doesn't have it yet :(
+    // should be constexpr, but kotlin doesn't has it yet :(
     private val shutdownEndpoint = makeZmqAddress(
             ZmqProtocol.inproc,
             "ZMQTransportManager/death"
@@ -36,12 +42,15 @@ object ZmqTransportManager: Closeable {
             "ZMQTransportManager/transport/"
     )
 
-    private fun generateRequestId(): String {
-        //TODO
+    private val transportIdGenerator = idGenerator()
+    private fun generateTransportId(): String {
+        return transportIdGenerator.getNext()
     }
 
-    private fun generateTransportId(): UInt {
-        //TODO
+    // TODO: should this really be thread-safe?
+    private val requestIdGenerator = idGenerator()
+    private fun generateRequestId(): String {
+        return requestIdGenerator.getNext()
     }
 
     // TODO: decide witch type of map to use exactly
@@ -97,6 +106,20 @@ object ZmqTransportManager: Closeable {
         }
 
         loop.start()
+    }
+
+    private fun getTransportCallbackAddress(transportId: String): String {
+        return baseTransportMessagesEndpoint + transportId
+    }
+
+    //thread-safe
+    internal fun create(): ZmqTransport {
+        val transportId = generateTransportId()
+        return ZmqTransport(
+            context,
+            registerTransportEndpoint,
+            getTransportCallbackAddress(transportId)
+        )
     }
 
     override fun close() {

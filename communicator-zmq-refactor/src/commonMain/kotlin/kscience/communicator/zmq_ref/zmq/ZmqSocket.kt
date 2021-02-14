@@ -21,6 +21,7 @@ internal fun ZmqSocket.send(message: String, block: Boolean = true) {
     send(msg, block)
 }
 
+// TODO: Is this even legal? sockets are not thread safe and this might break them
 internal suspend fun ZmqSocket.suspendSend(message: ZmqMessage) {
     val res = GlobalScope.async {
         send(message)

@@ -8,5 +8,6 @@ import kotlinx.io.Closeable
  */
 internal expect class ZmqLoop: Closeable {
     fun add(socket: ZmqSocket, handler: () -> Unit)
+    fun addSuspend(socket: ZmqSocket, handler: suspend () -> Unit)
     fun start()
 }
