@@ -2,25 +2,33 @@ package kscience.communicator.zmq_ref
 
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kscience.communicator.api_ref.Payload
 import kscience.communicator.api_ref.PayloadFunction
 import kscience.communicator.api_ref.TransportServer
 import kscience.communicator.zmq_ref.zmq.ZmqContext
+import kscience.communicator.zmq_ref.zmq.ZmqLoopJob
 import kscience.communicator.zmq_ref.zmq.ZmqMessage
 import kscience.communicator.zmq_ref.zmq.ZmqSocketType
 
-// TODO: rethink logic, so everything not thread-safe is _definetely_ executed on
-internal class ZMQTransportServer(context: ZmqContext, endpoint: String): TransportServer {
-    private val workerLoop = context.createLoop()
+
+internal class ZMQTransportServer(context: ZmqContext, listenEndpoint: String, workerEndpoint: String): TransportServer {
+    private val worker = ZmqLoopJob(context, workerEndpoint)
+    private val functionExecutionDispatcher = Dispatchers.Default
+
     init {
+        worker.start { loop ->
+            val listenerSocket = context.createSocket(ZmqSocketType.ROUTER)
+            listenerSocket.bind(listenEndpoint)
 
-        val listenerSocket = context.createSocket(ZmqSocketType.ROUTER)
-        listenerSocket.bind(endpoint)
-
-        workerLoop.addSuspend(listenerSocket) {
-            val request = listenerSocket.recv()
-            val deferredAnswer = runBlocking { processRequest(request) }
-            listenerSocket.send()
+            loop.add(listenerSocket) {
+                val request = listenerSocket.recv()
+                GlobalScope.launch(functionExecutionDispatcher) {
+                    val answer = processRequest(request)
+                    listenerSocket.send(answer, false)
+                }
+            }
         }
     }
 
@@ -35,9 +43,9 @@ internal class ZMQTransportServer(context: ZmqContext, endpoint: String): Transp
         functions.remove(name)
     }
 
-    override fun close() {}
-
-
+    override fun close() {
+        worker.close()
+    }
 
     private suspend fun processRequest(request: ZmqMessage): ZmqMessage {
         val identity = request.pop()
@@ -50,7 +58,7 @@ internal class ZMQTransportServer(context: ZmqContext, endpoint: String): Transp
                 computeQuery(requestId, fName, arg)
             }
             else -> {
-                TransportServerAnswer.unknownCommand()
+                TransportServerAnswer.unknownCommand(command)
             }
         }
     }

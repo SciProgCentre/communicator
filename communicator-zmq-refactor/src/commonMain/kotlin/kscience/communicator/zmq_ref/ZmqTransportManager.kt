@@ -1,5 +1,6 @@
 package kscience.communicator.zmq_ref
 
+
 import kotlinx.io.Closeable
 import kscience.communicator.api_ref.Payload
 import kscience.communicator.zmq_ref.zmq.*
@@ -11,24 +12,15 @@ import kscience.communicator.zmq_ref.zmq.makeZmqAddress
 
 
 /**
- * Should generate different ids each time and be thread-safe
- */
-expect class idGenerator() {
-    fun getNext(): String
-}
-
-/**
  * Object because only one ZMQ context is needed
  */
+//TODO: separate thread-safe and not thread-safe parts
 object ZmqTransportManager: Closeable {
     private val context = ZmqContext()
-    private val loop = context.createLoop()
+
+    private val worker = ZmqLoopJob(context, makeZmqAddress(ZmqProtocol.inproc, "ZMQTransportManager/worker"))
 
     // should be constexpr, but kotlin doesn't has it yet :(
-    private val shutdownEndpoint = makeZmqAddress(
-            ZmqProtocol.inproc,
-            "ZMQTransportManager/death"
-    )
     private val registerTransportEndpoint = makeZmqAddress(
             ZmqProtocol.inproc,
             "ZMQTransportManager/transport_reg"
@@ -42,21 +34,20 @@ object ZmqTransportManager: Closeable {
             "ZMQTransportManager/transport/"
     )
 
-    private val transportIdGenerator = idGenerator()
+    private val transportIdGenerator = IdGenerator()
     private fun generateTransportId(): String {
         return transportIdGenerator.getNext()
     }
 
     // TODO: should this really be thread-safe?
-    private val requestIdGenerator = idGenerator()
+    private val requestIdGenerator = IdGenerator()
     private fun generateRequestId(): String {
         return requestIdGenerator.getNext()
     }
 
-    // TODO: decide witch type of map to use exactly
-    private val activeConnections = mutableMapOf<String, ZmqSocket>()
-
     private fun remoteCall(
+            activeConnections: MutableMap<String, ZmqSocket>,
+            loop: ZmqLoop,
             destination: String,
             name: String,
             argument: Payload,
@@ -80,32 +71,40 @@ object ZmqTransportManager: Closeable {
     }
 
     init {
-        val transportSockets = mutableListOf<ZmqSocket>()
+        worker.start { loop ->
+            // this exists only in one thread
 
-        val transportRegistrator = context.createSocket(ZmqSocketType.PULL)
-        transportRegistrator.bind(registerTransportEndpoint)
-        loop.add(transportRegistrator) {
-            // this is blocking, but should return immediately
-            val request = transportRegistrator.recv()
-            val callbackAddress = request.popString()
+            // TODO: decide witch type of map to use exactly
+            val activeConnections = mutableMapOf<String, ZmqSocket>()
+            val transportSockets = mutableListOf<ZmqSocket>()
 
-            val concreteTransportListener = context.createSocket(ZmqSocketType.PAIR)
-            concreteTransportListener.connect(callbackAddress)
-            loop.add(concreteTransportListener) {
-                val forwardRequest = concreteTransportListener.recv()
-                val destination = forwardRequest.popString()
-                val fName = forwardRequest.popString()
-                val payload = forwardRequest.pop()
-                remoteCall(destination, fName, payload) {
-                    concreteTransportListener.send(it)
+            val transportRegistrator = context.createSocket(ZmqSocketType.PULL)
+            transportRegistrator.bind(registerTransportEndpoint)
+            loop.add(transportRegistrator) {
+                // this is blocking, but should return immediately
+                val request = transportRegistrator.recv()
+                val callbackAddress = request.popString()
+
+                val concreteTransportListener = context.createSocket(ZmqSocketType.PAIR)
+                concreteTransportListener.connect(callbackAddress)
+                loop.add(concreteTransportListener) {
+                    val forwardRequest = concreteTransportListener.recv()
+                    val destination = forwardRequest.popString()
+                    val fName = forwardRequest.popString()
+                    val payload = forwardRequest.pop()
+                    remoteCall(activeConnections, loop, destination, fName, payload) {
+                        concreteTransportListener.send(it)
+                    }
                 }
+                transportSockets.add(concreteTransportListener)
             }
+            loop.start()
 
-            transportSockets.add(concreteTransportListener)
-
+            // After loop is closed
+            for (strToSocket in activeConnections) {
+                strToSocket.value.close()
+            }
         }
-
-        loop.start()
     }
 
     private fun getTransportCallbackAddress(transportId: String): String {
@@ -123,9 +122,6 @@ object ZmqTransportManager: Closeable {
     }
 
     override fun close() {
-        loop.close()
-        for (strToSocket in activeConnections) {
-            strToSocket.value.close()
-        }
+        worker.close()
     }
 }
