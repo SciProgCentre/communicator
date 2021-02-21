@@ -26,7 +26,7 @@ internal class ZmqLoopJob(
     private var started = false
 
     // NOT thread-safe
-    inline fun start(loopInit: (ZmqLoop) -> Unit) {
+    inline fun start(crossinline loopInit: (ZmqLoop) -> Unit) {
         if (started) {
             return
         }

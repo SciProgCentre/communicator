@@ -2,8 +2,9 @@ package kscience.communicator.zmq_ref.zmq
 
 import kotlinx.io.Closeable
 import org.zeromq.ZMQ
+import org.zeromq.ZMsg
 
-internal actual class ZmqSocket(private val actualSocket: ZMQ.Socket) : Closeable {
+internal actual class ZmqSocket(internal val actualSocket: ZMQ.Socket) : Closeable {
     actual fun connect(zmqAddress: String) {
         actualSocket.connect(zmqAddress)
     }
@@ -17,8 +18,7 @@ internal actual class ZmqSocket(private val actualSocket: ZMQ.Socket) : Closeabl
     }
 
     actual fun recv(): ZmqMessage {
-        val msg = actualSocket.recv()
-        //TODO: not implemented
+        return ZmqMessage(ZMsg.recvMsg(actualSocket))
     }
 
     actual suspend fun suspendRecv(): ZmqMessage {
@@ -26,10 +26,12 @@ internal actual class ZmqSocket(private val actualSocket: ZMQ.Socket) : Closeabl
     }
 
     actual fun send(message: ZmqMessage, block: Boolean) {
+        //TODO: make non-blocking send work
+        message.actualMessage.send(actualSocket)
     }
 
     actual override fun close() {
-
+        actualSocket.close()
     }
 
 }

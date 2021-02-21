@@ -13,7 +13,7 @@ kotlin.sourceSets {
         }
     }
 
-    jsMain { dependencies { api("io.github.microutils:kotlin-logging-js:1.8.3") } }
+//    jsMain { dependencies { api("io.github.microutils:kotlin-logging-js:1.8.3") } }
 
     jvmMain {
         dependencies {
