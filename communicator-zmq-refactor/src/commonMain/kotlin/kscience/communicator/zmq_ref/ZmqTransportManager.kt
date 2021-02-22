@@ -70,8 +70,8 @@ object ZmqTransportManager: Closeable {
         val request = ZmqMessage()
         val requestId = generateRequestId()
         callbacks[requestId] = callback
-        request.add("QUERY")
         request.add(requestId)
+        request.add("QUERY")
         request.add(argument)
         request.add(name)
 
