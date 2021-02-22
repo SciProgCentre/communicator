@@ -19,6 +19,7 @@ internal class ZMQTransportServer(context: ZmqContext, listenEndpoint: String, w
 
     init {
         worker.start { loop ->
+            // router is needed to process requests from different clients
             val listenerSocket = context.createSocket(ZmqSocketType.ROUTER)
             listenerSocket.bind(listenEndpoint)
 
@@ -48,11 +49,10 @@ internal class ZMQTransportServer(context: ZmqContext, listenEndpoint: String, w
     }
 
     private suspend fun processRequest(request: ZmqMessage): ZmqMessage {
-        val identity = request.pop()
+        val requestId = request.popString()
         val command = request.popString()
         return when (command) {
             "QUERY" -> {
-                val requestId = request.popString()
                 val arg = request.pop()
                 val fName = request.popString()
                 computeQuery(requestId, fName, arg)

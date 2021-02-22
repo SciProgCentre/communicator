@@ -15,6 +15,7 @@ import kscience.communicator.zmq_ref.zmq.makeZmqAddress
  * Object because only one ZMQ context is needed
  */
 //TODO: separate thread-safe and not thread-safe parts
+//TODO: remove used callbacks
 object ZmqTransportManager: Closeable {
     private val context = ZmqContext()
 
@@ -51,19 +52,26 @@ object ZmqTransportManager: Closeable {
             destination: String,
             name: String,
             argument: Payload,
+            callbacks: MutableMap<String, (ZmqMessage) -> Unit>,
             callback: (ZmqMessage) -> Unit) {
         val remoteServer = activeConnections.getOrPut(destination) {
+            // dealer, because several requests to one fServer are possible
             val fServer = context.createSocket(ZmqSocketType.DEALER)
             fServer.connect(destination)
             loop.add(fServer) {
                 val answer = fServer.recv()
-                callback(answer)
+                val id = answer.popString()
+                //TODO: decide what to do if id is unknown
+                (callbacks[id])?.invoke(answer)
             }
             fServer
         }
+
         val request = ZmqMessage()
+        val requestId = generateRequestId()
+        callbacks[requestId] = callback
         request.add("QUERY")
-        request.add(generateRequestId())
+        request.add(requestId)
         request.add(argument)
         request.add(name)
 
@@ -77,6 +85,7 @@ object ZmqTransportManager: Closeable {
             // TODO: decide witch type of map to use exactly
             val activeConnections = mutableMapOf<String, ZmqSocket>()
             val transportSockets = mutableListOf<ZmqSocket>()
+            val callbacks = mutableMapOf<String, (ZmqMessage) -> Unit>()
 
             val transportRegistrator = context.createSocket(ZmqSocketType.PULL)
             transportRegistrator.bind(registerTransportEndpoint)
@@ -92,7 +101,7 @@ object ZmqTransportManager: Closeable {
                     val destination = forwardRequest.popString()
                     val fName = forwardRequest.popString()
                     val payload = forwardRequest.pop()
-                    remoteCall(activeConnections, loop, destination, fName, payload) {
+                    remoteCall(activeConnections, loop, destination, fName, payload, callbacks) {
                         concreteTransportListener.send(it)
                     }
                 }

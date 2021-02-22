@@ -12,7 +12,6 @@ internal expect class ZmqMessage() {
     fun add(msg: ByteArray)
 
     fun pop(): Payload
-
     //decodeToString() ?
     fun popString(): String
 }

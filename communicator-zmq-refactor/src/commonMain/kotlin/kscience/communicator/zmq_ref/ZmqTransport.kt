@@ -12,7 +12,10 @@ class RemoteFunctionException(what: String): Exception(what)
 class UnknownRemoteFunction(what: String): Exception(what)
 class IncorrectReplyType(type: String): Exception("Reply type $type is not supported")
 
-
+/**
+ * Only one transport per functional server!
+ */
+//TODO: move creation of ZmqTransport to transportManager.create() to prevent multiple transports on one?
 internal class ZmqTransport(
         context: ZmqContext,
         registerEndpoint: String,
@@ -36,10 +39,9 @@ internal class ZmqTransport(
         request.add(name)
         request.add(payload)
 
-        managerSocket.suspendSend(request)
-        val reply = managerSocket.suspendRecv()
+        managerSocket.send(request)
+        val reply = managerSocket.recv()
         val type = reply.popString()
-        val id = reply.popString()
 
         return when(type) {
             "RESPONSE_RESULT" -> {reply.pop()}
