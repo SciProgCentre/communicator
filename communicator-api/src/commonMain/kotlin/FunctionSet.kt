@@ -24,7 +24,7 @@ public abstract class FunctionSet(public val endpoint: Endpoint) {
     @Suppress("UNCHECKED_CAST")
     public data class Declaration<T, R> internal constructor(
         val owner: FunctionSet,
-        val name: String
+        val name: String,
     ) {
         val spec: FunctionSpec<T, R>
             get() = owner.functions[name] as FunctionSpec<T, R>
@@ -59,7 +59,7 @@ public abstract class FunctionSet(public val endpoint: Endpoint) {
 @Suppress("UNCHECKED_CAST")
 public operator fun <T, R> FunctionSet.getValue(
     thisRef: FunctionClient,
-    property: KProperty<*>
+    property: KProperty<*>,
 ): suspend (T) -> R {
     val name = property.name
 
@@ -80,7 +80,7 @@ public operator fun <T, R> FunctionSet.getValue(
  */
 public operator fun <T, R> FunctionSet.Declaration<T, R>.getValue(
     thisRef: FunctionClient,
-    property: KProperty<*>
+    property: KProperty<*>,
 ): suspend (T) -> R = owner.getValue(thisRef, property)
 
 /**
@@ -94,6 +94,15 @@ public operator fun <T, R> FunctionSet.Declaration<T, R>.getValue(
 public fun <T, R> FunctionSet.declare(nameToSpec: Pair<String, FunctionSpec<T, R>>): FunctionSet.Declaration<T, R> =
     declare(nameToSpec.first, nameToSpec.second)
 
+/**
+ * Returns [PropertyDelegateProvider] providing [FunctionSet.Declaration] objects by using given spec and name of the
+ * property.
+ *
+ * @param T the type the function takes.
+ * @param R the type the function returns.
+ * @param spec the spec of function.
+ * @return a new declaration object.
+ */
 public fun <T, R> declare(spec: FunctionSpec<T, R>): PropertyDelegateProvider<FunctionSet, ReadOnlyProperty<FunctionSet, FunctionSet.Declaration<T, R>>> =
     PropertyDelegateProvider { thisRef, property ->
         val d = thisRef.declare(property.name to spec)
@@ -111,7 +120,7 @@ public fun <T, R> declare(spec: FunctionSpec<T, R>): PropertyDelegateProvider<Fu
  */
 public fun <T, R> FunctionServer.impl(
     declaration: FunctionSet.Declaration<T, R>,
-    function: suspend (T) -> R
+    function: suspend (T) -> R,
 ): suspend (T) -> R = register(declaration.name, declaration.spec, function)
 
 /**

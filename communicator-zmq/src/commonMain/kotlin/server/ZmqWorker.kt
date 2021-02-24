@@ -5,17 +5,14 @@ import co.touchlab.stately.collections.IsoMutableList
 import co.touchlab.stately.collections.IsoMutableMap
 import io.ktor.utils.io.core.Closeable
 import kotlinx.coroutines.*
-import space.kscience.communicator.api.Endpoint
-import space.kscience.communicator.api.FunctionSpec
-import space.kscience.communicator.api.IntCoder
-import space.kscience.communicator.api.PayloadFunction
+import mu.KLogger
+import mu.KotlinLogging
+import space.kscience.communicator.api.*
 import space.kscience.communicator.zmq.Protocol
 import space.kscience.communicator.zmq.platform.ZmqContext
 import space.kscience.communicator.zmq.platform.ZmqLoop
 import space.kscience.communicator.zmq.platform.ZmqSocket
 import space.kscience.communicator.zmq.util.sendMsg
-import mu.KLogger
-import mu.KotlinLogging
 
 public class ZmqWorker private constructor(
     internal val proxy: Endpoint,
@@ -55,12 +52,12 @@ public class ZmqWorker private constructor(
         ctx.close()
     }
 
-    internal suspend fun start() {
+    internal fun start() {
         frontend.connect("tcp://${proxy.host}:${proxy.port + 1}")
 
         frontend.sendMsg {
             +Protocol.Worker.Register
-            +IntCoder.encode(serverFunctions.size)
+            +runBlocking { IntCoder.encode(serverFunctions.size) }
 
             serverFunctions.mapValues { it.value.second }.forEach {
                 +it.key

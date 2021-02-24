@@ -1,10 +1,10 @@
-package kscience.communicator.zmq.util
+package space.kscience.communicator.zmq.util
 
 import io.ktor.utils.io.core.use
-import kscience.communicator.zmq.platform.UniqueID
-import kscience.communicator.zmq.platform.ZmqFrame
-import kscience.communicator.zmq.platform.ZmqMsg
-import kscience.communicator.zmq.platform.ZmqSocket
+import space.kscience.communicator.zmq.platform.UniqueID
+import space.kscience.communicator.zmq.platform.ZmqFrame
+import space.kscience.communicator.zmq.platform.ZmqMsg
+import space.kscience.communicator.zmq.platform.ZmqSocket
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
