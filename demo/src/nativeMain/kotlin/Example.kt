@@ -1,5 +1,3 @@
-package space.kscience.communicator.demo
-
 import kotlinx.coroutines.runBlocking
 import space.kscience.communicator.api.*
 import space.kscience.communicator.transport.TransportFunctionClient
