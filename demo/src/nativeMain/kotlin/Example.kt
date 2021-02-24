@@ -9,6 +9,7 @@ private val endpoint = Endpoint("ZMQ", "127.0.0.1:8888")
 
 private object Functions : FunctionSet(endpoint) {
     val f by declare(FunctionSpec(IntCoder, IntCoder))
+    val g by declare(FunctionSpec(IntCoder, StringCoder))
 }
 
 /**
@@ -18,11 +19,15 @@ private object Functions : FunctionSet(endpoint) {
 fun main(): Unit = runBlocking {
     val server = TransportFunctionServer(Functions) {
         it.impl(f) { x -> x * x + 1 }
+        it.impl(g) { x -> "a".repeat(x) }
     }
 
     val client = TransportFunctionClient()
     println("Calling ${Functions.f}")
-    val result = Functions.f(client, 123)
+    var result: Any = Functions.f(client, 123)
+    println("Result is $result")
+    println("Calling ${Functions.g}")
+    result = Functions.g(client, 55)
     println("Result is $result")
     server.close()
     client.close()
