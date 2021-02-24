@@ -13,11 +13,22 @@ kotlin {
     }
 
     jvm()
+    val hostOs = System.getProperty("os.name")
 
-    val nativeTarget = when (val hostOs = System.getProperty("os.name")) {
-        "Linux" -> linuxX64()
-        else -> null
-    }
+    val nativeTargets = (when {
+        hostOs == "Mac OS X" -> listOf(iosX64(),
+            iosArm32(),
+            iosArm64(),
+            macosX64(),
+            watchosX86(),
+            watchosArm64(),
+            watchosArm32(),
+            tvosX64(),
+            tvosArm64())
+
+        hostOs.startsWith("Windows") -> listOf(mingwX64())
+        else -> emptyList()
+    }) + listOf(linuxX64())
 
     sourceSets {
         all {
@@ -33,7 +44,7 @@ kotlin {
         val nativeMain by creating { dependsOn(commonMain.get()) }
         val nativeTest by creating { dependsOn(commonTest.get()) }
 
-        nativeTarget?.apply {
+        configure(nativeTargets) {
             val main by compilations.getting { defaultSourceSet.dependsOn(nativeMain) }
             val test by compilations.getting { defaultSourceSet.dependsOn(nativeTest) }
         }
