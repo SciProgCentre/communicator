@@ -10,8 +10,3 @@ import kotlin.native.concurrent.freeze
 internal actual fun initServer(server: ZmqTransportServer) {
     Worker.start().execute(TransferMode.SAFE, server::freeze) { it.start() }
 }
-
-internal actual inline fun runBlockingIfKotlinNative(crossinline action: () -> Any) {
-    contract { callsInPlace(action, InvocationKind.AT_MOST_ONCE) }
-    runBlocking { action() }
-}

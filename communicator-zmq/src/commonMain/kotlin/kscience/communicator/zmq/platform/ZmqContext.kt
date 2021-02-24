@@ -1,6 +1,6 @@
 package kscience.communicator.zmq.platform
 
-import kotlinx.io.Closeable
+import io.ktor.utils.io.core.Closeable
 
 /** Constructor must create a context with its init method */
 internal expect class ZmqContext() : Closeable {

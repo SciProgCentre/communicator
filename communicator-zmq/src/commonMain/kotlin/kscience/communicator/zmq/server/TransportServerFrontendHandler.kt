@@ -1,7 +1,7 @@
 package kscience.communicator.zmq.server
 
+import io.ktor.utils.io.core.use
 import kotlinx.coroutines.launch
-import kotlinx.io.use
 import kscience.communicator.zmq.Protocol
 import kscience.communicator.zmq.platform.ZmqFrame
 import kscience.communicator.zmq.platform.ZmqMsg
@@ -9,12 +9,13 @@ import kscience.communicator.zmq.util.sendMsg
 
 internal fun ZmqTransportServer.handleFrontend() {
     var msg = ZmqMsg.recvMsg(frontend).use { it.map(ZmqFrame::data) }
-    val (clientIdentity, type) = msg
-    msg = msg.drop(1)
+    val (clientIdentity, type) = msg.let { (a, b) -> a to b.decodeToString() }
+    println(msg.map(ByteArray::decodeToString))
+    msg = msg.drop(2)
 
-    when (type.decodeToString()) {
+    when (type) {
         Protocol.Query -> {
-            val (queryID, argBytes, functionName) = msg
+            val (queryID, argBytes, functionName) = msg.let { Triple(it[0], it[1], it[2].decodeToString()) }
 
             frontend.sendMsg {
                 +clientIdentity
@@ -22,7 +23,7 @@ internal fun ZmqTransportServer.handleFrontend() {
                 +queryID
             }
 
-            val serverFunction = serverFunctions[functionName.decodeToString()]
+            val serverFunction = serverFunctions[functionName]?.first
 
             if (serverFunction == null)
                 frontend.sendMsg {
@@ -32,21 +33,19 @@ internal fun ZmqTransportServer.handleFrontend() {
                     +functionName
                 }
             else
-                runBlockingIfKotlinNative {
-                    workerScope.launch {
-                        try {
-                            val result = serverFunction(argBytes)
-                            repliesQueue.addFirst(ResponseResult(clientIdentity, queryID, result))
-                        } catch (ex: Exception) {
-                            repliesQueue.addFirst(ResponseException(clientIdentity, queryID, ex.message.orEmpty()))
-                        }
+                workerScope.launch {
+                    try {
+                        val result = serverFunction(argBytes)
+                        repliesQueue.addFirst(ResponseResult(clientIdentity, queryID, result))
+                    } catch (ex: Exception) {
+                        repliesQueue.addFirst(ResponseException(clientIdentity, queryID, ex.message.orEmpty()))
                     }
                 }
         }
 
         Protocol.Coder.IdentityQuery -> {
             val (functionName) = msg
-            val functionSpec = serverFunctionSpecs[functionName.decodeToString()]
+            val functionSpec = serverFunctions[functionName.decodeToString()]?.second
 
             frontend.sendMsg {
                 +clientIdentity
@@ -68,6 +67,6 @@ internal fun ZmqTransportServer.handleFrontend() {
             //TODO
         }
 
-        else -> logger.warn { "Unknown message type: ${type.decodeToString()}" }
+        else -> logger.warn { "Unknown message type: $type" }
     }
 }

@@ -1,7 +1,7 @@
 package kscience.communicator.zmq.platform
 
 import co.touchlab.stately.collections.IsoMutableList
-import kotlinx.io.Closeable
+import io.ktor.utils.io.core.Closeable
 import org.zeromq.czmq.*
 
 internal actual class ZmqContext actual constructor() : Closeable {

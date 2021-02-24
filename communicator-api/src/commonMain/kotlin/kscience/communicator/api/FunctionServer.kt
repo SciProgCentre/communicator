@@ -1,6 +1,6 @@
 package kscience.communicator.api
 
-import kotlinx.io.Closeable
+import io.ktor.utils.io.core.Closeable
 
 /**
  * Represents communicator function server that is able to register and unregister functions to serve them at several

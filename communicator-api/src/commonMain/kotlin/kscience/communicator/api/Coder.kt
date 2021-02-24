@@ -20,7 +20,7 @@ public interface Coder<T> {
      * @param payload the payload.
      * @return the decoded object.
      */
-    public fun decode(payload: Payload): T
+    public suspend fun decode(payload: Payload): T
 
     /**
      * Encodes object to payload.
@@ -28,11 +28,5 @@ public interface Coder<T> {
      * @param value the object.
      * @return the payload.
      */
-    public fun encode(value: T): Payload
-
-    /**
-     * Force to reimplement [toString]
-     * This method will be primarily used to log "wrong coder" errors
-     */
-    override fun toString(): String
+    public suspend fun encode(value: T): Payload
 }

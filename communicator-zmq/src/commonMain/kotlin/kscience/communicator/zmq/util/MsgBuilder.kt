@@ -1,6 +1,6 @@
 package kscience.communicator.zmq.util
 
-import kotlinx.io.use
+import io.ktor.utils.io.core.use
 import kscience.communicator.zmq.platform.UniqueID
 import kscience.communicator.zmq.platform.ZmqFrame
 import kscience.communicator.zmq.platform.ZmqMsg

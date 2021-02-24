@@ -3,8 +3,8 @@ package kscience.communicator.zmq.server
 import co.touchlab.stately.collections.IsoArrayDeque
 import co.touchlab.stately.collections.IsoMutableList
 import co.touchlab.stately.collections.IsoMutableMap
+import io.ktor.utils.io.core.Closeable
 import kotlinx.coroutines.*
-import kotlinx.io.Closeable
 import kscience.communicator.api.Endpoint
 import kscience.communicator.api.FunctionSpec
 import kscience.communicator.api.IntCoder
@@ -19,8 +19,7 @@ import mu.KotlinLogging
 
 public class ZmqWorker private constructor(
     internal val proxy: Endpoint,
-    internal val serverFunctions: IsoMutableMap<String, PayloadFunction>,
-    internal val serverFunctionSpecs: IsoMutableMap<String, FunctionSpec<*, *>>,
+    internal val serverFunctions: IsoMutableMap<String, Pair<PayloadFunction, FunctionSpec<*, *>>>,
     private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default,
     internal val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob()),
     private val ctx: ZmqContext = ZmqContext(),
@@ -33,14 +32,12 @@ public class ZmqWorker private constructor(
 ) : Closeable {
     public constructor(
         proxy: Endpoint,
-        serverFunctions: MutableMap<String, PayloadFunction>,
-        serverFunctionSpecs: MutableMap<String, FunctionSpec<*, *>>,
+        serverFunctions: MutableMap<String, Pair<PayloadFunction, FunctionSpec<*, *>>>,
         workerDispatcher: CoroutineDispatcher = Dispatchers.Default,
         workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob()),
     ) : this(
         proxy,
         IsoMutableMap { serverFunctions },
-        IsoMutableMap { serverFunctionSpecs },
         workerDispatcher,
         workerScope,
     )
@@ -55,18 +52,17 @@ public class ZmqWorker private constructor(
     public override fun close() {
         workerScope.cancel("Proxy is being stopped.")
         serverFunctions.dispose()
-        serverFunctionSpecs.dispose()
         ctx.close()
     }
 
-    internal fun start() {
+    internal suspend fun start() {
         frontend.connect("tcp://${proxy.host}:${proxy.port + 1}")
 
         frontend.sendMsg {
             +Protocol.Worker.Register
             +IntCoder.encode(serverFunctions.size)
 
-            serverFunctionSpecs.forEach {
+            serverFunctions.mapValues { it.value.second }.forEach {
                 +it.key
                 +it.value.argumentCoder.identity
                 +it.value.resultCoder.identity
@@ -110,7 +106,7 @@ internal sealed class WorkerEditFunctionQuery
 private class WorkerRegisterFunctionQuery(
     val name: String,
     val function: PayloadFunction,
-    val spec: FunctionSpec<*, *>
+    val spec: FunctionSpec<*, *>,
 ) : WorkerEditFunctionQuery()
 
 private class WorkerUnregisterFunctionQuery(val name: String) : WorkerEditFunctionQuery()
@@ -123,7 +119,7 @@ internal class WorkerResponseResult(val clientIdentity: ByteArray, val queryID: 
 internal class WorkerResponseException(
     val clientIdentity: ByteArray,
     val queryID: ByteArray,
-    val exceptionMessage: String
+    val exceptionMessage: String,
 ) : WorkerResponse()
 
 private fun ZmqWorker.handleReplyQueue() {
@@ -153,10 +149,8 @@ private fun ZmqWorker.handleEditFunctionQueue() {
         val editFunctionMessage = editFunctionQueriesQueue.removeLastOrNull() ?: break
 
         when (editFunctionMessage) {
-            is WorkerRegisterFunctionQuery -> {
-                serverFunctions[editFunctionMessage.name] = editFunctionMessage.function
-                serverFunctionSpecs[editFunctionMessage.name] = editFunctionMessage.spec
-            }
+            is WorkerRegisterFunctionQuery -> serverFunctions[editFunctionMessage.name] =
+                editFunctionMessage.function to editFunctionMessage.spec
 
             is WorkerUnregisterFunctionQuery -> serverFunctions -= editFunctionMessage.name
         }

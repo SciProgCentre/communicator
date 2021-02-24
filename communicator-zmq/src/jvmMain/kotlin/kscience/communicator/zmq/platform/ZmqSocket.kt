@@ -1,6 +1,6 @@
 package kscience.communicator.zmq.platform
 
-import kotlinx.io.Closeable
+import io.ktor.utils.io.core.Closeable
 import org.zeromq.ZMQ
 
 internal actual class ZmqSocket(internal val handle: ZMQ.Socket) : Closeable {

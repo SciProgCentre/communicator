@@ -1,6 +1,6 @@
 package kscience.communicator.zmq.platform
 
-import kotlinx.io.Closeable
+import io.ktor.utils.io.core.Closeable
 
 internal expect class ZmqLoop(ctx: ZmqContext) {
     inline fun <reified T : Any> addReader(

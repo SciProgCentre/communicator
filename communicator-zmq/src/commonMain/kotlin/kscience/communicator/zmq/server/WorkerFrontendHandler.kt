@@ -1,7 +1,7 @@
 package kscience.communicator.zmq.server
 
+import io.ktor.utils.io.core.use
 import kotlinx.coroutines.launch
-import kotlinx.io.use
 import kscience.communicator.zmq.Protocol
 import kscience.communicator.zmq.platform.ZmqFrame
 import kscience.communicator.zmq.platform.ZmqMsg
@@ -21,7 +21,7 @@ internal fun ZmqWorker.handleWorkerFrontend() {
                 +queryID
             }
 
-            val serverFunction = serverFunctions[functionName.decodeToString()]
+            val serverFunction = serverFunctions[functionName.decodeToString()]?.first
 
             if (serverFunction == null)
                 frontend.sendMsg {
@@ -50,6 +50,6 @@ internal fun ZmqWorker.handleWorkerFrontend() {
             logger.warn { "INCOMPATIBLE_SPECS_FAILURE functionName=$functionName argCoder=$argCoder resultCoder=$resultCoder" }
         }
 
-        else -> logger.warn { "Unknown message type: ${type}" }
+        else -> logger.warn { "Unknown message type: $type" }
     }
 }

@@ -1,6 +1,6 @@
 package kscience.communicator.api
 
-import kotlinx.io.Closeable
+import io.ktor.utils.io.core.Closeable
 
 /**
  * Represents low-level server serving [PayloadFunction] objects.

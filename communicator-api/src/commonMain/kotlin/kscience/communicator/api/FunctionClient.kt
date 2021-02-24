@@ -1,6 +1,6 @@
 package kscience.communicator.api
 
-import kotlinx.io.Closeable
+import io.ktor.utils.io.core.Closeable
 import kotlin.properties.ReadOnlyProperty
 
 /**

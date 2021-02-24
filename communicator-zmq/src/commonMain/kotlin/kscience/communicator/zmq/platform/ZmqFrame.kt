@@ -1,6 +1,6 @@
 package kscience.communicator.zmq.platform
 
-import kotlinx.io.Closeable
+import io.ktor.utils.io.core.Closeable
 
 /** zframe_t object (CZMQ). */
 internal expect class ZmqFrame : Closeable, Iterable<Byte> {

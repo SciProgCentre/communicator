@@ -5,7 +5,7 @@ import kotlinx.coroutines.CompletableDeferred
 internal actual suspend fun ZmqTransport.respondImpl(
     address: String,
     name: String,
-    payload: ByteArray
+    payload: ByteArray,
 ): ByteArray {
     val deferred = CompletableDeferred<ByteArray>()
 

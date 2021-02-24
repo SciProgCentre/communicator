@@ -22,7 +22,7 @@ internal class Query(
     val functionName: String,
     val address: String,
     val arg: Payload,
-    val callback: ResultCallback
+    val callback: ResultCallback,
 )
 
 internal class SpecCallback(val onSpecFound: (String, String) -> Unit, val onSpecNotFound: () -> Unit)
@@ -30,7 +30,7 @@ internal class SpecCallback(val onSpecFound: (String, String) -> Unit, val onSpe
 internal class SpecQuery(
     val functionName: String,
     val address: String,
-    val callback: SpecCallback
+    val callback: SpecCallback,
 )
 
 /**

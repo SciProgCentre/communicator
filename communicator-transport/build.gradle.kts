@@ -2,7 +2,7 @@
 
 internal val slf4jVersion: String by project
 internal val statelyIsoVersion: String by project
-plugins { kotlin(module = "multiplatform") }
+plugins { kotlin("multiplatform") }
 
 kotlin {
     explicitApi()
@@ -23,7 +23,6 @@ kotlin {
 
         commonMain {
             dependencies {
-                api(project(":communicator-api"))
                 api(project(":communicator-zmq"))
                 implementation("co.touchlab:stately-isolate:$statelyIsoVersion")
                 implementation("co.touchlab:stately-iso-collections:$statelyIsoVersion")

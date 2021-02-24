@@ -1,7 +1,7 @@
 @file:Suppress("UNUSED_VARIABLE")
 
 internal val coroutinesVersion: String by project
-internal val ioVersion: String by project
+internal val ktorVersion: String by project
 plugins { kotlin(module = "multiplatform") }
 
 kotlin {
@@ -24,15 +24,11 @@ kotlin {
             with(languageSettings) {
                 useExperimentalAnnotation("kotlin.ExperimentalUnsignedTypes")
                 useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts")
+                useExperimentalAnnotation("kotlinx.coroutines.InternalCoroutinesApi")
             }
         }
 
-        commonMain {
-            dependencies {
-                api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
-                api("org.jetbrains.kotlinx:kotlinx-io:$ioVersion")
-            }
-        }
+        commonMain { dependencies { api("io.ktor:ktor-io:$ktorVersion") } }
 
         val nativeMain by creating { dependsOn(commonMain.get()) }
         val nativeTest by creating { dependsOn(commonTest.get()) }

@@ -124,8 +124,9 @@ public fun <T, R> FunctionServer.impl(
  * @param arg the argument of the function.
  * @return the result of the function.
  */
+@Suppress("RedundantSuspendModifier")
 public suspend operator fun <T, R> FunctionSet.Declaration<T, R>.invoke(client: FunctionClient, arg: T): R =
-    client.getFunction(owner.endpoint, name, spec).invoke(arg)
+    client.getFunction(owner.endpoint, name, spec)(arg)
 
 /**
  * Configures this function server with provided function set receiver. It is usually needed to provide functions to

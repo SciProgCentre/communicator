@@ -1,6 +1,6 @@
 package kscience.communicator.zmq.client
 
-import kotlinx.io.use
+import io.ktor.utils.io.core.use
 import kscience.communicator.api.RemoteFunctionException
 import kscience.communicator.api.UnsupportedFunctionNameException
 import kscience.communicator.zmq.Protocol
@@ -12,7 +12,7 @@ import kscience.communicator.zmq.util.sendMsg
 
 internal class ForwardSocketHandlerArg(
     val socket: ZmqSocket,
-    val clientContext: ZmqTransport
+    val clientContext: ZmqTransport,
 )
 
 internal fun handleForwardSocket(arg: ForwardSocketHandlerArg) = with(arg.clientContext) {

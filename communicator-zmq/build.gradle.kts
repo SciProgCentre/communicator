@@ -1,10 +1,10 @@
-@file:Suppress("KDocMissingDocumentation", "UNUSED_VARIABLE")
+@file:Suppress("UNUSED_VARIABLE")
 
 internal val coroutinesVersion: String by project
 internal val jeromqVersion: String by project
 internal val kotlinLoggingVersion: String by project
 internal val statelyIsoVersion: String by project
-plugins { kotlin(module = "multiplatform") }
+plugins { kotlin("multiplatform") }
 
 kotlin {
     explicitApi()

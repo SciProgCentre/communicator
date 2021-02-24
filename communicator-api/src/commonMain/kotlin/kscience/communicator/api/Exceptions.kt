@@ -19,7 +19,7 @@ public class IncompatibleSpecsException(
     public val localSpec: String,
     public val remoteSpec: String
 ) : RemoteCallException() {
-    public override val message: String?
+    public override val message: String
         get() = """Remote server has different spec for the function.
                 Function name: "$functionName"
                 Local spec: $localSpec
@@ -29,7 +29,7 @@ public class IncompatibleSpecsException(
 }
 
 public class UnsupportedFunctionNameException(public val functionName: String) : RemoteCallException() {
-    public override val message: String?
+    public override val message: String
         get() = "Server does not support a function with name $functionName. " +
                 "If you are using a proxy server, please make sure that required worker " +
                 "is connected to the proxy before making query."
@@ -40,7 +40,7 @@ public class UnsupportedFunctionNameException(public val functionName: String) :
  * and the client retried the query enough times.
  */
 public class TimeoutException : RemoteCallException() {
-    public override val message: String?
+    public override val message: String
         get() = "Timeout for the query has ended."
 }
 
@@ -50,7 +50,7 @@ public class TimeoutException : RemoteCallException() {
  * Worker logs its exception, but does not throw it from [FunctionServer] methods.
  */
 public class RemoteFunctionException(public val remoteExceptionMessage: String) : RemoteCallException() {
-    public override val message: String?
+    public override val message: String
         get() = "Remote function has finished with an exception: $remoteExceptionMessage"
 }
 
@@ -69,7 +69,7 @@ public class EncodingException(
     public val coder: Coder<*>,
     public val coderExceptionMessage: String
 ) : CoderException() {
-    override val message: String?
+    override val message: String
         get() = """Object serialization exception.
                 Object: $obj
                 Coder: $coder
@@ -86,8 +86,7 @@ public class DecodingException(
     public val coder: Coder<*>,
     public val coderExceptionMessage: String
 ) : CoderException() {
-
-    public override val message: String?
+    public override val message: String
         get() = """Payload deserialization exception.
                 Payload: ${payload.contentToString()}
                 Coder: $coder

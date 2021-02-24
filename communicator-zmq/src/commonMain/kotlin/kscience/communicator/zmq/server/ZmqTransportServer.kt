@@ -23,8 +23,7 @@ import mu.KotlinLogging
  */
 public class ZmqTransportServer private constructor(
     public override val port: Int,
-    internal val serverFunctionSpecs: IsoMutableMap<String, FunctionSpec<*, *>> = IsoMutableMap(),
-    internal val serverFunctions: IsoMutableMap<String, PayloadFunction> = IsoMutableMap(),
+    internal val serverFunctions: IsoMutableMap<String, Pair<PayloadFunction, FunctionSpec<*, *>>>,
     private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default,
     internal val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob()),
     private val ctx: ZmqContext = ZmqContext(),
@@ -33,9 +32,9 @@ public class ZmqTransportServer private constructor(
     internal val frontend: ZmqSocket = ctx.createRouterSocket(),
     private val reactor: ZmqLoop = ZmqLoop(ctx),
     private val active: IsoMutableList<Int> = IsoMutableList { mutableListOf(0) },
-    internal val logger: KLogger = KotlinLogging.logger("ZmqTransportServer($port)")
+    internal val logger: KLogger = KotlinLogging.logger("ZmqTransportServer($port)"),
 ) : TransportServer {
-    public constructor (port: Int) : this(port, serverFunctionSpecs = IsoMutableMap())
+    public constructor (port: Int) : this(port, IsoMutableMap())
 
     internal fun start() {
         logger.info { "Starting ZmqTransportServer bound to $port." }
@@ -98,13 +97,6 @@ internal class ResponseResult(val clientIdentity: ByteArray, val queryID: ByteAr
 internal class ResponseException(val clientIdentity: ByteArray, val queryID: ByteArray, val exceptionMessage: String) :
     Response()
 
-/**
- * Hack created because Kotlin/Native does not start event loop without runBlocking.
- *
- * Wraps [action] with `runBlocking` and executes if Kotlin/Native, calls [action] otherwise.
- */
-internal expect inline fun runBlockingIfKotlinNative(crossinline action: () -> Any)
-
 private fun ZmqTransportServer.handleReplyQueue() {
     while (true) {
         val reply = repliesQueue.removeLastOrNull() ?: break
@@ -134,10 +126,8 @@ private fun ZmqTransportServer.handleEditFunctionQueue() {
         val editFunctionMessage = editFunctionQueriesQueue.removeLastOrNull() ?: break
 
         when (editFunctionMessage) {
-            is RegisterFunctionQuery -> {
-                this@handleEditFunctionQueue.serverFunctions[editFunctionMessage.name] = editFunctionMessage.function
-                this@handleEditFunctionQueue.serverFunctionSpecs[editFunctionMessage.name] = editFunctionMessage.spec
-            }
+            is RegisterFunctionQuery -> this@handleEditFunctionQueue.serverFunctions[editFunctionMessage.name] =
+                editFunctionMessage.function to editFunctionMessage.spec
 
             is UnregisterFunctionQuery -> this@handleEditFunctionQueue.serverFunctions -= editFunctionMessage.name
         }

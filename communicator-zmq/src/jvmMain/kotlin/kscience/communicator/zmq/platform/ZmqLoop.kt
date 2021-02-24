@@ -1,6 +1,6 @@
 package kscience.communicator.zmq.platform
 
-import kotlinx.io.Closeable
+import io.ktor.utils.io.core.Closeable
 import org.zeromq.ZLoop
 import org.zeromq.ZMQ
 

@@ -1,6 +1,6 @@
 package kscience.communicator.zmq.platform
 
-import kotlinx.io.Closeable
+import io.ktor.utils.io.core.Closeable
 
 /** zmsg_t object (CZMQ). Constructor must create it via its init method. */
 internal expect class ZmqMsg() : Closeable, MutableCollection<ZmqFrame> {
