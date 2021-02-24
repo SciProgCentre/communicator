@@ -95,7 +95,7 @@ public class ZmqTransport private constructor(
 }
 
 internal expect suspend fun ZmqTransport.respondImpl(address: String, name: String, payload: ByteArray): ByteArray
-internal expect fun initClient(client: ZmqTransport)
+internal expect fun initClient(client: ZmqTransport): Any
 
 private fun ZmqTransport.handleQueriesQueue() {
     val query = newQueriesQueue.removeLastOrNull() ?: return

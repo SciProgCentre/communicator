@@ -52,12 +52,12 @@ public class ZmqWorker private constructor(
         ctx.close()
     }
 
-    internal fun start() {
+    internal suspend fun start() {
         frontend.connect("tcp://${proxy.host}:${proxy.port + 1}")
 
         frontend.sendMsg {
             +Protocol.Worker.Register
-            +runBlocking { IntCoder.encode(serverFunctions.size) }
+            +IntCoder.encode(serverFunctions.size)
 
             serverFunctions.mapValues { it.value.second }.forEach {
                 +it.key
@@ -96,7 +96,7 @@ public class ZmqWorker private constructor(
     }
 }
 
-internal expect fun initWorker(worker: ZmqWorker)
+internal expect fun initWorker(worker: ZmqWorker): Any
 
 internal sealed class WorkerEditFunctionQuery
 

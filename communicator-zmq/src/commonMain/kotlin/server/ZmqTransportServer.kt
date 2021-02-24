@@ -80,7 +80,7 @@ public class ZmqTransportServer private constructor(
         editFunctionQueriesQueue.addFirst(UnregisterFunctionQuery(name))
 }
 
-internal expect fun initServer(server: ZmqTransportServer)
+internal expect fun initServer(server: ZmqTransportServer): Any
 
 internal sealed class EditFunctionQuery
 
