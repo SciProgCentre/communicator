@@ -1,7 +1,9 @@
+package space.kscience.communicator.demo
+
 import kotlinx.coroutines.runBlocking
-import kscience.communicator.api.*
-import kscience.communicator.transport.TransportFunctionClient
-import kscience.communicator.transport.TransportFunctionServer
+import space.kscience.communicator.api.*
+import space.kscience.communicator.transport.TransportFunctionClient
+import space.kscience.communicator.transport.TransportFunctionServer
 
 private val endpoint = Endpoint("ZMQ", "127.0.0.1:8888")
 

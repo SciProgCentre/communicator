@@ -1,8 +1,8 @@
-package kscience.communicator.transport
+package space.kscience.communicator.transport
 
-import kscience.communicator.api.Transport
-import kscience.communicator.api.TransportFactory
-import kscience.communicator.zmq.client.ZmqTransport
+import space.kscience.communicator.api.Transport
+import space.kscience.communicator.api.TransportFactory
+import space.kscience.communicator.zmq.client.ZmqTransport
 import kotlin.jvm.Synchronized
 
 /**

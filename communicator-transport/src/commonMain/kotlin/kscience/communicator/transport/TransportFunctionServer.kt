@@ -1,7 +1,7 @@
-package kscience.communicator.transport
+package space.kscience.communicator.transport
 
-import kscience.communicator.api.*
-import kscience.communicator.zmq.server.ZmqTransportServer
+import space.kscience.communicator.api.*
+import space.kscience.communicator.zmq.server.ZmqTransportServer
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 

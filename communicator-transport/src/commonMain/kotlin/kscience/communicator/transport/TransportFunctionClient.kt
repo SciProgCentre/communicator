@@ -1,6 +1,6 @@
-package kscience.communicator.transport
+package space.kscience.communicator.transport
 
-import kscience.communicator.api.*
+import space.kscience.communicator.api.*
 
 /**
  * Function client implementation based on [Transport] object provided by [TransportFactory].
