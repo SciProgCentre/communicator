@@ -34,7 +34,6 @@ kotlin {
             with(languageSettings) {
                 useExperimentalAnnotation("kotlin.ExperimentalUnsignedTypes")
                 useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts")
-                useExperimentalAnnotation("kotlinx.coroutines.InternalCoroutinesApi")
             }
         }
 

@@ -16,8 +16,9 @@ public interface TransportServer : Closeable {
      *
      * @param name the name of function.
      * @param function the implementation of function.
+     * @param spec the pair of names of argument and result coders.
      */
-    public fun register(name: String, function: PayloadFunction, spec: FunctionSpec<*, *>)
+    public fun register(name: String, function: PayloadFunction, spec: Pair<String, String>)
 
     /**
      * Unregisters function by its name.

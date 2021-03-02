@@ -8,6 +8,7 @@ pluginManagement {
 include(
     ":communicator-api",
     ":communicator-zmq",
+    ":communicator-zmq-c-transport",
     ":communicator-transport",
     ":demo"
 )

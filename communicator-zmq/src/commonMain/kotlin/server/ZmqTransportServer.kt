@@ -4,7 +4,8 @@ import co.touchlab.stately.collections.IsoArrayDeque
 import co.touchlab.stately.collections.IsoMutableList
 import co.touchlab.stately.collections.IsoMutableMap
 import kotlinx.coroutines.*
-import space.kscience.communicator.api.FunctionSpec
+import mu.KLogger
+import mu.KotlinLogging
 import space.kscience.communicator.api.PayloadFunction
 import space.kscience.communicator.api.TransportServer
 import space.kscience.communicator.zmq.Protocol
@@ -12,8 +13,6 @@ import space.kscience.communicator.zmq.platform.ZmqContext
 import space.kscience.communicator.zmq.platform.ZmqLoop
 import space.kscience.communicator.zmq.platform.ZmqSocket
 import space.kscience.communicator.zmq.util.sendMsg
-import mu.KLogger
-import mu.KotlinLogging
 
 /**
  * Implements transport server with ZeroMQ-based machinery. Associated client transport is
@@ -23,7 +22,7 @@ import mu.KotlinLogging
  */
 public class ZmqTransportServer private constructor(
     public override val port: Int,
-    internal val serverFunctions: IsoMutableMap<String, Pair<PayloadFunction, FunctionSpec<*, *>>>,
+    internal val serverFunctions: IsoMutableMap<String, Triple<PayloadFunction, String, String>>,
     private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default,
     internal val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob()),
     private val ctx: ZmqContext = ZmqContext(),
@@ -73,7 +72,7 @@ public class ZmqTransportServer private constructor(
         initServer(this)
     }
 
-    public override fun register(name: String, function: PayloadFunction, spec: FunctionSpec<*, *>): Unit =
+    public override fun register(name: String, function: PayloadFunction, spec: Pair<String, String>): Unit =
         editFunctionQueriesQueue.addFirst(RegisterFunctionQuery(name, function, spec))
 
     public override fun unregister(name: String): Unit =
@@ -84,7 +83,7 @@ internal expect fun initServer(server: ZmqTransportServer): Any
 
 internal sealed class EditFunctionQuery
 
-private class RegisterFunctionQuery(val name: String, val function: PayloadFunction, val spec: FunctionSpec<*, *>) :
+private class RegisterFunctionQuery(val name: String, val function: PayloadFunction, val spec: Pair<String, String>) :
     EditFunctionQuery()
 
 private class UnregisterFunctionQuery(val name: String) : EditFunctionQuery()
@@ -127,7 +126,7 @@ private fun ZmqTransportServer.handleEditFunctionQueue() {
 
         when (editFunctionMessage) {
             is RegisterFunctionQuery -> this@handleEditFunctionQueue.serverFunctions[editFunctionMessage.name] =
-                editFunctionMessage.function to editFunctionMessage.spec
+                Triple(editFunctionMessage.function, editFunctionMessage.spec.first, editFunctionMessage.spec.second)
 
             is UnregisterFunctionQuery -> this@handleEditFunctionQueue.serverFunctions -= editFunctionMessage.name
         }

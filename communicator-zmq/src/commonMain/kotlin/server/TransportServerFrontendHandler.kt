@@ -44,7 +44,7 @@ internal fun ZmqTransportServer.handleFrontend() {
 
         Protocol.Coder.IdentityQuery -> {
             val (functionName) = msg
-            val functionSpec = serverFunctions[functionName.decodeToString()]?.second
+            val functionSpec = serverFunctions[functionName.decodeToString()]
 
             frontend.sendMsg {
                 +clientIdentity
@@ -55,8 +55,8 @@ internal fun ZmqTransportServer.handleFrontend() {
                 } else {
                     +Protocol.Coder.IdentityFound
                     +functionName
-                    +functionSpec.argumentCoder.identity.encodeToByteArray()
-                    +functionSpec.resultCoder.identity.encodeToByteArray()
+                    +functionSpec.second.encodeToByteArray()
+                    +functionSpec.third.encodeToByteArray()
                 }
             }
         }
