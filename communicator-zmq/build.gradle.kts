@@ -9,13 +9,23 @@ kotlin {
     explicitApi()
     jvm()
 
-    val nativeTarget = when (val hostOs = System.getProperty("os.name")) {
-        "Mac OS X" -> macosX64()
-        "Linux" -> linuxX64()
-        else -> null
+    val nativeTargets = when (val hostOs = System.getProperty("os.name")) {
+        "Mac OS X" -> listOf(iosX64(),
+            iosArm32(),
+            iosArm64(),
+            macosX64(),
+            watchosX86(),
+            watchosArm64(),
+            watchosArm32(),
+            tvosX64(),
+            tvosArm64())
+        "Linux" -> listOf(linuxX64())
+        else -> emptyList()
     }
 
-    nativeTarget?.compilations?.get("main")?.cinterops { val libczmq by creating }
+    configure(nativeTargets) {
+        compilations?.get("main")?.cinterops { val libczmq by creating }
+    }
 
     sourceSets {
         all {
@@ -39,7 +49,7 @@ kotlin {
         val nativeMain by creating { dependsOn(commonMain.get()) }
         val nativeTest by creating { dependsOn(commonTest.get()) }
 
-        nativeTarget?.apply {
+        configure(nativeTargets) {
             val main by compilations.getting { defaultSourceSet.dependsOn(nativeMain) }
             val test by compilations.getting { defaultSourceSet.dependsOn(nativeTest) }
         }
