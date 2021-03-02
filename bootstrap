@@ -1,5 +1,8 @@
 #!/usr/bin/env sh
 
+# Install czmq
+env HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles brew install czmq
+
 # Install kotlin-logging
 mkdir -p kotlin-logging
 cd kotlin-logging || exit

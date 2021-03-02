@@ -9,9 +9,12 @@ kotlin {
     explicitApi()
     jvm()
 
-    val nativeTarget = when (val hostOs = System.getProperty("os.name")) {
-        "Mac OS X" -> macosX64()
-        "Linux" -> linuxX64()
+    val hostOs = System.getProperty("os.name")
+
+    val nativeTarget = when  {
+        hostOs=="Mac OS X" -> macosX64()
+        hostOs=="Linux" -> linuxX64()
+        hostOs.startsWith("Windows") -> mingwX64()
         else -> null
     }
 
