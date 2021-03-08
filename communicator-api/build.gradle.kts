@@ -12,29 +12,26 @@ kotlin {
     }
 
     jvm()
-    val hostOs = System.getProperty("os.name")
 
-    val nativeTargets = (when {
-        hostOs == "Mac OS X" -> listOf(iosX64(),
-            iosArm32(),
-            iosArm64(),
-            macosX64(),
-            watchosX86(),
-            watchosArm64(),
-            watchosArm32(),
-            tvosX64(),
-            tvosArm64())
-
-        hostOs.startsWith("Windows") -> listOf(mingwX64())
-        else -> emptyList()
-    }) + listOf(linuxX64())
+    val nativeTargets = listOf(
+        iosX64(),
+        iosArm32(),
+        iosArm64(),
+        macosX64(),
+        watchosX86(),
+        watchosArm64(),
+        watchosArm32(),
+        tvosX64(),
+        tvosArm64(),
+        mingwX64(),
+        linuxX64()
+    )
 
     sourceSets {
         all {
             with(languageSettings) {
                 useExperimentalAnnotation("kotlin.ExperimentalUnsignedTypes")
                 useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts")
-                useExperimentalAnnotation("kotlinx.coroutines.InternalCoroutinesApi")
             }
         }
 
