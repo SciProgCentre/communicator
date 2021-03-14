@@ -1,25 +1,33 @@
-import scientifik.useCoroutines
+@file:Suppress("UNUSED_VARIABLE")
 
-plugins { id("scientifik.mpp") }
-useCoroutines()
+internal val jeromqVersion: String by project
+internal val kotlinLoggingVersion: String by project
+internal val statelyIsoVersion: String by project
+plugins { kotlin("multiplatform") }
 
-kotlin.sourceSets {
-    all { languageSettings.useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts") }
+kotlin {
+    explicitApi()
+    jvm()
 
-    commonMain {
-        dependencies {
-            api(project(":communicator-api"))
-            api("io.github.microutils:kotlin-logging-common:1.8.3")
+    sourceSets {
+        all {
+            with(languageSettings) {
+                useExperimentalAnnotation("kotlin.ExperimentalStdlibApi")
+                useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts")
+            }
+        }
+
+        commonMain {
+            dependencies {
+                api(project(":communicator-api"))
+                api("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
+                api("co.touchlab:stately-isolate:$statelyIsoVersion")
+                api("co.touchlab:stately-iso-collections:$statelyIsoVersion")
+            }
+        }
+
+        val jvmMain by getting {
+            dependencies { api("org.zeromq:jeromq:$jeromqVersion") }
         }
     }
-
-    jsMain { dependencies { api("io.github.microutils:kotlin-logging-js:1.8.3") } }
-
-    jvmMain {
-        dependencies {
-            api("io.github.microutils:kotlin-logging:1.8.3")
-            api("org.zeromq:jeromq:0.5.2")
-        }
-    }
-
 }

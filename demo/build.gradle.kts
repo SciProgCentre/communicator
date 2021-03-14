@@ -1,29 +1,16 @@
-import scientifik.useCoroutines
+@file:Suppress("UNUSED_VARIABLE")
 
-plugins { id("scientifik.mpp") }
+internal val slf4jVersion: String by project
+plugins { kotlin(module = "multiplatform") }
 
-useCoroutines()
+kotlin {
+    jvm()
 
-kotlin.sourceSets {
-    all { languageSettings.useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts") }
+    sourceSets {
+        commonMain.get().dependencies { implementation(project(":communicator-transport")) }
 
-    commonMain {
-        dependencies {
-            api(project(":communicator-api"))
-            api(project(":communicator-zmq"))
-            api(project(":communicator-transport"))
-            api("io.github.microutils:kotlin-logging-common:1.8.3")
+        val jvmMain by getting {
+            dependencies { implementation("org.slf4j:slf4j-simple:$slf4jVersion") }
         }
     }
-
-    jsMain { dependencies { api("io.github.microutils:kotlin-logging-js:1.8.3") } }
-
-    jvmMain {
-        dependencies {
-            api("io.github.microutils:kotlin-logging:1.8.3")
-            api("org.slf4j:slf4j-simple:1.7.30")
-            api("org.zeromq:jeromq:0.5.2")
-        }
-    }
-
 }

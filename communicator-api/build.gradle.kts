@@ -1,13 +1,28 @@
-import scientifik.useCoroutines
+@file:Suppress("UNUSED_VARIABLE")
 
-plugins { id("scientifik.mpp") }
-useCoroutines()
-kotlin.sourceSets.all { languageSettings.useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts") }
+internal val ktorVersion: String by project
+plugins { kotlin(module = "multiplatform") }
 
-dependencies {
-    val serializationVersion = "0.20.0"
-    commonMainApi("org.jetbrains.kotlinx:kotlinx-io:0.2.0-npm-dev-8")
-    commonMainImplementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime-common:$serializationVersion")
-    jvmMainImplementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime:$serializationVersion")
-    jsMainImplementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime-js:$serializationVersion")
+kotlin {
+    explicitApi()
+
+    js {
+        browser()
+        nodejs()
+    }
+
+    jvm()
+
+    sourceSets {
+        all {
+            with(languageSettings) {
+                useExperimentalAnnotation("kotlin.ExperimentalUnsignedTypes")
+                useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts")
+            }
+        }
+
+        commonMain {
+            dependencies { api("io.ktor:ktor-io:$ktorVersion") }
+        }
+    }
 }
