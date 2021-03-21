@@ -3,8 +3,6 @@ package space.kscience.communicator.api
 import io.ktor.utils.io.*
 import io.ktor.utils.io.core.ByteReadPacket
 import io.ktor.utils.io.core.readBytes
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.flow.map
 
 private suspend fun ByteReadChannel.copyAvailable(): ByteArray =
     ByteArray(availableForRead).also { readFully(it) }
@@ -109,8 +107,13 @@ public class RemoteFunctionCoder<T, R>(public val functionSpec: FunctionSpec<T, 
     }
 }
 
-public abstract class CustomCoder<T> : Coder<T> {
-    public override suspend fun encode(value: T): Payload {
+/**
+ * Allows to create create coders which write the payload size before serialized value.
+ *
+ * @param T the type of decoded and encoded object.
+ */
+public abstract class SizedCoder<T> : Coder<T> {
+    public final override suspend fun encode(value: T): Payload {
         val out = ByteChannel(true)
         val encoded = customEncode(value)
         out.writeInt(encoded.size)
@@ -118,16 +121,22 @@ public abstract class CustomCoder<T> : Coder<T> {
         return out.copyAvailable()
     }
 
-    public abstract fun customEncode(value: T): Payload
+    /**
+     * Custom serialization function.
+     */
+    public abstract suspend fun customEncode(value: T): Payload
 
-    public override suspend fun decode(payload: Payload): T {
+    public final override suspend fun decode(payload: Payload): T {
         val inp = ByteReadChannel(payload)
         val length = inp.readInt()
         val encoded = inp.readPacket(length).readBytes()
         return customDecode(encoded)
     }
 
-    public abstract fun customDecode(payload: Payload): T
+    /**
+     * Custom deserialization function.
+     */
+    public abstract suspend fun customDecode(payload: Payload): T
 }
 
 /**
@@ -147,11 +156,8 @@ public class PairCoder<A, B>(
         firstCoder.encode(value.first) + secondCoder.encode(value.second)
 
     public override suspend fun decode(payload: Payload): Pair<A, B> {
-        var start = 0
         val v1 = firstCoder.decode(payload)
-        start += firstCoder.encode(v1).size
-        val v2 = secondCoder.decode(payload)
-        start += secondCoder.encode(v2).size
+        val v2 = secondCoder.decode(payload.copyOfRange(firstCoder.encode(v1).size, payload.size))
         return Pair(v1, v2)
     }
 }
@@ -180,10 +186,9 @@ public class TripleCoder<A, B, C>(
         var start = 0
         val v1 = firstCoder.decode(payload)
         start += firstCoder.encode(v1).size
-        val v2 = secondCoder.decode(payload)
+        val v2 = secondCoder.decode(payload.copyOfRange(start, payload.size))
         start += secondCoder.encode(v2).size
-        val v3 = thirdCoder.decode(payload)
-        start += thirdCoder.encode(v3).size
+        val v3 = thirdCoder.decode(payload.copyOfRange(start, payload.size))
         return Triple(v1, v2, v3)
     }
 }
