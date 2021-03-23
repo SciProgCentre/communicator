@@ -7,11 +7,15 @@ import io.ktor.utils.io.core.Closeable
 import kotlinx.coroutines.*
 import mu.KLogger
 import mu.KotlinLogging
-import space.kscience.communicator.api.*
+import space.kscience.communicator.api.Endpoint
+import space.kscience.communicator.api.FunctionSpec
+import space.kscience.communicator.api.IntCoder
+import space.kscience.communicator.api.PayloadFunction
 import space.kscience.communicator.zmq.Protocol
 import space.kscience.communicator.zmq.platform.ZmqContext
 import space.kscience.communicator.zmq.platform.ZmqLoop
 import space.kscience.communicator.zmq.platform.ZmqSocket
+import space.kscience.communicator.zmq.util.runAsync
 import space.kscience.communicator.zmq.util.sendMsg
 
 public class ZmqWorker private constructor(
@@ -40,7 +44,7 @@ public class ZmqWorker private constructor(
     )
 
     init {
-        initWorker(this)
+        runAsync(this) { start() }
     }
 
     /**
@@ -94,9 +98,9 @@ public class ZmqWorker private constructor(
 
         reactor.start()
     }
-}
 
-internal expect fun initWorker(worker: ZmqWorker): Any
+    public override fun toString(): String = "ZmqWorker(${proxy.address}))"
+}
 
 internal sealed class WorkerEditFunctionQuery
 
