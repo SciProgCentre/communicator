@@ -3,6 +3,8 @@ package space.kscience.communicator.zmq.client
 import co.touchlab.stately.collections.IsoArrayDeque
 import co.touchlab.stately.collections.IsoMutableList
 import co.touchlab.stately.collections.IsoMutableMap
+import mu.KLogger
+import mu.KotlinLogging
 import space.kscience.communicator.api.Payload
 import space.kscience.communicator.api.Transport
 import space.kscience.communicator.zmq.Protocol
@@ -10,9 +12,8 @@ import space.kscience.communicator.zmq.platform.UniqueID
 import space.kscience.communicator.zmq.platform.ZmqContext
 import space.kscience.communicator.zmq.platform.ZmqLoop
 import space.kscience.communicator.zmq.platform.ZmqSocket
+import space.kscience.communicator.zmq.util.runAsync
 import space.kscience.communicator.zmq.util.sendMsg
-import mu.KLogger
-import mu.KotlinLogging
 
 internal const val NEW_QUERIES_QUEUE_UPDATE_INTERVAL = 1
 
@@ -42,7 +43,7 @@ internal class SpecQuery(
 public class ZmqTransport private constructor(
     internal val ctx: ZmqContext = ZmqContext(),
     internal val identity: UniqueID = UniqueID(),
-    internal val identityHash: Int = identity.hashCode(),
+    private val identityHash: Int = identity.hashCode(),
     internal val newQueriesQueue: IsoArrayDeque<Query> = IsoArrayDeque(),
     internal val specQueriesQueue: IsoArrayDeque<SpecQuery> = IsoArrayDeque(),
     internal val queriesInWork: IsoMutableMap<UniqueID, ResultCallback> = IsoMutableMap(),
@@ -58,7 +59,7 @@ public class ZmqTransport private constructor(
     public constructor() : this(ctx = ZmqContext())
 
     init {
-        initClient(this)
+        runAsync(this) { start() }
     }
 
     internal fun start() {
@@ -92,10 +93,11 @@ public class ZmqTransport private constructor(
         active.dispose()
         ctx.close()
     }
+
+    public override fun toString(): String = "ZmqTransport(${identityHash})"
 }
 
 internal expect suspend fun ZmqTransport.respondImpl(address: String, name: String, payload: ByteArray): ByteArray
-internal expect fun initClient(client: ZmqTransport): Any
 
 private fun ZmqTransport.handleQueriesQueue() {
     val query = newQueriesQueue.removeLastOrNull() ?: return
