@@ -9,5 +9,6 @@ include(
     ":communicator-api",
     ":communicator-zmq",
     ":communicator-transport",
+    ":communicator-rsocket",
     ":demo"
 )
