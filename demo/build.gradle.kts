@@ -7,7 +7,7 @@ kotlin {
     jvm()
 
     sourceSets {
-        commonMain.get().dependencies { implementation(project(":communicator-transport")) }
+        commonMain.get().dependencies { implementation(project(":communicator-zmq")) }
 
         val jvmMain by getting {
             dependencies { implementation("org.slf4j:slf4j-simple:$slf4jVersion") }

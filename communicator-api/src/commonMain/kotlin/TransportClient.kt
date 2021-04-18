@@ -5,7 +5,7 @@ import io.ktor.utils.io.core.Closeable
 /**
  * A transport provider for binary endpoints.
  */
-public interface Transport : Closeable {
+public interface TransportClient : Closeable {
     /**
      * Communicates with endpoint by transceiving a payload.
      *
@@ -14,7 +14,7 @@ public interface Transport : Closeable {
      * @param payload the payload to send.
      * @return the received payload.
      */
-    public suspend fun respond(address: String, name: String, payload: Payload): Payload
+    public suspend fun respond(host: String, port: Int, name: String, payload: Payload): Payload
 
     /**
      * Returns a payload function channeling this transport.
@@ -23,10 +23,11 @@ public interface Transport : Closeable {
      * @param name the name of function.
      * @return the freshly created function.
      */
-    public fun channel(address: String, name: String): PayloadFunction = { arg -> respond(address, name, arg) }
+    public fun channel(host: String, port: Int, name: String): PayloadFunction =
+        { arg -> respond(host, port, name, arg) }
 
     /**
      * Disposes this transport.
      */
-    override fun close()
+    public override fun close()
 }

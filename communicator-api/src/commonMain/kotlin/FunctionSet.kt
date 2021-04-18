@@ -11,7 +11,7 @@ import kotlin.reflect.KProperty
  *
  * @property endpoint The endpoint of all functions in this set.
  */
-public abstract class FunctionSet(public val endpoint: Endpoint) {
+public abstract class FunctionSet(public val endpoint: ClientEndpoint) {
     internal val functions: MutableMap<String, FunctionSpec<*, *>> = hashMapOf()
 
     /**
@@ -151,7 +151,7 @@ public suspend operator fun <T, R> FunctionSet.Declaration<T, R>.invoke(client: 
 public inline fun <F, S> F.configure(set: S, action: S.(F) -> Unit): F where F : FunctionServer, S : FunctionSet {
     contract { callsInPlace(action, InvocationKind.EXACTLY_ONCE) }
 
-    require(set.endpoint in endpoints) {
+    require(set.endpoint.toServerEndpoint() in endpoints) {
         "The endpoint ${set.endpoint} of configured set isn't present in function server."
     }
 
