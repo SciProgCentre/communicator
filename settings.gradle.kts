@@ -1,8 +1,13 @@
 rootProject.name = "communicator"
 
 pluginManagement {
+    val dokkaVersion: String by settings
     val kotlinVersion: String by settings
-    plugins { kotlin("multiplatform") version kotlinVersion }
+
+    plugins {
+        id("org.jetbrains.dokka") version dokkaVersion
+        kotlin("multiplatform") version kotlinVersion
+    }
 }
 
 include(
