@@ -7,7 +7,7 @@ import io.ktor.utils.io.core.Closeable
 import kotlinx.coroutines.*
 import mu.KLogger
 import mu.KotlinLogging
-import space.kscience.communicator.api.Endpoint
+import space.kscience.communicator.api.ClientEndpoint
 import space.kscience.communicator.api.FunctionSpec
 import space.kscience.communicator.api.IntCoder
 import space.kscience.communicator.api.PayloadFunction
@@ -19,7 +19,7 @@ import space.kscience.communicator.zmq.util.runAsync
 import space.kscience.communicator.zmq.util.sendMsg
 
 public class ZmqWorker private constructor(
-    internal val proxy: Endpoint,
+    internal val proxy: ClientEndpoint,
     internal val serverFunctions: IsoMutableMap<String, Pair<PayloadFunction, FunctionSpec<*, *>>>,
     private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default,
     internal val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob()),
@@ -29,10 +29,10 @@ public class ZmqWorker private constructor(
     internal val frontend: ZmqSocket = ctx.createDealerSocket(),
     private val reactor: ZmqLoop = ZmqLoop(ctx),
     private val active: IsoMutableList<Int> = IsoMutableList { mutableListOf(0) },
-    internal val logger: KLogger = KotlinLogging.logger("ZmqWorker(${proxy.address})"),
+    internal val logger: KLogger = KotlinLogging.logger("ZmqWorker(${proxy.host}:${proxy.port})"),
 ) : Closeable {
     public constructor(
-        proxy: Endpoint,
+        proxy: ClientEndpoint,
         serverFunctions: MutableMap<String, Pair<PayloadFunction, FunctionSpec<*, *>>>,
         workerDispatcher: CoroutineDispatcher = Dispatchers.Default,
         workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob()),
@@ -99,7 +99,7 @@ public class ZmqWorker private constructor(
         reactor.start()
     }
 
-    public override fun toString(): String = "ZmqWorker(${proxy.address}))"
+    public override fun toString(): String = "ZmqWorker(${proxy.host}:${proxy.port}))"
 }
 
 internal sealed class WorkerEditFunctionQuery

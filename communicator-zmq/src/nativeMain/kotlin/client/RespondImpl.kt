@@ -4,8 +4,9 @@ import kotlinx.coroutines.delay
 import kotlin.native.concurrent.AtomicReference
 import kotlin.native.concurrent.freeze
 
-internal actual suspend fun ZmqTransport.respondImpl(
-    address: String,
+internal actual suspend fun ZmqTransportClient.respondImpl(
+    host: String,
+    port: Int,
     name: String,
     payload: ByteArray
 ): ByteArray {
@@ -13,7 +14,8 @@ internal actual suspend fun ZmqTransport.respondImpl(
 
     makeQuery(Query(
         functionName = name,
-        address = address,
+        host = host,
+        port = port,
         arg = payload,
 
         callback = ResultCallback(

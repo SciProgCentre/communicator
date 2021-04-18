@@ -10,7 +10,7 @@ public interface FunctionServer : Closeable {
     /**
      * The set of endpoints this object serves.
      */
-    public val endpoints: Set<Endpoint>
+    public val endpoints: Set<ServerEndpoint>
 
     /**
      * Registers a function in this server.

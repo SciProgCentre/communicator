@@ -14,10 +14,7 @@ public interface FunctionClient : Closeable {
      * @param name the name of function.
      * @param spec the spec of function.
      */
-    public fun <T, R> getFunction(endpoint: Endpoint, name: String, spec: FunctionSpec<T, R>): suspend (T) -> R
-
-    public fun <T, R> getFunction(remoteFunction: RemoteFunction<T, R>): suspend (T) -> R =
-        getFunction(remoteFunction.endpoint, remoteFunction.name, remoteFunction.spec)
+    public fun <T, R> getFunction(endpoint: ClientEndpoint, name: String, spec: FunctionSpec<T, R>): suspend (T) -> R
 
     /**
      * Disposes this function client.
@@ -33,7 +30,7 @@ public interface FunctionClient : Closeable {
  * @param spec the spec of function.
  */
 public fun <T, R> function(
-    endpoint: Endpoint,
+    endpoint: ClientEndpoint,
     spec: FunctionSpec<T, R>
 ): ReadOnlyProperty<FunctionClient, suspend (T) -> R> =
     ReadOnlyProperty { thisRef, property -> thisRef.getFunction(endpoint, property.name, spec) }

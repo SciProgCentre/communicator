@@ -12,7 +12,7 @@ import space.kscience.communicator.zmq.util.sendMsg
 
 internal class ForwardSocketHandlerArg(
     val socket: ZmqSocket,
-    val clientContext: ZmqTransport,
+    val clientContext: ZmqTransportClient,
 )
 
 internal fun handleForwardSocket(arg: ForwardSocketHandlerArg) = with(arg.clientContext) {

@@ -80,33 +80,6 @@ public object StringCoder : Coder<String> {
     }
 }
 
-public class RemoteFunctionCoder<T, R>(public val functionSpec: FunctionSpec<T, R>) : Coder<RemoteFunction<T, R>> {
-    public override val identity: String
-        get() = "RemoteFunction<${functionSpec.argumentCoder.identity}, ${functionSpec.resultCoder.identity}>"
-
-    public override suspend fun encode(value: RemoteFunction<T, R>): Payload {
-        val out = ByteChannel(true)
-        out.writeInt(value.name.length)
-        out.writePacket(ByteReadPacket(value.name.encodeToByteArray()))
-        out.writeInt(value.endpoint.protocol.length)
-        out.writePacket(ByteReadPacket(value.endpoint.protocol.encodeToByteArray()))
-        out.writeInt(value.endpoint.address.length)
-        out.writePacket(ByteReadPacket(value.endpoint.address.encodeToByteArray()))
-        return out.copyAvailable()
-    }
-
-    public override suspend fun decode(payload: Payload): RemoteFunction<T, R> {
-        val inp = ByteReadChannel(payload)
-        val nameLength = inp.readInt()
-        val name = inp.readPacket(nameLength).readBytes().decodeToString()
-        val protocolLength = inp.readInt()
-        val protocol = inp.readPacket(protocolLength).readBytes().decodeToString()
-        val addressLength = inp.readInt()
-        val address = inp.readPacket(addressLength).readBytes().decodeToString()
-        return RemoteFunction(name, Endpoint(protocol, address), functionSpec)
-    }
-}
-
 /**
  * Allows to create create coders which write the payload size before serialized value.
  *

@@ -18,7 +18,7 @@ import space.kscience.communicator.zmq.util.sendMsg
 
 /**
  * Implements transport server with ZeroMQ-based machinery. Associated client transport is
- * [space.kscience.communicator.zmq.client.ZmqTransport].
+ * [space.kscience.communicator.zmq.client.ZmqTransportClient].
  *
  * The recommended protocol identifier is `ZMQ`.
  */
