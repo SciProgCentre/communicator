@@ -10,17 +10,19 @@ import io.rsocket.kotlin.transport.ktor.client.rSocket
 import space.kscience.communicator.api.Payload
 
 
+public typealias RSocketPayload = io.rsocket.kotlin.payload.Payload
+
+/**
+ * Send a request and receive a reply
+ */
 public class RSocketClient(private val host: String, private val port: Int) {
     private val client: HttpClient = HttpClient(CIO) {
         install(WebSockets)
         install(RSocketSupport)
     }
 
-    public suspend fun respond(payload: Payload): Payload {
+    public suspend fun respond(payload: RSocketPayload): RSocketPayload {
         val rSocket = client.rSocket(host = host, port = port)
-        val answer = rSocket.requestResponse(io.rsocket.kotlin.payload.Payload(ByteReadChannel(payload).readPacket(payload.size)))
-        val answerPayload = Payload(answer.data.remaining.toInt())
-        answer.data.readFully(answerPayload)
-        return answerPayload
+        return rSocket.requestResponse(payload)
     }
 }

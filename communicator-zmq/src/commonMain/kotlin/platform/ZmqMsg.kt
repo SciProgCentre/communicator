@@ -13,7 +13,7 @@ internal expect class ZmqMsg() : Closeable, MutableCollection<ZmqFrame> {
     override fun hashCode(): Int
     override fun toString(): String
 
-    companion object {
-        fun recvMsg(socket: ZmqSocket): ZmqMsg
+    public companion object {
+        internal fun recvMsg(socket: ZmqSocket): ZmqMsg
     }
 }

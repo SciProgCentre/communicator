@@ -1,0 +1,4 @@
+package transport
+
+class RSocketTransportManager {
+}

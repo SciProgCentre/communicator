@@ -6,12 +6,16 @@ plugins { kotlin("multiplatform") }
 kotlin {
     explicitApi()
     jvm()
+    js {
+        browser()
+    }
 
     sourceSets {
         commonMain {
             dependencies {
                 api(project(":communicator-api"))
                 api(project(":communicator-zmq"))
+                api(project(":communicator-transport"))
 
                 api("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
 
@@ -32,6 +36,17 @@ kotlin {
 
             dependencies {
 
+                api(project(":communicator-api"))
+                api(project(":communicator-zmq"))
+            }
+        }
+
+        val jsMain by getting {
+            repositories {
+                jcenter()
+            }
+
+            dependencies {
                 api(project(":communicator-api"))
                 api(project(":communicator-zmq"))
             }

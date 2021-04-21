@@ -11,11 +11,11 @@ internal actual class ZmqMsg(internal val handle: ZMsg) : Closeable, MutableColl
     override val size: Int
         get() = handle.size
 
-    actual fun add(data: ByteArray): Boolean = handle.add(data)
+    public actual fun add(data: ByteArray): Boolean = handle.add(data)
     override fun add(element: ZmqFrame): Boolean = handle.add(element.handle)
-    actual override fun pop(): ZmqFrame = ZmqFrame(handle.pop())
+    public actual override fun pop(): ZmqFrame = ZmqFrame(handle.pop())
 
-    actual fun send(socket: ZmqSocket) {
+    public actual fun send(socket: ZmqSocket) {
         handle.send(socket.handle)
     }
 
@@ -79,11 +79,11 @@ internal actual class ZmqMsg(internal val handle: ZMsg) : Closeable, MutableColl
         }
     }
 
-    actual companion object {
-        actual fun recvMsg(socket: ZmqSocket): ZmqMsg = ZmqMsg(ZMsg.recvMsg(socket.handle))
+    public actual companion object {
+        public actual fun recvMsg(socket: ZmqSocket): ZmqMsg = ZmqMsg(ZMsg.recvMsg(socket.handle))
     }
 
-    actual fun copy(): ZmqMsg = ZmqMsg(handle.duplicate())
+    public actual fun copy(): ZmqMsg = ZmqMsg(handle.duplicate())
 
     actual override fun equals(other: Any?): Boolean {
         if (this === other) return true
