@@ -50,3 +50,21 @@ kotlin {
         }
     }
 }
+println("-----names:")
+sourceSets.forEach{println(it)}
+val runJvmServer by tasks.creating(JavaExec::class) {
+    group = "application"
+    main = "space.kscience.communicator-rsocket.ExampleServerKt"
+}
+
+//val runJvmProxy by tasks.creating(JavaExec::class) {
+//    group = "application"
+////    classpath = sourceSets["main"].runtimeClasspath
+//    main = "space.kscience.communicator.rsocket.ExampleServerKt"
+//}
+
+//val runJvmServer by tasks.creating(Exec) {
+//    commandLine("")
+//}
+
+

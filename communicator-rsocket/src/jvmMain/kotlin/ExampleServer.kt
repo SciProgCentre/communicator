@@ -4,6 +4,7 @@ import kotlinx.coroutines.runBlocking
 import space.kscience.communicator.api.*
 import space.kscience.communicator.transport.TransportFunctionClient
 import space.kscience.communicator.transport.TransportFunctionServer
+import space.kscience.communicator.zmq.client.ZmqTransport
 
 private val endpoint = Endpoint("ZMQ", "127.0.0.1:8888")
 
@@ -21,14 +22,8 @@ public fun main(): Unit = runBlocking {
         it.impl(f) { x -> x * x + 1 }
         it.impl(g) { x -> "a".repeat(x) }
     }
-
-    val client = TransportFunctionClient()
-    println("Calling ${Functions.f}")
-    var result: Any = Functions.f(client, 123)
-    println("Result is $result")
-    println("Calling ${Functions.g}")
-    result = Functions.g(client, 55)
-    println("Result is $result")
+    val jsProxy = JsProxyServer("127.0.0.1", 6789, ZmqTransport(), mapOf(Pair("f", "127.0.0.1:8888")))
+    println("starting proxy...")
+    jsProxy.start()
     server.close()
-    client.close()
 }
