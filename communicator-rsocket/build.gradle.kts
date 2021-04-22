@@ -1,5 +1,5 @@
 internal val kotlinLoggingVersion: String by project
-
+internal val slf4jVersion: String by project
 
 plugins {
     kotlin("multiplatform")
@@ -19,7 +19,7 @@ kotlin {
                 api(project(":communicator-api"))
 
                 api("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
-
+                api("org.slf4j:slf4j-simple:$slf4jVersion")
                 implementation("io.rsocket.kotlin:rsocket-core:0.12.0")
                 implementation("io.rsocket.kotlin:rsocket-transport-ktor:0.12.0")
                 implementation("io.rsocket.kotlin:rsocket-transport-ktor-client:0.12.0")
@@ -31,6 +31,7 @@ kotlin {
                 jcenter()
             }
             dependencies {
+                api("org.slf4j:slf4j-simple:$slf4jVersion")
                 implementation(project(":communicator-zmq"))
                 api(project(":communicator-transport"))
                 implementation("io.ktor:ktor-server-cio:1.4.3")
