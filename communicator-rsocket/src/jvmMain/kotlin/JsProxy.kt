@@ -15,7 +15,6 @@ import io.rsocket.kotlin.transport.ktor.server.rSocket
 import space.kscience.communicator.api.Payload
 import space.kscience.communicator.zmq.client.ZmqTransport
 import transport.RSocketPayload
-import space.kscience.communicator.zmq.platform.ZmqMsg
 
 
 /**

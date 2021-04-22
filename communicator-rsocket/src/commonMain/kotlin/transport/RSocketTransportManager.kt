@@ -1,4 +1,4 @@
 package transport
 
-class RSocketTransportManager {
+public class RSocketTransportManager {
 }
