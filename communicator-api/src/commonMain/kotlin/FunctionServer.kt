@@ -26,7 +26,7 @@ public interface FunctionServer : Closeable {
         name: String,
         spec: FunctionSpec<T, R>,
         function: suspend (T) -> R
-    ): suspend (T) -> R
+    )
 
     /**
      * Unregisters a function from this server.

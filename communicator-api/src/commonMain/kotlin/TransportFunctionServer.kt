@@ -21,10 +21,9 @@ public class TransportFunctionServer(
         name: String,
         spec: FunctionSpec<T, R>,
         function: suspend (T) -> R,
-    ): suspend (T) -> R {
+    ) {
         val payloadFunction = function.toBinary(spec)
         transportServers.forEach { it.register(name, payloadFunction, spec) }
-        return function
     }
 
     public override fun unregister(name: String): Unit = transportServers.forEach { it.unregister(name) }

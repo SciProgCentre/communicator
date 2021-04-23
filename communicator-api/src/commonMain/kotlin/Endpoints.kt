@@ -10,7 +10,7 @@ package space.kscience.communicator.api
 public data class ClientEndpoint(val protocol: String, val host: String, val port: Int)
 
 /**
- * Creates [ServerEndpoint] by given protocol identifier and address string.
+ * Creates [ClientEndpoint] by given protocol identifier and address string.
  *
  * @param address address string in the format "host:port". For example, "localhost:1234" or "127.0.0.1:4321".
  */
@@ -24,7 +24,6 @@ public fun ClientEndpoint(protocol: String, address: String): ClientEndpoint =
  * @property port The port component.
  */
 public data class ServerEndpoint(val protocol: String, val port: Int)
-
 /**
  * Creates [ServerEndpoint] by given protocol identifier and address string.
  *
