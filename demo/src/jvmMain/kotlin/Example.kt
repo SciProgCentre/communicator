@@ -5,8 +5,8 @@ import space.kscience.communicator.zmq.withZmq
 private val endpoint = ClientEndpoint("ZMQ", "127.0.0.1:8888")
 
 private object Functions : FunctionSet(endpoint) {
-    val f by declare(FunctionSpec(IntCoder, IntCoder))
-    val g by declare(FunctionSpec(IntCoder, StringCoder))
+    val f by declare(IntCoder, IntCoder)
+    val g by declare(IntCoder, StringCoder)
 }
 
 /**
@@ -26,6 +26,6 @@ fun main(): Unit = runBlocking {
     println("Calling ${Functions.g}")
     result = Functions.g(client, 55)
     println("Result is $result")
-    server.close()
     client.close()
+    server.close()
 }
