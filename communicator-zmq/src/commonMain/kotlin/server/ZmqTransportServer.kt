@@ -4,6 +4,8 @@ import co.touchlab.stately.collections.IsoArrayDeque
 import co.touchlab.stately.collections.IsoMutableList
 import co.touchlab.stately.collections.IsoMutableMap
 import kotlinx.coroutines.*
+import mu.KLogger
+import mu.KotlinLogging
 import space.kscience.communicator.api.FunctionSpec
 import space.kscience.communicator.api.PayloadFunction
 import space.kscience.communicator.api.TransportServer
@@ -11,13 +13,12 @@ import space.kscience.communicator.zmq.Protocol
 import space.kscience.communicator.zmq.platform.ZmqContext
 import space.kscience.communicator.zmq.platform.ZmqLoop
 import space.kscience.communicator.zmq.platform.ZmqSocket
+import space.kscience.communicator.zmq.util.runAsync
 import space.kscience.communicator.zmq.util.sendMsg
-import mu.KLogger
-import mu.KotlinLogging
 
 /**
  * Implements transport server with ZeroMQ-based machinery. Associated client transport is
- * [space.kscience.communicator.zmq.client.ZmqTransport].
+ * [space.kscience.communicator.zmq.client.ZmqTransportClient].
  *
  * The recommended protocol identifier is `ZMQ`.
  */
@@ -70,7 +71,7 @@ public class ZmqTransportServer private constructor(
     }
 
     init {
-        initServer(this)
+        runAsync(this) { start() }
     }
 
     public override fun register(name: String, function: PayloadFunction, spec: FunctionSpec<*, *>): Unit =
@@ -78,9 +79,9 @@ public class ZmqTransportServer private constructor(
 
     public override fun unregister(name: String): Unit =
         editFunctionQueriesQueue.addFirst(UnregisterFunctionQuery(name))
-}
 
-internal expect fun initServer(server: ZmqTransportServer): Any
+    public override fun toString(): String = "ZmqTransportServer($port)"
+}
 
 internal sealed class EditFunctionQuery
 

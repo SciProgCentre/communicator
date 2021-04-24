@@ -10,7 +10,7 @@ public interface FunctionServer : Closeable {
     /**
      * The set of endpoints this object serves.
      */
-    public val endpoints: Set<Endpoint>
+    public val endpoints: Set<ServerEndpoint>
 
     /**
      * Registers a function in this server.
@@ -26,7 +26,7 @@ public interface FunctionServer : Closeable {
         name: String,
         spec: FunctionSpec<T, R>,
         function: suspend (T) -> R
-    ): suspend (T) -> R
+    )
 
     /**
      * Unregisters a function from this server.

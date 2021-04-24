@@ -12,14 +12,13 @@ import space.kscience.communicator.zmq.util.sendMsg
 
 internal class ForwardSocketHandlerArg(
     val socket: ZmqSocket,
-    val clientContext: ZmqTransport,
+    val clientContext: ZmqTransportClient,
 )
 
 internal fun handleForwardSocket(arg: ForwardSocketHandlerArg) = with(arg.clientContext) {
     logger.info { "Handling result ($identity)." }
     var msg = ZmqMsg.recvMsg(arg.socket).use { it.map(ZmqFrame::data) }
     val type = msg.first().decodeToString()
-    println(msg.map(ByteArray::decodeToString))
     msg = msg.drop(1)
 
     when (type) {

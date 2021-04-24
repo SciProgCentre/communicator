@@ -11,7 +11,7 @@ import kotlin.reflect.KProperty
  *
  * @property endpoint The endpoint of all functions in this set.
  */
-public abstract class FunctionSet(public val endpoint: Endpoint) {
+public abstract class FunctionSet(public val endpoint: ClientEndpoint) {
     internal val functions: MutableMap<String, FunctionSpec<*, *>> = hashMapOf()
 
     /**
@@ -110,18 +110,36 @@ public fun <T, R> declare(spec: FunctionSpec<T, R>): PropertyDelegateProvider<Fu
     }
 
 /**
+ * Returns [PropertyDelegateProvider] providing [FunctionSet.Declaration] objects by using given spec and name of the
+ * property.
+ *
+ * @param T the type the function takes.
+ * @param R the type the function returns.
+ * @param spec the spec of function.
+ * @return a new declaration object.
+ */
+public fun <T, R> declare(
+    argumentCoder: Coder<T>,
+    resultCoder: Coder<R>,
+): PropertyDelegateProvider<FunctionSet, ReadOnlyProperty<FunctionSet, FunctionSet.Declaration<T, R>>> =
+    declare(FunctionSpec(argumentCoder, resultCoder))
+
+/**
  * Registers a function in [FunctionServer] by its implementation and declaration. Warning, endpoint should be added to
  * the function server independently.
  *
  * @receiver the function server.
  * @param declaration the function's declaration.
  * @param function the function's implementation.
- * @receiver the function's implementation.
+ * @return [function].
  */
 public fun <T, R> FunctionServer.impl(
     declaration: FunctionSet.Declaration<T, R>,
     function: suspend (T) -> R,
-): suspend (T) -> R = register(declaration.name, declaration.spec, function)
+): suspend (T) -> R {
+    register(declaration.name, declaration.spec, function)
+    return function
+}
 
 /**
  * Calls function by its declaration in the given client.
@@ -151,7 +169,7 @@ public suspend operator fun <T, R> FunctionSet.Declaration<T, R>.invoke(client: 
 public inline fun <F, S> F.configure(set: S, action: S.(F) -> Unit): F where F : FunctionServer, S : FunctionSet {
     contract { callsInPlace(action, InvocationKind.EXACTLY_ONCE) }
 
-    require(set.endpoint in endpoints) {
+    require(set.endpoint.toServerEndpoint() in endpoints) {
         "The endpoint ${set.endpoint} of configured set isn't present in function server."
     }
 
