@@ -9,22 +9,21 @@ kotlin {
     explicitApi()
     jvm()
 
-    val nativeTargets = when (val hostOs = System.getProperty("os.name")) {
-        "Mac OS X" -> listOf(iosX64(),
-            iosArm32(),
-            iosArm64(),
-            macosX64(),
-            watchosX86(),
-            watchosArm64(),
-            watchosArm32(),
-            tvosX64(),
-            tvosArm64())
-        "Linux" -> listOf(linuxX64())
-        else -> emptyList()
-    }
+    val nativeTargets = listOf(
+        iosX64(),
+        iosArm32(),
+        iosArm64(),
+        macosX64(),
+        watchosX86(),
+        watchosArm64(),
+        watchosArm32(),
+        tvosX64(),
+        tvosArm64(),
+        linuxX64(),
+    )
 
     configure(nativeTargets) {
-        compilations?.get("main")?.cinterops { val libczmq by creating }
+        compilations["main"]?.cinterops { val libczmq by creating }
     }
 
     sourceSets {
