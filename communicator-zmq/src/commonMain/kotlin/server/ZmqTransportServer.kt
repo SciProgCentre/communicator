@@ -3,6 +3,7 @@ package space.kscience.communicator.zmq.server
 import co.touchlab.stately.collections.IsoArrayDeque
 import co.touchlab.stately.collections.IsoMutableList
 import co.touchlab.stately.collections.IsoMutableMap
+import co.touchlab.stately.isolate.StateRunner
 import kotlinx.coroutines.*
 import mu.KLogger
 import mu.KotlinLogging
@@ -13,6 +14,7 @@ import space.kscience.communicator.zmq.Protocol
 import space.kscience.communicator.zmq.platform.ZmqContext
 import space.kscience.communicator.zmq.platform.ZmqLoop
 import space.kscience.communicator.zmq.platform.ZmqSocket
+import space.kscience.communicator.zmq.util.DaemonStateRunner
 import space.kscience.communicator.zmq.util.runAsync
 import space.kscience.communicator.zmq.util.sendMsg
 
@@ -24,18 +26,22 @@ import space.kscience.communicator.zmq.util.sendMsg
  */
 public class ZmqTransportServer private constructor(
     public override val port: Int,
-    internal val serverFunctions: IsoMutableMap<String, Pair<PayloadFunction, FunctionSpec<*, *>>>,
+    private val stateRunner: StateRunner = DaemonStateRunner(),
+
+    internal val serverFunctions: IsoMutableMap<String, Pair<PayloadFunction, FunctionSpec<*, *>>> =
+        IsoMutableMap(stateRunner) { HashMap() },
+
     private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default,
     internal val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob()),
     private val ctx: ZmqContext = ZmqContext(),
-    internal val repliesQueue: IsoArrayDeque<Response> = IsoArrayDeque(),
-    internal val editFunctionQueriesQueue: IsoArrayDeque<EditFunctionQuery> = IsoArrayDeque(),
+    internal val repliesQueue: IsoArrayDeque<Response> = IsoArrayDeque(stateRunner),
+    internal val editFunctionQueriesQueue: IsoArrayDeque<EditFunctionQuery> = IsoArrayDeque(stateRunner),
     internal val frontend: ZmqSocket = ctx.createRouterSocket(),
     private val reactor: ZmqLoop = ZmqLoop(ctx),
-    private val active: IsoMutableList<Int> = IsoMutableList { mutableListOf(0) },
+    private val active: IsoMutableList<Int> = IsoMutableList(stateRunner) { mutableListOf(0) },
     internal val logger: KLogger = KotlinLogging.logger("ZmqTransportServer($port)"),
 ) : TransportServer {
-    public constructor (port: Int) : this(port, IsoMutableMap())
+    public constructor (port: Int) : this(port, stateRunner = DaemonStateRunner())
 
     internal fun start() {
         logger.info { "Starting ZmqTransportServer bound to $port." }

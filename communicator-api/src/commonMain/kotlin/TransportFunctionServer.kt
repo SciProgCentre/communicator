@@ -8,7 +8,7 @@ import kotlin.contracts.contract
  */
 public class TransportFunctionServer(
     private val factory: TransportServerFactory = TransportServerFactory,
-    override val endpoints: Set<ServerEndpoint>,
+    public override val endpoints: Set<ServerEndpoint>,
 ) : FunctionServer {
     public constructor(factory: TransportServerFactory, vararg endpoints: ServerEndpoint) :
             this(factory, endpoints.toSet())

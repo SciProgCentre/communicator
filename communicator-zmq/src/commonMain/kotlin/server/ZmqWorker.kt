@@ -3,6 +3,7 @@ package space.kscience.communicator.zmq.server
 import co.touchlab.stately.collections.IsoArrayDeque
 import co.touchlab.stately.collections.IsoMutableList
 import co.touchlab.stately.collections.IsoMutableMap
+import co.touchlab.stately.isolate.StateRunner
 import io.ktor.utils.io.core.Closeable
 import kotlinx.coroutines.*
 import mu.KLogger
@@ -15,20 +16,22 @@ import space.kscience.communicator.zmq.Protocol
 import space.kscience.communicator.zmq.platform.ZmqContext
 import space.kscience.communicator.zmq.platform.ZmqLoop
 import space.kscience.communicator.zmq.platform.ZmqSocket
+import space.kscience.communicator.zmq.util.DaemonStateRunner
 import space.kscience.communicator.zmq.util.runAsync
 import space.kscience.communicator.zmq.util.sendMsg
 
 public class ZmqWorker private constructor(
     internal val proxy: ClientEndpoint,
+    private val stateRunner: StateRunner = DaemonStateRunner(),
     internal val serverFunctions: IsoMutableMap<String, Pair<PayloadFunction, FunctionSpec<*, *>>>,
     private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default,
     internal val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob()),
     private val ctx: ZmqContext = ZmqContext(),
-    internal val repliesQueue: IsoArrayDeque<Response> = IsoArrayDeque(),
-    internal val editFunctionQueriesQueue: IsoArrayDeque<WorkerEditFunctionQuery> = IsoArrayDeque(),
+    internal val repliesQueue: IsoArrayDeque<Response> = IsoArrayDeque(stateRunner),
+    internal val editFunctionQueriesQueue: IsoArrayDeque<WorkerEditFunctionQuery> = IsoArrayDeque(stateRunner),
     internal val frontend: ZmqSocket = ctx.createDealerSocket(),
     private val reactor: ZmqLoop = ZmqLoop(ctx),
-    private val active: IsoMutableList<Int> = IsoMutableList { mutableListOf(0) },
+    private val active: IsoMutableList<Int> = IsoMutableList(stateRunner) { mutableListOf(0) },
     internal val logger: KLogger = KotlinLogging.logger("ZmqWorker(${proxy.host}:${proxy.port})"),
 ) : Closeable {
     public constructor(
@@ -36,11 +39,13 @@ public class ZmqWorker private constructor(
         serverFunctions: MutableMap<String, Pair<PayloadFunction, FunctionSpec<*, *>>>,
         workerDispatcher: CoroutineDispatcher = Dispatchers.Default,
         workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob()),
+        stateRunner: StateRunner = DaemonStateRunner(),
     ) : this(
-        proxy,
-        IsoMutableMap { serverFunctions },
-        workerDispatcher,
-        workerScope,
+        proxy = proxy,
+        stateRunner = stateRunner,
+        serverFunctions = IsoMutableMap(stateRunner) { serverFunctions },
+        workerDispatcher = workerDispatcher,
+        workerScope = workerScope,
     )
 
     init {

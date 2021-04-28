@@ -3,6 +3,7 @@ package space.kscience.communicator.zmq.client
 import co.touchlab.stately.collections.IsoArrayDeque
 import co.touchlab.stately.collections.IsoMutableList
 import co.touchlab.stately.collections.IsoMutableMap
+import co.touchlab.stately.isolate.StateRunner
 import mu.KLogger
 import mu.KotlinLogging
 import space.kscience.communicator.api.Payload
@@ -12,6 +13,7 @@ import space.kscience.communicator.zmq.platform.UniqueID
 import space.kscience.communicator.zmq.platform.ZmqContext
 import space.kscience.communicator.zmq.platform.ZmqLoop
 import space.kscience.communicator.zmq.platform.ZmqSocket
+import space.kscience.communicator.zmq.util.DaemonStateRunner
 import space.kscience.communicator.zmq.util.runAsync
 import space.kscience.communicator.zmq.util.sendMsg
 
@@ -44,15 +46,16 @@ internal class SpecQuery(
  */
 public class ZmqTransportClient private constructor(
     internal val ctx: ZmqContext = ZmqContext(),
+    private val stateRunner: StateRunner = DaemonStateRunner(),
     internal val identity: UniqueID = UniqueID(),
     private val identityHash: Int = identity.hashCode(),
-    internal val newQueriesQueue: IsoArrayDeque<Query> = IsoArrayDeque(),
-    internal val specQueriesQueue: IsoArrayDeque<SpecQuery> = IsoArrayDeque(),
-    internal val queriesInWork: IsoMutableMap<UniqueID, ResultCallback> = IsoMutableMap(),
-    internal val specQueriesInWork: IsoMutableMap<UniqueID, SpecCallback> = IsoMutableMap(),
-    internal val forwardSockets: IsoMutableMap<Pair<String, Int>, ZmqSocket> = IsoMutableMap(),
+    internal val newQueriesQueue: IsoArrayDeque<Query> = IsoArrayDeque(stateRunner),
+    internal val specQueriesQueue: IsoArrayDeque<SpecQuery> = IsoArrayDeque(stateRunner),
+    internal val queriesInWork: IsoMutableMap<UniqueID, ResultCallback> = IsoMutableMap(stateRunner),
+    internal val specQueriesInWork: IsoMutableMap<UniqueID, SpecCallback> = IsoMutableMap(stateRunner),
+    internal val forwardSockets: IsoMutableMap<Pair<String, Int>, ZmqSocket> = IsoMutableMap(stateRunner),
     internal val reactor: ZmqLoop = ZmqLoop(ctx),
-    internal val active: IsoMutableList<Int> = IsoMutableList { mutableListOf(0) },
+    internal val active: IsoMutableList<Int> = IsoMutableList(stateRunner) { mutableListOf(0) },
     internal val logger: KLogger = KotlinLogging.logger("ZmqTransport($identityHash)"),
 ) : TransportClient {
     public constructor() : this(ctx = ZmqContext())
