@@ -3,6 +3,7 @@
 internal val jeromqVersion: String by project
 internal val kotlinLoggingVersion: String by project
 internal val statelyIsoVersion: String by project
+
 plugins { kotlin("multiplatform") }
 
 kotlin {
