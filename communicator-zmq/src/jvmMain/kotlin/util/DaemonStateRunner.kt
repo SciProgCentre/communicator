@@ -14,11 +14,7 @@ internal actual class DaemonStateRunner : StateRunner {
     actual override fun <R> stateRun(block: () -> R): R {
         val result = stateExecutor.submit(
             Callable {
-                try {
-                    Result.success(block())
-                } catch (e: Throwable) {
-                    Result.failure(e)
-                }
+                runCatching { block() }
             }
         ).get()
 
