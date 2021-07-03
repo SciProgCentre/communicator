@@ -85,7 +85,7 @@ public class ZmqTransportClient private constructor(
     }
 
     internal fun makeQuery(query: Query) {
-        logger.info { "Adding query ${query.functionName} to the internal queue." }
+        //logger.info { "Adding query ${query.functionName} to the internal queue." }
         newQueriesQueue.addFirst(query)
     }
 
@@ -112,7 +112,7 @@ internal expect suspend fun ZmqTransportClient.respondImpl(
 
 private fun ZmqTransportClient.handleQueriesQueue() {
     val query = newQueriesQueue.removeLastOrNull() ?: return
-    logger.info { "Making query ${query.functionName}." }
+    //logger.info { "Making query ${query.functionName}." }
     val id = UniqueID()
     queriesInWork[id] = query.callback
 

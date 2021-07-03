@@ -16,7 +16,7 @@ internal class ForwardSocketHandlerArg(
 )
 
 internal fun handleForwardSocket(arg: ForwardSocketHandlerArg) = with(arg.clientContext) {
-    logger.info { "Handling result ($identity)." }
+    //logger.info { "Handling result ($identity)." }
     var msg = ZmqMsg.recvMsg(arg.socket).use { it.map(ZmqFrame::data) }
     val type = msg.first().decodeToString()
     msg = msg.drop(1)
