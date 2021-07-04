@@ -20,14 +20,14 @@ internal fun ZmqProxy.handleBackend(frontend: ZmqSocket, backend: ZmqSocket) {
             val clientIdentity = receivedQueries[UniqueID(queryID)]
             clientIdentity ?: return
 
-            frontend.sendMsg() {
+            frontend.sendMsg {
                 +clientIdentity
                 +Protocol.Response.Result
                 +queryID
                 +queryResult
             }
 
-            backend.sendMsg() {
+            backend.sendMsg {
                 +workerIdentity
                 +Protocol.Response.Received
                 +queryID
