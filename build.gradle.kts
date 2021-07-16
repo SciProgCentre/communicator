@@ -1,9 +1,10 @@
 import org.jetbrains.dokka.gradle.DokkaPlugin
 import org.jetbrains.dokka.gradle.DokkaTask
+import ru.mipt.npm.gradle.Maturity
 import java.net.URL
 
 plugins {
-    id("org.jetbrains.dokka")
+    id("ru.mipt.npm.gradle.project")
     kotlin("multiplatform") apply false
 }
 
@@ -12,7 +13,6 @@ allprojects {
     version = "0.0.1"
 
     repositories {
-        jcenter()
         mavenCentral()
         mavenLocal()
     }
@@ -25,8 +25,7 @@ subprojects {
     tasks.withType<DokkaTask> {
         dokkaSourceSets.configureEach {
             val readmeFile = File(this@subprojects.projectDir, "./README.md")
-            if (readmeFile.exists())
-                includes.setFrom(includes + readmeFile.absolutePath)
+            if (readmeFile.exists()) includes.from(readmeFile.absolutePath)
 
             sourceLink {
                 localDirectory.set(file("${p.name}/src/main/kotlin"))
@@ -37,4 +36,13 @@ subprojects {
             }
         }
     }
+
+    readme {
+        maturity = Maturity.PROTOTYPE
+    }
+}
+
+ksciencePublish {
+    vcs("https://github.com/mipt-npm/communicator")
+    space(publish = true)
 }
