@@ -1,0 +1,10 @@
+$dokka.format:html-v1
+$dokka.linkExtension:html
+
+module:communicator-api
+space.kscience.communicator.api
+module:communicator-zmq
+space.kscience.communicator.zmq
+space.kscience.communicator.zmq.client
+space.kscience.communicator.zmq.proxy
+space.kscience.communicator.zmq.server
