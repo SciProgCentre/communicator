@@ -14,6 +14,12 @@ jobs:
           graalvm: 21.1.0
           java: java11
           arch: amd64
+      - uses: actions/cache@v2
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('*.gradle.kts') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
       - run: ./gradlew dokkaHtmlMultiModule --no-daemon --no-parallel --stacktrace
       - uses: JamesIves/github-pages-deploy-action@4.1.0
         with:

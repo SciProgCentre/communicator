@@ -1,7 +1,7 @@
 rootProject.name = "communicator"
 
 pluginManagement {
-    val dokkaVersion: String by settings
+    val gradleToolsVersion: String by settings
     val kotlinVersion: String by settings
 
     repositories {
@@ -11,8 +11,7 @@ pluginManagement {
     }
 
     plugins {
-        id("ru.mipt.npm.gradle.project") version "0.10.0"
-        id("org.jetbrains.dokka") version dokkaVersion
+        id("ru.mipt.npm.gradle.project") version gradleToolsVersion
         kotlin("multiplatform") version kotlinVersion
     }
 }

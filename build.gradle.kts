@@ -1,5 +1,5 @@
 import org.jetbrains.dokka.gradle.DokkaPlugin
-import org.jetbrains.dokka.gradle.DokkaTask
+import org.jetbrains.dokka.gradle.DokkaTaskPartial
 import ru.mipt.npm.gradle.Maturity
 import java.net.URL
 
@@ -20,18 +20,29 @@ allprojects {
 
 subprojects {
     val p = this@subprojects
-    if (p.name != "demo")
-    apply<DokkaPlugin>()
-    tasks.withType<DokkaTask> {
-        dokkaSourceSets.configureEach {
-            val readmeFile = File(this@subprojects.projectDir, "./README.md")
-            if (readmeFile.exists()) includes.from(readmeFile.absolutePath)
+    if (p.name != "demo") apply<DokkaPlugin>()
 
-            sourceLink {
-                localDirectory.set(file("${p.name}/src/main/kotlin"))
+    afterEvaluate {
+        tasks.withType<DokkaTaskPartial> {
+            dependsOn(tasks["assemble"])
 
-                remoteUrl.set(
-                    URL("https://github.com/mipt-npm/${rootProject.name}/tree/master/${p.name}/src/main/kotlin/")
+            dokkaSourceSets.configureEach {
+                val readmeFile = p.projectDir.resolve("README.md")
+                if (readmeFile.exists()) includes.from(readmeFile)
+                val kotlinDirPath = "src/$name/kotlin"
+                val kotlinDir = file(kotlinDirPath)
+
+                if (kotlinDir.exists()) sourceLink {
+                    localDirectory.set(kotlinDir)
+
+                    remoteUrl.set(
+                        URL("https://github.com/mipt-npm/${rootProject.name}/tree/master/${p.name}/$kotlinDirPath")
+                    )
+                }
+
+                externalDocumentationLink(
+                    "https://api.ktor.io/ktor-io/",
+                    "https://api.ktor.io/ktor-io/ktor-io/package-list",
                 )
             }
         }
@@ -43,6 +54,6 @@ subprojects {
 }
 
 ksciencePublish {
-    vcs("https://github.com/mipt-npm/communicator")
+    vcs("https://github.com/mipt-npm/${rootProject.name}")
     space(publish = true)
 }
