@@ -40,7 +40,7 @@ internal actual class ZmqLoop private constructor(internal val handle: ZLoop) {
         handle.start()
     }
 
-    actual class Argument<T : Any> actual constructor(actual val value: T) : Closeable {
+    actual class Argument<out T : Any> actual constructor(actual val value: T) : Closeable {
         actual override fun close(): Unit = Unit
     }
 }

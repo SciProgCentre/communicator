@@ -18,7 +18,7 @@ internal expect class ZmqLoop(ctx: ZmqContext) {
 
     fun start()
 
-    class Argument<T : Any>(value: T) : Closeable {
+    class Argument<out T : Any>(value: T) : Closeable {
         val value: T
         override fun close()
     }
