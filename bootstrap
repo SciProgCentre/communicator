@@ -5,9 +5,12 @@ mkdir -p kotlin-logging
 cd kotlin-logging || exit
 git init
 git remote add origin https://github.com/MicroUtils/kotlin-logging.git
-git fetch origin 7af97dbd4c79a3bf92cb4eacd4ca8abc0a6e217c
+git fetch origin f3accf3d28ceb6223f51377220ef259a251e5125
 git reset --hard FETCH_HEAD
 sed -i 's/\r$//' ./gradlew
+
+sed -i -e 's/sign(publishing.publications)/ /g' ./build.gradle.kts
+
 chmod +x ./gradlew
 ./gradlew publishToMavenLocal -Dorg.gradle.jvmargs=-XX:MaxMetaspaceSize=512m --no-daemon --stacktrace
 cd ..

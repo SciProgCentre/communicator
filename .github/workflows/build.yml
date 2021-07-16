@@ -33,12 +33,8 @@ jobs:
       - if: matrix.os == 'macos-10.15'
         run: chmod +x ./bootstrap && ./bootstrap
       - if: matrix.os == 'ubuntu-20.04'
-        run: sudo apt install -y libczmq-dev gcc-multilib
-      - if: matrix.os == 'ubuntu-20.04'
         run: |
-          sudo apt install -y libappindicator1 fonts-liberation
+          sudo apt install -y libczmq-dev gcc-multilib libappindicator1 fonts-liberation
           wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
           sudo dpkg -i google-chrome*.deb
-      - if: matrix.os == 'windows-2019'
-        run: SETX PATH "%PATH%;C:\msys64\mingw64\bin"
       - run: ./gradlew build --no-daemon --stacktrace
