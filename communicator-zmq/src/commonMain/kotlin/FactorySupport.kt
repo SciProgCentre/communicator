@@ -1,20 +1,17 @@
 package space.kscience.communicator.zmq
 
-import space.kscience.communicator.api.TransportClientFactory
-import space.kscience.communicator.api.TransportServerFactory
+import space.kscience.communicator.api.*
 import space.kscience.communicator.zmq.client.ZmqTransportClient
 import space.kscience.communicator.zmq.server.ZmqTransportServer
 
 /**
- * Creates a new [TransportClientFactory] which handles ZMQ protocol name by binding it [ZmqTransportClient].
+ * Creates a new [TransportFactory] which handles ZMQ protocol name by binding it to [ZmqTransportClient] and
+ * [ZmqTransportServer].
  */
-public fun TransportClientFactory.withZmq(): TransportClientFactory = TransportClientFactory {
-    if (it == "ZMQ") ZmqTransportClient() else this[it]
-}
+public fun TransportFactory.zmq(): TransportFactory = object : TransportFactory {
+    override fun client(protocol: String): TransportClient? =
+        if (protocol == "ZMQ") ZmqTransportClient() else this@zmq.client(protocol)
 
-/**
- * Creates a new [TransportServerFactory] which handles ZMQ protocol name by binding it [ZmqTransportServer].
- */
-public fun TransportServerFactory.withZmq(): TransportServerFactory = TransportServerFactory { protocol, port ->
-    if (protocol == "ZMQ") ZmqTransportServer(port) else this[protocol, port]
+    override fun server(protocol: String, port: Int): TransportServer? =
+        if (protocol == "ZMQ") ZmqTransportServer(port) else this@zmq.server(protocol, port)
 }

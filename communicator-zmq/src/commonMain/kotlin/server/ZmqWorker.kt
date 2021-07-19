@@ -9,8 +9,8 @@ import kotlinx.coroutines.*
 import mu.KLogger
 import mu.KotlinLogging
 import space.kscience.communicator.api.ClientEndpoint
-import space.kscience.communicator.api.FunctionSpec
-import space.kscience.communicator.api.IntCoder
+import space.kscience.communicator.api.Codec
+import space.kscience.communicator.api.IntCodec
 import space.kscience.communicator.api.PayloadFunction
 import space.kscience.communicator.zmq.Protocol
 import space.kscience.communicator.zmq.platform.ZmqContext
@@ -23,7 +23,7 @@ import space.kscience.communicator.zmq.util.sendMsg
 public class ZmqWorker private constructor(
     internal val proxy: ClientEndpoint,
     private val stateRunner: StateRunner = DaemonStateRunner(),
-    internal val serverFunctions: IsoMutableMap<String, Pair<PayloadFunction, FunctionSpec<*, *>>>,
+    internal val serverFunctions: IsoMutableMap<String, Triple<PayloadFunction, Codec<*>, Codec<*>>>,
     private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default,
     internal val workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob()),
     private val ctx: ZmqContext = ZmqContext(),
@@ -36,7 +36,7 @@ public class ZmqWorker private constructor(
 ) : Closeable {
     public constructor(
         proxy: ClientEndpoint,
-        serverFunctions: MutableMap<String, Pair<PayloadFunction, FunctionSpec<*, *>>>,
+        serverFunctions: MutableMap<String, Triple<PayloadFunction, Codec<*>, Codec<*>>>,
         workerDispatcher: CoroutineDispatcher = Dispatchers.Default,
         workerScope: CoroutineScope = CoroutineScope(workerDispatcher + SupervisorJob()),
         stateRunner: StateRunner = DaemonStateRunner(),
@@ -55,7 +55,7 @@ public class ZmqWorker private constructor(
     /**
      * Stops and disposes this worker.
      */
-    public override fun close() {
+    override fun close() {
         workerScope.cancel("Proxy is being stopped.")
         serverFunctions.dispose()
         ctx.close()
@@ -66,12 +66,12 @@ public class ZmqWorker private constructor(
 
         frontend.sendMsg {
             +Protocol.Worker.Register
-            +IntCoder.encode(serverFunctions.size)
+            +IntCodec.encode(serverFunctions.size)
 
-            serverFunctions.mapValues { it.value.second }.forEach {
-                +it.key
-                +it.value.argumentCoder.identity
-                +it.value.resultCoder.identity
+            serverFunctions.mapValues { (_, v) -> v.second to v.third }.forEach { (k, v) ->
+                +k
+                +v.first.identity
+                +v.second.identity
             }
         }
 
@@ -104,7 +104,7 @@ public class ZmqWorker private constructor(
         reactor.start()
     }
 
-    public override fun toString(): String = "ZmqWorker(${proxy.host}:${proxy.port}))"
+    override fun toString(): String = "ZmqWorker(${proxy.host}:${proxy.port}))"
 }
 
 internal sealed class WorkerEditFunctionQuery
@@ -112,7 +112,8 @@ internal sealed class WorkerEditFunctionQuery
 private class WorkerRegisterFunctionQuery(
     val name: String,
     val function: PayloadFunction,
-    val spec: FunctionSpec<*, *>,
+    val argumentCodec: Codec<*>,
+    val resultCodec: Codec<*>,
 ) : WorkerEditFunctionQuery()
 
 private class WorkerUnregisterFunctionQuery(val name: String) : WorkerEditFunctionQuery()
@@ -156,7 +157,7 @@ private fun ZmqWorker.handleEditFunctionQueue() {
 
         when (editFunctionMessage) {
             is WorkerRegisterFunctionQuery -> serverFunctions[editFunctionMessage.name] =
-                editFunctionMessage.function to editFunctionMessage.spec
+                Triple(editFunctionMessage.function, editFunctionMessage.argumentCodec, editFunctionMessage.resultCodec)
 
             is WorkerUnregisterFunctionQuery -> serverFunctions -= editFunctionMessage.name
         }
