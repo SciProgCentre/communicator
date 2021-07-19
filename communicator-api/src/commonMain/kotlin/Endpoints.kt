@@ -24,6 +24,7 @@ public fun ClientEndpoint(protocol: String, address: String): ClientEndpoint =
  * @property port The port component.
  */
 public data class ServerEndpoint(val protocol: String, val port: Int)
+
 /**
  * Creates [ServerEndpoint] by given protocol identifier and address string.
  *

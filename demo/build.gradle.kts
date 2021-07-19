@@ -1,7 +1,11 @@
 @file:Suppress("UNUSED_VARIABLE")
 
 internal val slf4jVersion: String by project
-plugins { kotlin(module = "multiplatform") }
+
+plugins {
+    kotlin("multiplatform")
+    kotlin("plugin.serialization")
+}
 
 kotlin {
     jvm()

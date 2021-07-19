@@ -5,32 +5,51 @@ import kotlin.properties.ReadOnlyProperty
 
 /**
  * Represents function client that is able to provide named functions for given endpoint and specification.
+ *
+ * Implementation is based on [TransportClient] objects provided by [TransportFactory].
  */
-public interface FunctionClient : Closeable {
+public class FunctionClient(internal val factory: TransportFactory) : Closeable {
+    internal val transportCache: MutableMap<String, TransportClient> = hashMapOf()
+
     /**
      * Constructs a `suspend` function that calls the function server.
      *
      * @param endpoint the endpoint of server.
      * @param name the name of function.
-     * @param spec the spec of function.
+     * @param argumentCodec the codec of [T].
+     * @param resultCodec the codec of [R].
+     * @return the result function.
      */
-    public fun <T, R> getFunction(endpoint: ClientEndpoint, name: String, spec: FunctionSpec<T, R>): suspend (T) -> R
+    public fun <T : Any, R : Any> getFunction(
+        endpoint: ClientEndpoint,
+        name: String,
+        argumentCodec: Codec<T>,
+        resultCodec: Codec<R>,
+    ): suspend (T) -> R = transportCache
+        .getOrPut(endpoint.protocol) {
+            factory.client(endpoint.protocol) ?: error("Protocol ${endpoint.protocol} is not supported by this client.")
+        }
+        .channel(endpoint.host, endpoint.port, name)
+        .toFunction(argumentCodec, resultCodec)
 
     /**
      * Disposes this function client.
      */
-    override fun close()
+    override fun close(): Unit = transportCache.values.forEach(TransportClient::close)
 }
 
 /**
  * Returns object that uses [FunctionClient.getFunction] to receive function object. The name of function is equal
  * to name of property.
  *
+ * @receiver the client to get function from.
  * @param endpoint the endpoint of server.
- * @param spec the spec of function.
+ * @param argumentCodec the codec of [T].
+ * @param resultCodec the codec of [R].
  */
-public fun <T, R> function(
+public fun <T : Any, R : Any> FunctionClient.function(
     endpoint: ClientEndpoint,
-    spec: FunctionSpec<T, R>
-): ReadOnlyProperty<FunctionClient, suspend (T) -> R> =
-    ReadOnlyProperty { thisRef, property -> thisRef.getFunction(endpoint, property.name, spec) }
+    argumentCodec: Codec<T>,
+    resultCodec: Codec<R>,
+): ReadOnlyProperty<Any?, suspend (T) -> R> =
+    ReadOnlyProperty { _, property -> getFunction(endpoint, property.name, argumentCodec, resultCodec) }

@@ -2,8 +2,12 @@
 
 internal val junitVersion: String by project
 internal val ktorVersion: String by project
+internal val serializationVersion: String by project
 
-plugins { kotlin(module = "multiplatform") }
+plugins {
+    kotlin("multiplatform")
+    kotlin("plugin.serialization")
+}
 
 kotlin {
     explicitApi()
@@ -20,11 +24,17 @@ kotlin {
             with(languageSettings) {
                 useExperimentalAnnotation("kotlin.ExperimentalUnsignedTypes")
                 useExperimentalAnnotation("kotlin.contracts.ExperimentalContracts")
+                useExperimentalAnnotation("kotlinx.serialization.ExperimentalSerializationApi")
+                useExperimentalAnnotation("kotlinx.serialization.InternalSerializationApi")
             }
         }
 
         commonMain {
-            dependencies { api("io.ktor:ktor-io:$ktorVersion") }
+            dependencies {
+                api("org.jetbrains.kotlinx:kotlinx-serialization-cbor:$serializationVersion")
+                api("org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion")
+                api("io.ktor:ktor-io:$ktorVersion")
+            }
         }
 
         commonTest {

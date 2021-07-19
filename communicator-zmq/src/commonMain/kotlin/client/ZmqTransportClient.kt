@@ -64,7 +64,7 @@ public class ZmqTransportClient private constructor(
         runAsync(this) { start() }
     }
 
-    public override suspend fun respond(host: String, port: Int, name: String, payload: Payload): Payload =
+    override suspend fun respond(host: String, port: Int, name: String, payload: Payload): Payload =
         respondImpl(host, port, name, payload)
 
 
@@ -89,7 +89,7 @@ public class ZmqTransportClient private constructor(
         newQueriesQueue.addFirst(query)
     }
 
-    public override fun close() {
+    override fun close() {
         logger.info { "Stopping and cleaning up." }
         active[0] = -1
         newQueriesQueue.dispose()
@@ -100,7 +100,7 @@ public class ZmqTransportClient private constructor(
         ctx.close()
     }
 
-    public override fun toString(): String = "ZmqTransport(${identityHash})"
+    override fun toString(): String = "ZmqTransport(${identityHash})"
 }
 
 internal expect suspend fun ZmqTransportClient.respondImpl(
@@ -116,7 +116,7 @@ private fun ZmqTransportClient.handleQueriesQueue() {
     val id = UniqueID()
     queriesInWork[id] = query.callback
 
-    getForwardSocket(query.host , query.port).sendMsg {
+    getForwardSocket(query.host, query.port).sendMsg {
         +Protocol.Query
         +id
         +query.arg

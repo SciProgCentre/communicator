@@ -11,23 +11,33 @@ import kotlin.reflect.KProperty
  *
  * @property endpoint The endpoint of all functions in this set.
  */
-public abstract class FunctionSet(public val endpoint: ClientEndpoint) {
-    internal val functions: MutableMap<String, FunctionSpec<*, *>> = hashMapOf()
+public open class FunctionSet(public val endpoint: ClientEndpoint) {
+    internal val functions: MutableMap<String, Pair<Codec<*>, Codec<*>>> = hashMapOf()
 
     /**
      * Represents a declaration of function in the set.
      *
+     * @param T the type the function takes.
+     * @param R the type the function returns.
      * @property owner The set where the function was declared.
      * @property name Tha name of function.
-     * @property spec The spec of the function.
      */
     @Suppress("UNCHECKED_CAST")
-    public data class Declaration<T, R> internal constructor(
+    public data class Declaration<T : Any, R : Any> internal constructor(
         val owner: FunctionSet,
         val name: String,
     ) {
-        val spec: FunctionSpec<T, R>
-            get() = owner.functions[name] as FunctionSpec<T, R>
+        /**
+         * The codec of [T].
+         */
+        val argumentCodec: Codec<T>
+            get() = checkNotNull(owner.functions[name]) { "Can't find function $name in $owner." }.first as Codec<T>
+
+        /**
+         * The codec of [R].
+         */
+        val resultCodec: Codec<R>
+            get() = checkNotNull(owner.functions[name]) { "Can't find function $name in $owner." }.second as Codec<R>
     }
 
     /**
@@ -36,15 +46,20 @@ public abstract class FunctionSet(public val endpoint: ClientEndpoint) {
      * @param T the type the function takes.
      * @param R the type the function returns.
      * @param name the name of function.
-     * @param spec the spec of function.
+     * @param argumentCodec the codec of [T].
+     * @param resultCodec the codec of [R].
      * @return a new declaration object.
      */
-    public fun <T, R> declare(name: String, spec: FunctionSpec<T, R>): Declaration<T, R> {
-        functions[name] = spec
+    public fun <T : Any, R : Any> declare(
+        name: String,
+        argumentCodec: Codec<T>,
+        resultCodec: Codec<R>,
+    ): Declaration<T, R> {
+        functions[name] = argumentCodec to resultCodec
         return Declaration(this, name)
     }
 
-    public override fun toString(): String = "FunctionSet(endpoint='$endpoint', functions=$functions)"
+    override fun toString(): String = "FunctionSet(endpoint='$endpoint', functions=$functions)"
 }
 
 /**
@@ -57,16 +72,17 @@ public abstract class FunctionSet(public val endpoint: ClientEndpoint) {
  * @return the function invoked by client.
  */
 @Suppress("UNCHECKED_CAST")
-public operator fun <T, R> FunctionSet.getValue(
+public operator fun <T : Any, R : Any> FunctionSet.getValue(
     thisRef: FunctionClient,
     property: KProperty<*>,
 ): suspend (T) -> R {
     val name = property.name
 
-    val spec =
-        checkNotNull(functions[name] as? FunctionSpec<T, R>) { "Cannot find function $name in function set $this." }
+    val (argumentCodec, resultCodec) = checkNotNull(functions[name] as? Pair<Codec<T>, Codec<R>>) {
+        "Cannot find function $name in function set $this."
+    }
 
-    return thisRef.getFunction(endpoint, property.name, spec)
+    return thisRef.getFunction(endpoint, property.name, argumentCodec, resultCodec)
 }
 
 /**
@@ -78,51 +94,29 @@ public operator fun <T, R> FunctionSet.getValue(
  * @param property the property.
  * @return the function invoked by client.
  */
-public operator fun <T, R> FunctionSet.Declaration<T, R>.getValue(
+public operator fun <T : Any, R : Any> FunctionSet.Declaration<T, R>.getValue(
     thisRef: FunctionClient,
     property: KProperty<*>,
 ): suspend (T) -> R = owner.getValue(thisRef, property)
 
 /**
- * Creates a function, stores it and return declaration object pointing to this set.
- *
- * @param T the type the function takes.
- * @param R the type the function returns.
- * @param nameToSpec pair of the name and the spec of function.
- * @return a new declaration object.
- */
-public fun <T, R> FunctionSet.declare(nameToSpec: Pair<String, FunctionSpec<T, R>>): FunctionSet.Declaration<T, R> =
-    declare(nameToSpec.first, nameToSpec.second)
-
-/**
  * Returns [PropertyDelegateProvider] providing [FunctionSet.Declaration] objects by using given spec and name of the
  * property.
  *
  * @param T the type the function takes.
  * @param R the type the function returns.
- * @param spec the spec of function.
+ * @param argumentCodec the codec of [T].
+ * @param resultCodec the codec of [R].
  * @return a new declaration object.
  */
-public fun <T, R> declare(spec: FunctionSpec<T, R>): PropertyDelegateProvider<FunctionSet, ReadOnlyProperty<FunctionSet, FunctionSet.Declaration<T, R>>> =
+public fun <T : Any, R : Any> declare(
+    argumentCodec: Codec<T>,
+    resultCodec: Codec<R>,
+): PropertyDelegateProvider<FunctionSet, ReadOnlyProperty<FunctionSet, FunctionSet.Declaration<T, R>>> =
     PropertyDelegateProvider { thisRef, property ->
-        val d = thisRef.declare(property.name to spec)
+        val d = thisRef.declare(property.name, argumentCodec, resultCodec)
         ReadOnlyProperty { _, _ -> d }
     }
-
-/**
- * Returns [PropertyDelegateProvider] providing [FunctionSet.Declaration] objects by using given spec and name of the
- * property.
- *
- * @param T the type the function takes.
- * @param R the type the function returns.
- * @param spec the spec of function.
- * @return a new declaration object.
- */
-public fun <T, R> declare(
-    argumentCoder: Coder<T>,
-    resultCoder: Coder<R>,
-): PropertyDelegateProvider<FunctionSet, ReadOnlyProperty<FunctionSet, FunctionSet.Declaration<T, R>>> =
-    declare(FunctionSpec(argumentCoder, resultCoder))
 
 /**
  * Registers a function in [FunctionServer] by its implementation and declaration. Warning, endpoint should be added to
@@ -133,11 +127,11 @@ public fun <T, R> declare(
  * @param function the function's implementation.
  * @return [function].
  */
-public fun <T, R> FunctionServer.impl(
+public fun <T : Any, R : Any> FunctionServer.impl(
     declaration: FunctionSet.Declaration<T, R>,
     function: suspend (T) -> R,
 ): suspend (T) -> R {
-    register(declaration.name, declaration.spec, function)
+    register(declaration.name, declaration.argumentCodec, declaration.resultCodec, function)
     return function
 }
 
@@ -152,21 +146,23 @@ public fun <T, R> FunctionServer.impl(
  * @return the result of the function.
  */
 @Suppress("RedundantSuspendModifier")
-public suspend operator fun <T, R> FunctionSet.Declaration<T, R>.invoke(client: FunctionClient, arg: T): R =
-    client.getFunction(owner.endpoint, name, spec)(arg)
+public suspend operator fun <T : Any, R : Any> FunctionSet.Declaration<T, R>.invoke(client: FunctionClient, arg: T): R =
+    client.getFunction(owner.endpoint, name, argumentCodec, resultCodec)(arg)
 
 /**
  * Configures this function server with provided function set receiver. It is usually needed to provide functions to
  * the server with [impl].
  *
  * @receiver the function server.
- * @param F the type of function server.
  * @param S the type of function set.
  * @param set the set object.
  * @param action the lambda to apply.
  * @return this function server.
  */
-public inline fun <F, S> F.configure(set: S, action: S.(F) -> Unit): F where F : FunctionServer, S : FunctionSet {
+public inline fun <S> FunctionServer.configure(
+    set: S,
+    action: S.(FunctionServer) -> Unit,
+): FunctionServer where S : FunctionSet {
     contract { callsInPlace(action, InvocationKind.EXACTLY_ONCE) }
 
     require(set.endpoint.toServerEndpoint() in endpoints) {

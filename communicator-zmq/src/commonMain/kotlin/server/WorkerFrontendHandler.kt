@@ -46,8 +46,11 @@ internal fun ZmqWorker.handleWorkerFrontend() {
         }
 
         Protocol.IncompatibleSpecsFailure -> {
-            val (functionName, argCoder, resultCoder) = msg
-            logger.warn { "INCOMPATIBLE_SPECS_FAILURE functionName=$functionName argCoder=$argCoder resultCoder=$resultCoder" }
+            val (functionName, argCodec, resultCodec) = msg
+
+            logger.warn {
+                "INCOMPATIBLE_SPECS_FAILURE functionName=$functionName argCodec=$argCodec resultCodec=$resultCodec"
+            }
         }
 
         else -> logger.warn { "Unknown message type: $type" }
