@@ -18,6 +18,8 @@ pluginManagement {
 
 include(
     ":communicator-api",
+    ":communicator-pretty-api",
     ":communicator-zmq",
     ":demo",
+    ":demo2",
 )

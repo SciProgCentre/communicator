@@ -165,7 +165,7 @@ public inline fun <S> FunctionServer.configure(
 ): FunctionServer where S : FunctionSet {
     contract { callsInPlace(action, InvocationKind.EXACTLY_ONCE) }
 
-    require(set.endpoint.toServerEndpoint() in endpoints) {
+    require(set.endpoint in endpoints) {
         "The endpoint ${set.endpoint} of configured set isn't present in function server."
     }
 

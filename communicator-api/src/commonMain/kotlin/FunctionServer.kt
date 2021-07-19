@@ -16,8 +16,8 @@ public class FunctionServer(
     public constructor(factory: TransportFactory, vararg endpoints: ServerEndpoint) :
             this(factory, endpoints.toSet())
 
-    internal val transportServers: List<TransportServer> = endpoints.map { (protocol, port) ->
-        factory.server(protocol, port) ?: error("Protocol $protocol is not supported.")
+    internal val transportServers: List<TransportServer> = endpoints.map { endpoint ->
+        factory.server(endpoint.protocol, endpoint.port) ?: error("Protocol ${endpoint.protocol} is not supported.")
     }
 
     /**
@@ -63,6 +63,6 @@ public inline fun <S> FunctionServer(
     action: S.(FunctionServer) -> Unit,
 ): FunctionServer where S : FunctionSet {
     contract { callsInPlace(action, InvocationKind.EXACTLY_ONCE) }
-    val t = FunctionServer(factory, set.endpoint.toServerEndpoint())
+    val t = FunctionServer(factory, set.endpoint)
     return t.configure(set, action)
 }

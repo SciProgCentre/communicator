@@ -325,3 +325,34 @@ public class CborCodec<T : Any> constructor(
  * @property format The [Cbor] instance.
  */
 public inline fun <reified T : Any> CborCodec(format: Cbor = Cbor): CborCodec<T> = CborCodec(T::class, format)
+
+public object ClientEndpointCodec : Codec<ClientEndpoint> {
+    private val impl = TripleCodec(StringCodec, StringCodec, IntCodec)
+
+    override val identity: String
+        get() = "common/endpoint"
+
+    override suspend fun decode(payload: Payload): Pair<ClientEndpoint, Int> {
+        val (triple, length) = impl.decode(payload)
+        val (protocol, host, port) = triple
+        return ClientEndpoint(protocol, host, port) to length
+    }
+
+    override suspend fun encode(value: ClientEndpoint): Payload =
+        impl.encode(Triple(value.protocol, value.host, value.port))
+}
+
+public class FunctionReferenceCodec(public val argumentCodec: Codec<*>, public val resultCodec: Codec<*>) :
+    Codec<FunctionReference> {
+    private val impl = PairCodec(ClientEndpointCodec, StringCodec)
+    override val identity: String
+        get() = "common/function<${argumentCodec.identity},${resultCodec.identity}>"
+
+    override suspend fun decode(payload: Payload): Pair<FunctionReference, Int> {
+        val (pair, length) = impl.decode(payload)
+        val (endpoint, name) = pair
+        return FunctionReference(endpoint, name) to length
+    }
+
+    override suspend fun encode(value: FunctionReference): Payload = impl.encode(value.endpoint to value.name)
+}
