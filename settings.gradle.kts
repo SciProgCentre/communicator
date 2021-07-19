@@ -23,3 +23,5 @@ include(
     ":demo",
     ":demo2",
 )
+
+includeBuild("communicator-pretty-api/plugin")
