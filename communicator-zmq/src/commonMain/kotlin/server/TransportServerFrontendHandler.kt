@@ -37,6 +37,8 @@ internal fun ZmqTransportServer.handleFrontend() {
                         val result = serverFunction(argBytes)
                         repliesQueue.addFirst(ResponseResult(clientIdentity, queryID, result))
                     } catch (ex: Exception) {
+                        logger.debug(ex) { "Exception from server function ($clientIdentity)" }
+                        ex.printStackTrace() // TODO remove me
                         repliesQueue.addFirst(ResponseException(clientIdentity, queryID, ex.message.orEmpty()))
                     }
                 }
