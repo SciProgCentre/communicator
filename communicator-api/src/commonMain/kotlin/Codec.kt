@@ -73,6 +73,6 @@ public fun <T : Any, R : Any> PayloadFunction.toFunction(
     try {
         resultCodec.decode(res).first
     } catch (ex: Exception) {
-        throw DecodingException(res, resultCodec, ex.message.orEmpty())
+        throw DecodingException(res, resultCodec, ex)
     }
 }
