@@ -145,7 +145,7 @@ public class PairCodec<A : Any, B : Any>(
     public val codecOfB: Codec<B>,
 ) : Codec<Pair<A, B>> {
     override val identity: String
-        get() = "common/tuple<${codecOfA.identity},${codecOfB.identity}>"
+        get() = "common/pair<${codecOfA.identity},${codecOfB.identity}>"
 
     override suspend fun encode(value: Pair<A, B>): Payload {
         val out = ByteChannel(true)
@@ -175,7 +175,7 @@ public class TripleCodec<A : Any, B : Any, C : Any>(
     public val codecOfC: Codec<C>,
 ) : Codec<Triple<A, B, C>> {
     override val identity: String
-        get() = "common/tuple<${codecOfA.identity},${codecOfB.identity},${codecOfC.identity}>"
+        get() = "common/triple<${codecOfA.identity},${codecOfB.identity},${codecOfC.identity}>"
 
     override suspend fun encode(value: Triple<A, B, C>): Payload {
         val out = ByteChannel(true)
@@ -194,40 +194,6 @@ public class TripleCodec<A : Any, B : Any, C : Any>(
         fragment = fragment.sliceArray(lengthOfB until fragment.size)
         val (c, lengthOfC) = codecOfC.decode(fragment)
         return Triple(a, b, c) to lengthOfA + lengthOfB + lengthOfC
-    }
-}
-
-/**
- * Binds [List] to `common/tuple<T1,T2...>`.
- *
- * @property codecs The codecs of tuple elements.
- */
-public class TupleCodec(public val codecs: List<Codec<*>>) : Codec<List<Any>> {
-    public constructor(vararg codecs: Codec<*>) : this(codecs.toList())
-
-    override val identity: String
-        get() = "common/tuple<${codecs.joinToString(",", transform = Codec<*>::identity)}>"
-
-    override suspend fun decode(payload: Payload): Pair<List<Any>, Int> {
-        var fragment = payload
-        val objects = ArrayList<Any>(codecs.size)
-        var overallLength = 0
-
-        for (it in codecs) {
-            val (decoded, length) = it.decode(fragment)
-            objects += decoded
-            fragment = fragment.sliceArray(length until fragment.size)
-            overallLength += length
-        }
-
-        return objects to overallLength
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    override suspend fun encode(value: List<Any>): Payload {
-        val out = ByteChannel(true)
-        value.zip(codecs).forEach { (element, codec) -> out.writeFully((codec as Codec<Any>).encode(element)) }
-        return out.copyAvailable()
     }
 }
 
