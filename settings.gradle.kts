@@ -1,18 +1,23 @@
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+enableFeaturePreview("VERSION_CATALOGS")
 rootProject.name = "communicator"
 
-pluginManagement {
-    val gradleToolsVersion: String by settings
-    val kotlinVersion: String by settings
+pluginManagement.repositories {
+    mavenCentral()
+    gradlePluginPortal()
+    maven("https://repo.kotlin.link")
+}
 
+dependencyResolutionManagement {
     repositories {
-        mavenCentral()
-        gradlePluginPortal()
         maven("https://repo.kotlin.link")
+        mavenCentral()
+        mavenLocal()
+        gradlePluginPortal()
     }
 
-    plugins {
-        id("ru.mipt.npm.gradle.project") version gradleToolsVersion
-        kotlin("multiplatform") version kotlinVersion
+    versionCatalogs.create("miptNpm") {
+        from("ru.mipt.npm:version-catalog:0.10.2")
     }
 }
 

@@ -1,12 +1,8 @@
 @file:Suppress("UNUSED_VARIABLE")
 
-internal val junitVersion: String by project
-internal val ktorVersion: String by project
-internal val serializationVersion: String by project
-
 plugins {
-    kotlin("multiplatform")
-    kotlin("plugin.serialization")
+    id(miptNpm.plugins.kotlin.multiplatform.get().pluginId)
+    id(miptNpm.plugins.kotlin.plugin.serialization.get().pluginId)
 }
 
 kotlin {
@@ -31,9 +27,9 @@ kotlin {
 
         commonMain {
             dependencies {
-                api("org.jetbrains.kotlinx:kotlinx-serialization-cbor:$serializationVersion")
-                api("org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion")
-                api("io.ktor:ktor-io:$ktorVersion")
+                api(miptNpm.kotlinx.serialization.cbor)
+                api(miptNpm.kotlinx.serialization.json)
+                api(miptNpm.ktor.io)
             }
         }
 
@@ -47,7 +43,7 @@ kotlin {
         val jvmTest by getting {
             dependencies {
                 implementation(kotlin("test-junit5"))
-                implementation("org.junit.jupiter:junit-jupiter:$junitVersion")
+                implementation(libs.junit.jupiter)
             }
         }
 

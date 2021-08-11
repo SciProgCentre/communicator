@@ -1,10 +1,6 @@
 @file:Suppress("UNUSED_VARIABLE")
 
-internal val jeromqVersion: String by project
-internal val kotlinLoggingVersion: String by project
-internal val statelyIsoVersion: String by project
-
-plugins { kotlin("multiplatform") }
+plugins { id(miptNpm.plugins.kotlin.multiplatform.get().pluginId) }
 
 kotlin {
     explicitApi()
@@ -20,15 +16,15 @@ kotlin {
 
         commonMain {
             dependencies {
-                api(project(":communicator-api"))
-                api("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
-                api("co.touchlab:stately-isolate:$statelyIsoVersion")
-                api("co.touchlab:stately-iso-collections:$statelyIsoVersion")
+                api(projects.communicatorApi)
+                api(libs.kotlin.logging)
+                api(libs.stately.isolate)
+                api(libs.stately.iso.collections)
             }
         }
 
         val jvmMain by getting {
-            dependencies { api("org.zeromq:jeromq:$jeromqVersion") }
+            dependencies { api(libs.jeromq) }
         }
     }
 }

@@ -1,20 +1,18 @@
 @file:Suppress("UNUSED_VARIABLE")
 
-internal val slf4jVersion: String by project
-
 plugins {
-    kotlin("multiplatform")
-    kotlin("plugin.serialization")
+    id(miptNpm.plugins.kotlin.multiplatform.get().pluginId)
+    id(miptNpm.plugins.kotlin.plugin.serialization.get().pluginId)
 }
 
 kotlin {
     jvm()
 
     sourceSets {
-        commonMain.get().dependencies { implementation(project(":communicator-zmq")) }
+        commonMain.get().dependencies { implementation(projects.communicatorZmq) }
 
         val jvmMain by getting {
-            dependencies { implementation("org.slf4j:slf4j-simple:$slf4jVersion") }
+            dependencies { implementation(libs.slf4j.simple) }
         }
     }
 }

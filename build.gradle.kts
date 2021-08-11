@@ -4,8 +4,7 @@ import ru.mipt.npm.gradle.Maturity
 import java.net.URL
 
 plugins {
-    id("ru.mipt.npm.gradle.project")
-    kotlin("multiplatform") apply false
+    alias(miptNpm.plugins.gradle.project)
 }
 
 allprojects {
@@ -48,9 +47,8 @@ subprojects {
         }
     }
 
-    readme {
-        maturity = Maturity.PROTOTYPE
-    }
+    // Setting each project as PROTOTYPE temporary
+    readme.maturity = Maturity.PROTOTYPE
 }
 
 ksciencePublish {

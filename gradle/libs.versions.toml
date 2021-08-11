@@ -1,0 +1,18 @@
+[versions]
+jeromq = "0.5.2"
+junit-jupiter = "5.7.2"
+kotlin-logging = "2.0.10"
+slf4j = "1.7.32"
+stately-isolate = "1.1.7-a1"
+
+[libraries]
+jeromq = { module = "org.zeromq:jeromq", version.ref = "jeromq" }
+
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
+
+kotlin-logging = { module = "io.github.microutils:kotlin-logging", version.ref = "kotlin-logging" }
+
+stately-isolate = { module = "co.touchlab:stately-isolate", version.ref = "stately-isolate" }
+stately-iso-collections = { module = "co.touchlab:stately-iso-collections", version.ref = "stately-isolate" }
+
+slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
