@@ -9,7 +9,8 @@ public interface TransportClient : Closeable {
     /**
      * Communicates with endpoint by transceiving a payload.
      *
-     * @param address the address to channel.
+     * @param host the host to channel.
+     * @param port the port to channel.
      * @param name the name of function.
      * @param payload the payload to send.
      * @return the received payload.
@@ -19,7 +20,8 @@ public interface TransportClient : Closeable {
     /**
      * Returns a payload function channeling this transport.
      *
-     * @param address the address to channel.
+     * @param host the host to channel.
+     * @param port the port to channel.
      * @param name the name of function.
      * @return the freshly created function.
      */
@@ -29,5 +31,5 @@ public interface TransportClient : Closeable {
     /**
      * Disposes this transport.
      */
-    public override fun close()
+    override fun close()
 }

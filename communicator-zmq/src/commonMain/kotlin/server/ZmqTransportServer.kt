@@ -7,7 +7,7 @@ import co.touchlab.stately.isolate.StateRunner
 import kotlinx.coroutines.*
 import mu.KLogger
 import mu.KotlinLogging
-import space.kscience.communicator.api.FunctionSpec
+import space.kscience.communicator.api.Codec
 import space.kscience.communicator.api.PayloadFunction
 import space.kscience.communicator.api.TransportServer
 import space.kscience.communicator.zmq.Protocol
@@ -25,10 +25,10 @@ import space.kscience.communicator.zmq.util.sendMsg
  * The recommended protocol identifier is `ZMQ`.
  */
 public class ZmqTransportServer private constructor(
-    public override val port: Int,
+    override val port: Int,
     private val stateRunner: StateRunner = DaemonStateRunner(),
 
-    internal val serverFunctions: IsoMutableMap<String, Pair<PayloadFunction, FunctionSpec<*, *>>> =
+    internal val serverFunctions: IsoMutableMap<String, Triple<PayloadFunction, Codec<*>, Codec<*>>> =
         IsoMutableMap(stateRunner) { HashMap() },
 
     private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default,
@@ -66,7 +66,7 @@ public class ZmqTransportServer private constructor(
         reactor.start()
     }
 
-    public override fun close() {
+    override fun close() {
         logger.info { "Stopping and cleaning up." }
         active[0] = -1
         workerScope.cancel("Transport server is being stopped.")
@@ -80,18 +80,25 @@ public class ZmqTransportServer private constructor(
         runAsync(this) { start() }
     }
 
-    public override fun register(name: String, function: PayloadFunction, spec: FunctionSpec<*, *>): Unit =
-        editFunctionQueriesQueue.addFirst(RegisterFunctionQuery(name, function, spec))
+    override fun register(
+        name: String,
+        function: PayloadFunction,
+        argumentCodec: Codec<*>,
+        resultCodec: Codec<*>,
+    ): Unit = editFunctionQueriesQueue.addFirst(RegisterFunctionQuery(name, function, argumentCodec, resultCodec))
 
-    public override fun unregister(name: String): Unit =
-        editFunctionQueriesQueue.addFirst(UnregisterFunctionQuery(name))
-
-    public override fun toString(): String = "ZmqTransportServer($port)"
+    override fun unregister(name: String): Unit = editFunctionQueriesQueue.addFirst(UnregisterFunctionQuery(name))
+    override fun toString(): String = "ZmqTransportServer($port)"
 }
 
 internal sealed class EditFunctionQuery
 
-private class RegisterFunctionQuery(val name: String, val function: PayloadFunction, val spec: FunctionSpec<*, *>) :
+private class RegisterFunctionQuery(
+    val name: String,
+    val function: PayloadFunction,
+    val argumentCodec: Codec<*>,
+    val resultCodec: Codec<*>,
+) :
     EditFunctionQuery()
 
 private class UnregisterFunctionQuery(val name: String) : EditFunctionQuery()
@@ -134,7 +141,7 @@ private fun ZmqTransportServer.handleEditFunctionQueue() {
 
         when (editFunctionMessage) {
             is RegisterFunctionQuery -> this@handleEditFunctionQueue.serverFunctions[editFunctionMessage.name] =
-                editFunctionMessage.function to editFunctionMessage.spec
+                Triple(editFunctionMessage.function, editFunctionMessage.argumentCodec, editFunctionMessage.resultCodec)
 
             is UnregisterFunctionQuery -> this@handleEditFunctionQueue.serverFunctions -= editFunctionMessage.name
         }

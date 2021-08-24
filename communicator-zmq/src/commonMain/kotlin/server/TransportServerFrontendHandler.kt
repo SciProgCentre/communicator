@@ -44,19 +44,24 @@ internal fun ZmqTransportServer.handleFrontend() {
 
         Protocol.Coder.IdentityQuery -> {
             val (functionName) = msg
-            val functionSpec = serverFunctions[functionName.decodeToString()]?.second
+
+            val (_, argumentCodec, resultCodec) = serverFunctions[functionName.decodeToString()] ?: Triple(
+                null,
+                null,
+                null,
+            )
 
             frontend.sendMsg {
                 +clientIdentity
 
-                if (functionSpec == null) {
+                if (argumentCodec == null || resultCodec == null) {
                     +Protocol.Coder.IdentityNotFound
                     +functionName
                 } else {
                     +Protocol.Coder.IdentityFound
                     +functionName
-                    +functionSpec.argumentCoder.identity.encodeToByteArray()
-                    +functionSpec.resultCoder.identity.encodeToByteArray()
+                    +argumentCodec.identity.encodeToByteArray()
+                    +resultCodec.identity.encodeToByteArray()
                 }
             }
         }

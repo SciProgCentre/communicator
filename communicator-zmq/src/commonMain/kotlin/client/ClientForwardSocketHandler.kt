@@ -59,9 +59,9 @@ internal fun handleForwardSocket(arg: ForwardSocketHandlerArg) = with(arg.client
         }
 
         Protocol.Coder.IdentityFound -> {
-            val (queryID, argCoderIdentity, resultCoderIdentity) = msg
+            val (queryID, argCodecIdentity, resultCodecIdentity) = msg
             val callback = specQueriesInWork[UniqueID(queryID)] ?: return
-            callback.onSpecFound(argCoderIdentity.decodeToString(), resultCoderIdentity.decodeToString())
+            callback.onSpecFound(argCodecIdentity.decodeToString(), resultCodecIdentity.decodeToString())
         }
 
         Protocol.Coder.IdentityNotFound -> {
